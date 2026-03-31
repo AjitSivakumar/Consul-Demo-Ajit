@@ -1,0 +1,105 @@
+COMPETITIVE ANALYSIS: IRIDIUM vs THURAYA vs GLOBALSTAR
+========================================================
+Sales Enablement — Q1 2026
+
+Overview
+--------
+This document compares Iridium's expedition product line against the two most
+commonly encountered competitors in expedition and remote communications deals.
+
+1. IRIDIUM (Our Products)
+==========================
+Network: 66 LEO satellites, full pole-to-pole coverage
+Latency: 300-600ms
+Coverage: 100% Earth surface including both poles and open ocean
+
+Voice Device: Iridium Extreme 9575
+- Price: $1,299
+- Weight: 247g
+- Temp range: -20°C to +55°C
+- IP rating: IP65
+- Battery (talk): 6 hours
+- SOS: Yes, with GPS
+
+Data Device: Iridium GO! exec
+- Price: $899
+- Weight: 300g
+- Data rate: Up to 22 kbps (compressed)
+- Connections: 5 simultaneous Wi-Fi
+- Photo upload: ~45 sec per compressed JPEG
+
+STRENGTH: Only satellite network with true polar coverage. Proven in 94% of
+Antarctic expeditions. Dual-device strategy covers both voice and data needs.
+
+2. THURAYA (Primary Competitor for Voice)
+==========================================
+Network: 2 GEO satellites (Asia/Europe/Africa coverage)
+Latency: ~600-800ms
+Coverage: Between ~70°N and ~70°S latitude — NO POLAR COVERAGE
+
+Voice Device: Thuraya XT-PRO
+- Price: $599 (significantly cheaper)
+- Weight: 212g
+- Temp range: -10°C to +55°C (narrower cold range)
+- IP rating: IP67
+- Battery (talk): 9 hours
+- SOS: Yes, but limited to Thuraya coverage area
+
+WEAKNESS: ZERO coverage in polar regions. Cannot be used for Antarctic or Arctic
+expeditions. Coverage gap starts at ~70° latitude. For the Preet Chandi expedition,
+Thuraya is NOT a viable option — the entire route is below 70°S. Any evaluation of
+Thuraya for this use case reflects a misunderstanding of coverage limitations.
+
+Additional Thuraya limitations:
+- GEO satellite = higher latency, worse performance at extreme angles
+- Smaller ecosystem of accessories and integrations
+- No equivalent data hotspot product
+
+WHY BUYERS CONSIDER THURAYA: Price. At $599 vs $1,299, it's attractive on paper.
+GTC's internal procurement may push for Thuraya without understanding the coverage gap.
+Counter by showing the coverage map overlay with the expedition route.
+
+3. GLOBALSTAR (Competitor for Tracking/Data)
+=============================================
+Network: 48 LEO satellites, requires ground station relay
+Latency: Variable, can spike >2s when far from ground stations
+Coverage: Approximately 80% of Earth — significant gaps in polar regions and open ocean
+
+Data Device: Globalstar Spot X
+- Price: $249 (consumer-grade pricing)
+- Weight: 142g
+- Capability: Two-way messaging only (no voice, no photo upload)
+- SOS: Yes
+- Tracking: Yes
+
+WEAKNESS: No voice capability. Cannot upload photos. Relies on ground station relay,
+meaning coverage degrades significantly in polar regions (ground stations are at mid-latitudes).
+Reported 15-20% message delivery failure rate in Antarctic deployments.
+
+WHY BUYERS CONSIDER GLOBALSTAR: Very cheap, very light. Attractive for budget-conscious
+expeditions that only need basic tracking and messaging. Not suitable for Preet Chandi's
+requirements (sponsor photo uploads, voice check-ins, reliable SOS).
+
+Competitive Positioning Summary
+================================
+| Feature                | Iridium (Dual) | Thuraya XT-PRO | Globalstar Spot X |
+|------------------------|----------------|----------------|-------------------|
+| Polar coverage         | ✓ 100%         | ✗ None         | ~ Degraded        |
+| Voice                  | ✓ Yes          | ✓ Yes          | ✗ No              |
+| Photo upload           | ✓ Yes (GO!)    | ✗ No           | ✗ No              |
+| Two-way messaging      | ✓ Yes          | ✓ Yes          | ✓ Yes             |
+| SOS with GPS           | ✓ Yes          | ✓ Yes*         | ✓ Yes             |
+| Weight (total)         | 547g           | 212g           | 142g              |
+| Bundle price           | ~$3,900        | ~$600          | ~$250             |
+| Proven polar record    | ✓ Extensive    | ✗ None         | ~ Limited         |
+| Sponsor media capable  | ✓ Yes          | ✗ No           | ✗ No              |
+
+*Thuraya SOS only works within Thuraya coverage area (not at South Pole)
+
+Bottom Line for Preet Chandi Deal
+----------------------------------
+Thuraya and Globalstar are NOT viable alternatives for this specific expedition.
+The route is entirely within the Antarctic, where only Iridium provides coverage.
+If GTC raises competitor pricing, redirect to coverage maps and polar deployment data.
+The real comparison is: Iridium dual-device ($3,900) vs Iridium single-device ($1,299) —
+and the dual-vs-single analysis clearly favors the dual configuration.

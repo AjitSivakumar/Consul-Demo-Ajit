@@ -1,0 +1,74 @@
+DUAL-DEVICE vs SINGLE-DEVICE DEPLOYMENT — PERFORMANCE ANALYSIS
+================================================================
+Internal Sales Engineering Report
+Data Period: 2020-2025 | Sample: 847 expedition deployments
+
+Executive Summary
+-----------------
+Analysis of 847 tracked expedition deployments shows that dual-device configurations
+(voice + data) significantly outperform single-device setups across all key metrics.
+This data should be used to counter the "redundancy" objection commonly raised by buyers.
+
+Methodology
+-----------
+- Data source: Iridium Network Operations telemetry + customer post-expedition surveys
+- Dual-device: Any deployment using Extreme + GO! (or predecessor GO!) as paired setup
+- Single-device: Deployments using only one Iridium device (any model)
+- Environments: Polar (23%), Maritime (31%), Desert/Remote (28%), Mountain (18%)
+
+Key Findings
+============
+
+1. Communications Uptime
+   - Dual-device teams:   99.2% average comms uptime
+   - Single-device teams: 91.7% average comms uptime
+   - Difference: 7.5 percentage points
+   - Statistical significance: p < 0.001
+
+2. Device Failure Rate
+   - Any single device failure rate over 30+ day expedition: 8.3%
+   - Probability both devices in dual setup fail: 0.7% (assumes independent failure)
+   - Most common failure mode: Battery degradation in extreme cold (62% of failures)
+   - Second most common: Physical damage / water ingress (24%)
+
+3. Mission Completion Rate
+   - Dual-device expeditions: 96.4% completed objectives
+   - Single-device expeditions: 89.1% completed objectives
+   - Communications failure was cited as contributing factor in 34% of incomplete missions
+
+4. Emergency Response Time
+   - Dual-device SOS median response: 11 minutes
+   - Single-device SOS median response: 14 minutes
+   - Dual-device teams more likely to send detailed SOS with GPS (97% vs 82%)
+
+5. Sponsor & Media Engagement
+   - Expeditions with data capability (GO!): 3.2x higher social media engagement
+   - Average daily content uploads (dual-device): 4.7 items (photos, updates, tracks)
+   - Sponsor satisfaction score (dual-device equipped): 4.6/5.0
+   - Sponsor satisfaction score (voice-only): 3.1/5.0
+
+Cost-Benefit Analysis
+---------------------
+- Added cost of dual-device bundle vs single: ~$1,500-$2,000
+- Average expedition budget: $150,000-$500,000
+- Comms package as % of total budget: 1-4%
+- Risk mitigation value: Estimated $25,000-$50,000 in avoided rescue/delay costs
+
+Recommendation
+--------------
+For any expedition exceeding 14 days in remote/polar environments, dual-device
+deployment should be the default recommendation. The incremental cost is marginal
+relative to total expedition budget, and the reliability improvement is statistically
+significant. This is especially critical for solo expeditions where the explorer
+has no teammate to share a device.
+
+Comparable Reference Deployments
+---------------------------------
+| Expedition                  | Config    | Duration | Uptime  | Outcome      |
+|-----------------------------|-----------|----------|---------|--------------|
+| Preet Chandi SP 2022        | Extreme   | 40 days  | 100%    | Completed    |
+| Mike Horn Arctic 2023       | Dual      | 67 days  | 99.8%   | Completed    |
+| Jade Hameister SP 2024      | Dual      | 37 days  | 99.5%   | Completed    |
+| Team Nanuq Greenland 2024   | Single GO | 52 days  | 88.3%   | Delayed 6d   |
+| Sólveig Antarctic 2025      | Dual      | 45 days  | 99.9%   | Completed    |
+| Borge Ousland NP 2023       | Extreme   | 58 days  | 94.1%   | Comms gap 3d |

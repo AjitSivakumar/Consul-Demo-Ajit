@@ -1,0 +1,68 @@
+IRIDIUM GO! exec — PRODUCT SPECIFICATION SHEET
+================================================
+
+Overview
+--------
+The Iridium GO! exec is a portable satellite hotspot that creates a personal Wi-Fi zone
+connecting up to 5 smartphones or tablets simultaneously via the Iridium satellite network.
+Unlike the Extreme (voice-first), the GO! exec is optimized for data-rich applications:
+photo upload, weather map download, social media posting, and email with attachments.
+
+Key Specifications
+------------------
+- Weight: 300 g (10.6 oz)
+- Dimensions: 120 × 82 × 24 mm
+- Operating temperature: -20°C to +55°C
+- Ingress protection: IP68 (submersible to 1m for 30 min)
+- MIL-STD 810H certified
+- Battery: Lithium-polymer, 3,500mAh
+- Hotspot active time: Up to 7 hours
+- Standby: Up to 16 hours
+
+Connectivity
+------------
+- Wi-Fi hotspot: 802.11b/g/n, range ~30m
+- Simultaneous connections: Up to 5 devices
+- Data throughput: Up to 22 kbps (compressed), ~168 kbps (burst, Certus 100 mode)
+- Photo upload: Compressed JPEG (~200KB) in ~45 seconds
+- SOS: Built-in emergency button with GPS
+- Tracking: Configurable position reports every 3-60 minutes
+
+Companion App
+-------------
+- Available for iOS and Android
+- Push-to-talk voice via VoIP over satellite
+- Messaging (SMS bridge, email)
+- Photo compression and upload queue
+- Weather overlay with GRIB file download
+- Track sharing with live map
+
+Use Case: Expedition Media & Logistics
+--------------------------------------
+The GO! exec is the preferred device when the expedition team needs to:
+  1. Upload daily progress photos for sponsors / social media
+  2. Download weather forecast maps and GRIB data
+  3. Send/receive email with attachments (route plans, medical reports)
+  4. Run tracking for base camp to monitor team position
+
+Deployment History — Polar Expeditions
+--------------------------------------
+- Used by Preet Chandi 2022 South Pole solo crossing for daily Instagram photo uploads
+- National Geographic polar photography teams: standard kit 2023-2025
+- Expeditions using GO! for media reported 3.2x higher sponsor engagement vs voice-only
+- Average daily data transfer per expedition: 1.4 MB (photos + weather)
+
+Pricing (Enterprise / Expedition Rate Card Q1 2026)
+---------------------------------------------------
+- Device unit cost: $899 MSRP
+- Expedition data bundle (device + 100 MB data + 200 SBD): $1,750
+- Enterprise volume (10+ units): $749/unit
+- GTC preferred partner discount: 12% off MSRP, 10% off data plans
+- Extended warranty (3yr): $149/unit
+
+Dual-Device Bundle (Extreme + GO! exec)
+-----------------------------------------
+- Bundle price: $3,899 (saves $299 vs separate purchase)
+- Bundle airtime: 500 min voice + 100 MB data + 400 SBD: $3,299/year
+- GTC expedition package (2 devices + airtime + 3yr warranty): $6,499
+  → Recommended configuration for Preet Chandi South Pole 2026

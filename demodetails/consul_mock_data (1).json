@@ -1,0 +1,98 @@
+{
+  "page": {
+    "title": "Iridium × GTC",
+    "subtitle": "Pre-client prep",
+    "context": "Preet Chandi South Pole expedition · Device strategy",
+    "consul_status": "Listening now"
+  },
+  "sources": [
+    { "type": "prod", "label": "product → Extreme spec" },
+    { "type": "prod", "label": "product → GO! architecture docs" },
+    { "type": "int",  "label": "internal → expedition deployments 2022–2024" },
+    { "type": "web",  "label": "web → polar comms research" }
+  ],
+  "sections": [
+    {
+      "id": "01",
+      "title": "Product capability comparison — why Preet needs both devices",
+      "type": "device_comparison",
+      "data": {
+        "devices": [
+          {
+            "id": "extreme",
+            "name": "Iridium Extreme",
+            "badge": "Recommended",
+            "badge_type": "primary",
+            "subtitle": "Primary communications device",
+            "features": [
+              { "name": "Voice calls",  "status": "supported",   "label": "Native" },
+              { "name": "Voice blogs",  "status": "supported",   "label": "Native" },
+              { "name": "GPS tracking", "status": "supported",   "label": "Integrated" },
+              { "name": "SOS button",   "status": "supported",   "label": "One-touch" },
+              { "name": "Photo upload", "status": "unsupported", "label": "Not supported" },
+              { "name": "Weight",       "status": "neutral",     "label": "247 g" }
+            ]
+          },
+          {
+            "id": "go",
+            "name": "Iridium GO!",
+            "badge": "Secondary",
+            "badge_type": "secondary",
+            "subtitle": "Content & data companion",
+            "features": [
+              { "name": "Voice calls",  "status": "unsupported", "label": "Requires paired device" },
+              { "name": "Voice blogs",  "status": "unsupported", "label": "Requires paired device" },
+              { "name": "GPS tracking", "status": "supported",   "label": "Supported" },
+              { "name": "SOS button",   "status": "unsupported", "label": "Not available" },
+              { "name": "Photo upload", "status": "supported",   "label": "Native" },
+              { "name": "Weight",       "status": "neutral",     "label": "~160 g" }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "02",
+      "title": "GO! operates passively — Preet only touches one device",
+      "type": "insight",
+      "data": {
+        "insight": {
+          "text": "The Iridium GO! functions as a passive satellite hotspot. Once configured before departure it runs in the background for the entire expedition — no direct interaction required in the field. The only device Preet physically handles on the ice is the Extreme. Two devices in the kit. One device in her hands.",
+          "source": "Iridium GO! architecture docs — passive mode setup guide"
+        },
+        "metrics": [
+          { "label": "Devices in kit",             "value": "2" },
+          { "label": "Devices in hand on the ice", "value": "1" },
+          { "label": "Combined weight",            "value": "407 g" }
+        ]
+      }
+    },
+    {
+      "id": "03",
+      "title": "Dual-device deployments: 94% mission success vs 71% single-device",
+      "type": "bar_chart",
+      "data": {
+        "chart": {
+          "title": "Dual vs single-device expedition deployments",
+          "source": "Internal Iridium sales data — expedition deployments 2022–2024",
+          "footnote": "External: 68% of polar expedition comms failures traced to single-point-of-failure device setups.",
+          "labels": ["Mission completion", "Comms uptime", "Content delivery", "No critical failures"],
+          "datasets": [
+            {
+              "id": "dual",
+              "label": "Dual-device",
+              "color": "#185FA5",
+              "data": [94, 98, 91, 96]
+            },
+            {
+              "id": "single",
+              "label": "Single-device",
+              "color": "#c8a090",
+              "data": [71, 79, 43, 68]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

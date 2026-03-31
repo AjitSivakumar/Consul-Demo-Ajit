@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consul — Post-Meeting Deliverables · Iridium × GTC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F5F3EE;
+    --surface: #FDFCF9;
+    --surface2: #F0EDE6;
+    --ink: #1A1916;
+    --ink2: #5A574F;
+    --ink3: #9A9790;
+    --accent: #1A1916;
+    --teal: #0D6E56;
+    --teal-bg: #E2F4EE;
+    --teal-mid: #1D9E75;
+    --purple: #3C3489;
+    --purple-bg: #EEEDFE;
+    --amber: #854F0B;
+    --amber-bg: #FAEEDA;
+    --blue: #185FA5;
+    --blue-bg: #E6F1FB;
+    --border: rgba(26,25,22,0.1);
+    --border2: rgba(26,25,22,0.06);
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Syne', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* ── TOP NAV ── */
+  .nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(245,243,238,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2.5rem;
+    display: flex; align-items: center; height: 52px;
+    gap: 2rem;
+  }
+  .nav-logo {
+    font-family: 'DM Serif Display', serif;
+    font-size: 18px; letter-spacing: -0.3px;
+    color: var(--ink);
+  }
+  .nav-meta {
+    font-size: 12px; color: var(--ink3);
+    border-left: 1px solid var(--border); padding-left: 1.5rem;
+  }
+  .nav-meta span { color: var(--ink2); }
+  .nav-status {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; color: var(--teal);
+    font-family: 'DM Mono', monospace;
+  }
+  .nav-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--teal-mid);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; } 50% { opacity: 0.4; }
+  }
+
+  /* ── HERO ── */
+  .hero {
+    padding: 3rem 2.5rem 2rem;
+    border-bottom: 1px solid var(--border);
+    display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 2rem;
+  }
+  .hero-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; color: var(--ink3);
+    letter-spacing: 0.08em; text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+  .hero-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(28px, 4vw, 42px);
+    line-height: 1.1; letter-spacing: -0.5px;
+    color: var(--ink);
+  }
+  .hero-title em { font-style: italic; color: var(--ink2); }
+  .hero-meta {
+    display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;
+  }
+  .hero-chip {
+    font-size: 12px; padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: 20px; color: var(--ink2);
+    background: var(--surface);
+  }
+  .hero-stats {
+    display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
+  }
+  .hero-stat-num {
+    font-family: 'DM Serif Display', serif;
+    font-size: 36px; line-height: 1; color: var(--ink);
+  }
+  .hero-stat-label { font-size: 11px; color: var(--ink3); text-align: right; }
+
+  /* ── MOCK DATA BANNER ── */
+  .mock-banner {
+    margin: 2rem 2.5rem;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+    display: grid; grid-template-columns: auto 1fr; gap: 1rem;
+    background: var(--surface);
+  }
+  .mock-icon {
+    width: 36px; height: 36px;
+    background: var(--amber-bg);
+    border-radius: var(--radius-sm);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .mock-content h4 {
+    font-size: 13px; font-weight: 600; color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .mock-content p { font-size: 12px; color: var(--ink2); line-height: 1.6; }
+  .mock-content p strong { color: var(--ink); font-weight: 600; }
+
+  /* ── MAIN LAYOUT ── */
+  .main { padding: 0 2.5rem 4rem; display: flex; flex-direction: column; gap: 2rem; margin-top: 0; }
+
+  /* ── SECTION WRAPPER ── */
+  .section { opacity: 0; animation: fadeUp 0.4s forwards; }
+  .section:nth-child(1) { animation-delay: 0.1s; }
+  .section:nth-child(2) { animation-delay: 0.2s; }
+  .section:nth-child(3) { animation-delay: 0.3s; }
+  .section:nth-child(4) { animation-delay: 0.4s; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .card-head {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border2);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .elem-badge {
+    width: 28px; height: 28px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px; font-weight: 500; flex-shrink: 0;
+  }
+  .e1 { background: var(--teal-bg); color: var(--teal); }
+  .e2 { background: var(--purple-bg); color: var(--purple); }
+  .e3 { background: var(--amber-bg); color: var(--amber); }
+  .e4 { background: var(--blue-bg); color: var(--blue); }
+  .card-head-title {
+    font-size: 14px; font-weight: 600; color: var(--ink); flex: 1;
+  }
+  .card-head-sub {
+    font-size: 11px; color: var(--ink3);
+    font-family: 'DM Mono', monospace;
+  }
+  .card-body { padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+
+  /* ── INFO BLOCKS ── */
+  .info-block {
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    padding: 1rem 1.125rem;
+  }
+  .info-label {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--ink3);
+    margin-bottom: 6px;
+    font-family: 'DM Mono', monospace;
+  }
+  .info-text { font-size: 13px; color: var(--ink); line-height: 1.6; }
+
+  /* ── DATA GRID ── */
+  .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* ── CAPABILITY TABLE ── */
+  .cap-table { width: 100%; font-size: 12px; border-collapse: collapse; }
+  .cap-table th {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.07em;
+    text-transform: uppercase; color: var(--ink3);
+    padding: 6px 8px; text-align: left;
+    font-family: 'DM Mono', monospace;
+    border-bottom: 1px solid var(--border);
+  }
+  .cap-table td { padding: 7px 8px; border-bottom: 1px solid var(--border2); color: var(--ink2); }
+  .cap-table tr:last-child td { border-bottom: none; }
+  .cap-table td:first-child { color: var(--ink); font-weight: 500; }
+  .check { color: var(--teal-mid); font-weight: 700; }
+  .cross { color: #C7421A; }
+
+  /* ── BAR CHART ── */
+  .bar-chart { display: flex; flex-direction: column; gap: 10px; }
+  .bar-item { display: flex; flex-direction: column; gap: 4px; }
+  .bar-meta { display: flex; justify-content: space-between; align-items: baseline; }
+  .bar-label { font-size: 12px; color: var(--ink2); }
+  .bar-val-label { font-size: 13px; font-weight: 700; font-family: 'DM Mono', monospace; }
+  .bar-track { height: 8px; background: var(--border2); border-radius: 4px; overflow: hidden; border: 1px solid var(--border2); }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width 1s cubic-bezier(0.4,0,0.2,1); }
+  .bar-teal { background: var(--teal-mid); }
+  .bar-gray { background: #B4B2A9; }
+  .bar-note { font-size: 10px; color: var(--ink3); margin-top: 4px; font-family: 'DM Mono', monospace; }
+
+  /* ── KEY FINDING ── */
+  .finding {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 0.875rem 1rem;
+    background: var(--teal-bg);
+    border-radius: var(--radius-sm);
+    border-left: 3px solid var(--teal-mid);
+  }
+  .finding-text { font-size: 12.5px; color: var(--teal); line-height: 1.55; }
+  .finding-text strong { font-weight: 700; }
+  .finding-source { font-size: 10px; color: var(--teal); opacity: 0.7; margin-top: 3px; font-family: 'DM Mono', monospace; }
+
+  /* ── DIVIDER ── */
+  .section-divider {
+    display: flex; align-items: center; gap: 10px; margin: 0.25rem 0;
+  }
+  .divider-line { flex: 1; height: 1px; background: var(--border); }
+  .divider-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--ink3);
+    font-family: 'DM Mono', monospace;
+    padding: 3px 10px;
+    background: var(--surface2);
+    border-radius: 20px;
+    border: 1px solid var(--border);
+  }
+
+  /* ── Q&A ROWS ── */
+  .qa-list { display: flex; flex-direction: column; gap: 0; }
+  .qa-row {
+    display: grid; grid-template-columns: 36px 1fr;
+    gap: 12px; padding: 1rem 0;
+    border-bottom: 1px solid var(--border2);
+  }
+  .qa-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .qa-tag {
+    width: 28px; height: 28px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; font-weight: 500; flex-shrink: 0;
+    align-self: flex-start; margin-top: 2px;
+  }
+  .tag-tech { background: var(--blue-bg); color: var(--blue); }
+  .tag-price { background: var(--amber-bg); color: var(--amber); }
+  .qa-q { font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 6px; line-height: 1.4; }
+  .qa-a { font-size: 12.5px; color: var(--ink2); line-height: 1.6; }
+  .qa-a strong { color: var(--ink); font-weight: 600; }
+  .qa-source {
+    font-size: 10px; color: var(--blue); margin-top: 5px;
+    font-family: 'DM Mono', monospace;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .qa-source::before { content: '↳'; }
+
+  /* ── ACTION ITEMS ── */
+  .action-list { display: flex; flex-direction: column; gap: 0; }
+  .action-row {
+    display: grid; grid-template-columns: 40px 1fr;
+    gap: 12px; padding: 1rem 0;
+    border-bottom: 1px solid var(--border2);
+    align-items: flex-start;
+  }
+  .action-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .action-num {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--amber-bg);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px; font-weight: 500; color: var(--amber);
+    flex-shrink: 0;
+  }
+  .action-title { font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 4px; }
+  .action-desc { font-size: 12.5px; color: var(--ink2); line-height: 1.55; }
+  .action-desc strong { color: var(--ink); font-weight: 600; }
+  .gap-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .gap-pill {
+    font-size: 11px; padding: 3px 10px; border-radius: 20px;
+    background: var(--amber-bg); color: var(--amber);
+    border: 1px solid rgba(133,79,11,0.15);
+  }
+  .intel-block {
+    margin-top: 10px;
+    padding: 0.875rem 1rem;
+    background: var(--blue-bg);
+    border-radius: var(--radius-sm);
+    border-left: 3px solid var(--blue);
+  }
+  .intel-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--blue); opacity: 0.7;
+    margin-bottom: 5px; font-family: 'DM Mono', monospace;
+  }
+  .intel-text { font-size: 12px; color: var(--blue); line-height: 1.6; }
+  .intel-source { font-size: 10px; color: var(--blue); opacity: 0.65; margin-top: 4px; font-family: 'DM Mono', monospace; }
+
+  /* ── SLIDE DECK ── */
+  .slide-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .slide-wrap { display: flex; flex-direction: column; gap: 6px; }
+  .slide-num-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.07em;
+    text-transform: uppercase; color: var(--ink3);
+    font-family: 'DM Mono', monospace;
+  }
+  .slide-thumb {
+    aspect-ratio: 16/9;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface2);
+    padding: 1rem;
+    display: flex; flex-direction: column; justify-content: space-between;
+    position: relative; overflow: hidden;
+  }
+  .slide-thumb.pending {
+    border-style: dashed;
+    background: var(--bg);
+  }
+  .slide-corner {
+    position: absolute; top: 8px; right: 8px;
+    width: 20px; height: 20px;
+    background: var(--ink);
+    border-radius: 4px;
+    opacity: 0.06;
+  }
+  .slide-t { font-size: 11px; font-weight: 600; color: var(--ink); line-height: 1.3; }
+  .slide-b { font-size: 10px; color: var(--ink3); line-height: 1.5; }
+  .slide-chips { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+  .slide-chip {
+    font-size: 9px; padding: 2px 6px; border-radius: 3px; font-weight: 600;
+  }
+  .chip-teal { background: var(--teal-bg); color: var(--teal); }
+  .chip-blue { background: var(--blue-bg); color: var(--blue); }
+  .chip-gray { background: var(--surface2); color: var(--ink3); border: 1px solid var(--border); }
+  .mini-bar-row { display: flex; align-items: center; gap: 5px; margin-top: 3px; }
+  .mini-bar-track { flex: 1; height: 5px; background: var(--border2); border-radius: 3px; overflow: hidden; }
+  .mini-bar-fill { height: 100%; border-radius: 3px; }
+  .mini-bar-label { font-size: 9px; font-weight: 700; font-family: 'DM Mono', monospace; min-width: 26px; }
+  .pending-label { font-size: 10px; color: var(--ink3); font-style: italic; }
+
+  /* ── FOOTER NOTE ── */
+  .footer-note {
+    margin: 0 2.5rem 2rem;
+    padding: 1rem 1.25rem;
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .footer-note p { font-size: 11.5px; color: var(--ink3); line-height: 1.5; }
+  .footer-note p strong { color: var(--ink2); font-weight: 600; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 640px) {
+    .hero { grid-template-columns: 1fr; }
+    .hero-stats { align-items: flex-start; }
+    .hero-stat-label { text-align: left; }
+    .data-grid { grid-template-columns: 1fr; }
+    .slide-grid { grid-template-columns: 1fr; }
+    .nav { padding: 0 1.25rem; }
+    .hero, .main, .mock-banner, .footer-note { padding-left: 1.25rem; padding-right: 1.25rem; }
+    .main { padding-left: 1.25rem; padding-right: 1.25rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-logo">Consul</div>
+  <div class="nav-meta">Post-meeting deliverables · <span>Iridium × GTC · Thursday prep</span></div>
+  <div class="nav-status">
+    <div class="nav-dot"></div>
+    Generated 0:00 post-call
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div>
+    <div class="hero-eyebrow">Tech sales demo · Iridium satellite communications</div>
+    <h1 class="hero-title">GTC call debrief —<br><em>Extreme vs GO! dual-device</em></h1>
+    <div class="hero-meta">
+      <span class="hero-chip">Preet expedition kit</span>
+      <span class="hero-chip">Thursday · GTC decision meeting</span>
+      <span class="hero-chip">Analyst: internal</span>
+    </div>
+  </div>
+  <div class="hero-stats">
+    <div class="hero-stat-num">4</div>
+    <div class="hero-stat-label">deliverable elements<br>generated</div>
+  </div>
+</div>
+
+<!-- MOCK DATA BANNER -->
+<div class="mock-banner">
+  <div class="mock-icon">📂</div>
+  <div class="mock-content">
+    <h4>Pre-call mock data feed — required input for Consul</h4>
+    <p>Before the meeting, the analyst uploads two data sources to Consul's internal context: (1) <strong>internal product docs</strong> — device spec sheets, architecture diagrams, internal sales performance data by deployment config; (2) <strong>client intelligence</strong> — GTC company profile, Preet's expedition brief, prior proposal decks, and any relevant pricing history. Consul indexes these at session start so live research triggers can pull from them instantly during the call.</p>
+  </div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main">
+
+  <!-- ── ELEMENT 1 ── -->
+  <div class="section">
+    <div class="card">
+      <div class="card-head">
+        <div class="elem-badge e1">01</div>
+        <div class="card-head-title">Research summary — answered question with supporting data</div>
+        <div class="card-head-sub">Deep form · graphics included</div>
+      </div>
+      <div class="card-body">
+
+        <div class="info-block">
+          <div class="info-label">Question surfaced during meeting</div>
+          <div class="info-text">Why does Preet need both the Iridium Extreme and Iridium GO! — aren't two devices redundant?</div>
+        </div>
+
+        <div class="info-block">
+          <div class="info-label">Consul's answer (full form)</div>
+          <div class="info-text">The Extreme and GO! address entirely separate capability gaps and cannot substitute for one another. The Extreme is a standalone handset handling voice calls, SBD messaging, and GPS tracking. The GO! is a satellite hotspot enabling smartphone-based photo uploads and richer data — but requires a paired device to operate and cannot make voice calls independently. For Preet's specific requirements (daily voice blogs + photo uploads to social + real-time location tracking), neither device alone is sufficient. Critically, the GO! is configured once pre-departure and runs passively in the background for the entire expedition — Preet physically interacts with only the Extreme on the ice. <strong style="color:var(--ink)">Two devices in the kit; one device in hand.</strong></div>
+        </div>
+
+        <div class="data-grid">
+          <!-- Capability matrix -->
+          <div class="info-block">
+            <div class="info-label">Capability matrix</div>
+            <table class="cap-table">
+              <thead>
+                <tr>
+                  <th>Feature</th>
+                  <th style="color:var(--teal)">Extreme</th>
+                  <th style="color:var(--blue)">GO!</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>Voice calls</td><td class="check">✓</td><td class="cross">✗</td></tr>
+                <tr><td>Photo upload</td><td class="cross">✗</td><td class="check">✓</td></tr>
+                <tr><td>GPS tracking</td><td class="check">✓</td><td class="cross">✗</td></tr>
+                <tr><td>SBD messaging</td><td class="check">✓</td><td class="cross">✗</td></tr>
+                <tr><td>Standalone op.</td><td class="check">✓</td><td class="cross">✗</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Mission success chart -->
+          <div class="info-block">
+            <div class="info-label">Mission success rate — by device config</div>
+            <div class="bar-chart" style="margin-top: 0.5rem;">
+              <div class="bar-item">
+                <div class="bar-meta">
+                  <span class="bar-label">Dual-device deployments</span>
+                  <span class="bar-val-label" style="color:var(--teal-mid)">94%</span>
+                </div>
+                <div class="bar-track">
+                  <div class="bar-fill bar-teal" style="width:94%"></div>
+                </div>
+              </div>
+              <div class="bar-item">
+                <div class="bar-meta">
+                  <span class="bar-label">Single-device deployments</span>
+                  <span class="bar-val-label" style="color:var(--ink3)">71%</span>
+                </div>
+                <div class="bar-track">
+                  <div class="bar-fill bar-gray" style="width:71%"></div>
+                </div>
+              </div>
+              <div class="bar-note">Source: internal Iridium sales data, comparable remote deployments</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="finding">
+          <div>
+            <div class="finding-text"><strong>68%</strong> of polar expedition communication failures stem from single-point-of-failure device configurations — validating the dual-device setup as a risk mitigation strategy, not a luxury.</div>
+            <div class="finding-source">Source: external polar comms research (third-party)</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ELEMENT 2 ── -->
+  <div class="section">
+    <div class="card">
+      <div class="card-head">
+        <div class="elem-badge e2">02</div>
+        <div class="card-head-title">Proactive questions GTC may ask Thursday</div>
+        <div class="card-head-sub">3 tech · 3 pricing</div>
+      </div>
+      <div class="card-body">
+
+        <div class="section-divider">
+          <div class="divider-line"></div>
+          <div class="divider-label">Tech focused</div>
+          <div class="divider-line"></div>
+        </div>
+
+        <div class="qa-list">
+          <div class="qa-row">
+            <div class="qa-tag tag-tech">T1</div>
+            <div>
+              <div class="qa-q">How does the GO! connect to Preet's phone in a polar environment — does Bluetooth or Wi-Fi degrade at extreme temperatures?</div>
+              <div class="qa-a">The GO! creates a local Wi-Fi hotspot (not Bluetooth). Wi-Fi signal integrity is unaffected by cold; the limiting factor is <strong>device battery performance</strong>, not signal protocol. The GO! is rated to <strong>−20°C operating temperature</strong> and is typically stored in an insulated carry case between transmissions.</div>
+              <div class="qa-source">Internal product spec sheet (GO! environmental ratings)</div>
+            </div>
+          </div>
+
+          <div class="qa-row">
+            <div class="qa-tag tag-tech">T2</div>
+            <div>
+              <div class="qa-q">What's the latency on the GO! data connection — can it realistically support photo uploads of expedition-quality images?</div>
+              <div class="qa-a">The GO! delivers <strong>2.4 kbps data</strong> over the Iridium network. Compressed social-media-ready images (JPEG, ~500KB–1MB) typically transfer in <strong>30–90 seconds</strong>. RAW or uncompressed files are not suitable. For Preet's social media use case, this is operationally sufficient.</div>
+              <div class="qa-source">Internal product architecture documentation (GO! data throughput specs)</div>
+            </div>
+          </div>
+
+          <div class="qa-row">
+            <div class="qa-tag tag-tech">T3</div>
+            <div>
+              <div class="qa-q">If the GO! fails mid-expedition, does Preet still have full comms or does her setup degrade significantly?</div>
+              <div class="qa-a">The Extreme operates entirely independently — <strong>voice calls, SBD messaging, and GPS tracking</strong> continue uninterrupted. The only capability lost is photo upload. This is the core argument for dual-device: the Extreme is the survival comms layer; the GO! is an additive media layer.</div>
+              <div class="qa-source">Internal deployment architecture docs; internal sales data (failure mode analysis)</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-divider" style="margin-top: 0.5rem;">
+          <div class="divider-line"></div>
+          <div class="divider-label">Pricing focused</div>
+          <div class="divider-line"></div>
+        </div>
+
+        <div class="qa-list">
+          <div class="qa-row">
+            <div class="qa-tag tag-price">P1</div>
+            <div>
+              <div class="qa-q">What's the total cost of ownership for this dual-device setup versus just the Extreme alone?</div>
+              <div class="qa-a">Extreme hardware + airtime plan runs approximately <strong>$[X] device / $[Y]/month airtime</strong>. Adding the GO! adds <strong>$[X] device + $[Z]/month data plan</strong>. The incremental cost delta for the GO! is [N]% of total expedition comms budget — justified by the 23-point mission success rate improvement.</div>
+              <div class="qa-source">Internal pricing sheet (current hardware + airtime rates) — confirm before Thursday</div>
+            </div>
+          </div>
+
+          <div class="qa-row">
+            <div class="qa-tag tag-price">P2</div>
+            <div>
+              <div class="qa-q">Is there a bundle or expedition package that covers both devices and reduces per-unit airtime cost?</div>
+              <div class="qa-a">Yes — the <strong>Iridium Extreme + GO! expedition bundle</strong> offers bundled airtime at a discounted blended rate versus purchasing plans separately. Exact bundle pricing is tier-dependent. Multi-expedition or annual agreements unlock additional rate reductions.</div>
+              <div class="qa-source">Internal pricing sheet (bundle tiers); sales team rate card</div>
+            </div>
+          </div>
+
+          <div class="qa-row">
+            <div class="qa-tag tag-price">P3</div>
+            <div>
+              <div class="qa-q">How does the airtime cost compare if Preet uses the GO! less frequently than projected?</div>
+              <div class="qa-a">The GO! plan is <strong>prepaid / pay-per-use</strong> depending on selected plan tier — unused data does not carry over but the base plan cost is fixed. Recommend a <strong>minimum commitment plan</strong> sized to Preet's actual expected upload frequency to avoid over-provisioning.</div>
+              <div class="qa-source">Internal pricing sheet (GO! airtime plan structure)</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ELEMENT 3 ── -->
+  <div class="section">
+    <div class="card">
+      <div class="card-head">
+        <div class="elem-badge e3">03</div>
+        <div class="card-head-title">Analyst action items — prep for GTC call Thursday</div>
+        <div class="card-head-sub">Gaps to close · client intelligence</div>
+      </div>
+      <div class="card-body">
+        <div class="action-list">
+
+          <div class="action-row">
+            <div class="action-num">A1</div>
+            <div>
+              <div class="action-title">Confirm live pricing before Thursday</div>
+              <div class="action-desc">Exact hardware costs and airtime rates were placeholdered in Element 2 — pull current figures from the <strong>internal rate card</strong> and confirm bundle availability for a single-expedition use case. Update the P1–P3 answers before the call.</div>
+            </div>
+          </div>
+
+          <div class="action-row">
+            <div class="action-num">A2</div>
+            <div>
+              <div class="action-title">Build and finalize the comparison slide (see Element 4)</div>
+              <div class="action-desc">The capability matrix + mission success rate chart discussed in the call should be formalized as a <strong>leave-behind slide</strong>. Consul has generated the draft layout in Element 4 below.</div>
+            </div>
+          </div>
+
+          <div class="action-row">
+            <div class="action-num">A3</div>
+            <div>
+              <div class="action-title">Research GTC's portfolio and expedition history</div>
+              <div class="action-desc">External research auto-surfaced by Consul on the client and companies involved:</div>
+              <div class="gap-pills">
+                <span class="gap-pill">GTC company profile</span>
+                <span class="gap-pill">Prior Iridium deployments</span>
+                <span class="gap-pill">Preet's expedition history</span>
+              </div>
+              <div class="intel-block">
+                <div class="intel-label">Client intelligence (auto-surfaced by Consul)</div>
+                <div class="intel-text">GTC is a [expedition logistics / media production / adventure brand] company known for [brief descriptor]. Prior comms deployments have included [X]. Preet [full name] is a [profile summary — endurance athlete / explorer / content creator] whose past expeditions have required [communication profile]. This expedition [name / location / duration] involves [key logistical notes relevant to comms requirements]. Key decision-maker at GTC for this purchase appears to be [name/role].</div>
+                <div class="intel-source">Source: external web research (GTC website, Preet public profile, expedition press releases)</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="action-row">
+            <div class="action-num">A4</div>
+            <div>
+              <div class="action-title">Develop content that doesn't yet exist internally</div>
+              <div class="action-desc">Consul identified the following gaps where materials may be worth building: (1) a <strong>one-page expedition deployment guide</strong> for influencer/media use cases — GTC's use case doesn't map cleanly to existing enterprise or rescue materials; (2) a <strong>simplified GO! pre-departure setup guide</strong> for non-technical expedition clients; (3) a <strong>case study</strong> featuring a comparable dual-device deployment (social media + safety comms) if one exists in the customer base.</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ELEMENT 4 ── -->
+  <div class="section">
+    <div class="card">
+      <div class="card-head">
+        <div class="elem-badge e4">04</div>
+        <div class="card-head-title">Slide deck — GTC leave-behind</div>
+        <div class="card-head-sub">3 slides resolved · 1 pending pricing</div>
+      </div>
+      <div class="card-body">
+        <div class="slide-grid">
+
+          <!-- Slide 1 -->
+          <div class="slide-wrap">
+            <div class="slide-num-label">Slide 1 — Capability gap</div>
+            <div class="slide-thumb">
+              <div class="slide-corner"></div>
+              <div class="slide-t">What Preet's expedition requires</div>
+              <div>
+                <div class="slide-chips">
+                  <span class="slide-chip chip-teal">Extreme → voice ✓ GPS ✓</span>
+                  <span class="slide-chip chip-blue">GO! → photos ✓ data ✓</span>
+                </div>
+                <div class="slide-b" style="margin-top: 6px;">Neither device covers all requirements alone — together they are complete.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Slide 2 -->
+          <div class="slide-wrap">
+            <div class="slide-num-label">Slide 2 — Mission success data</div>
+            <div class="slide-thumb">
+              <div class="slide-corner"></div>
+              <div class="slide-t">Dual-device vs single-device in remote deployments</div>
+              <div>
+                <div class="mini-bar-row">
+                  <span style="font-size:9px; color:var(--teal); min-width:60px;">Dual-device</span>
+                  <div class="mini-bar-track"><div class="mini-bar-fill bar-teal" style="width:94%"></div></div>
+                  <span class="mini-bar-label" style="color:var(--teal-mid)">94%</span>
+                </div>
+                <div class="mini-bar-row" style="margin-top: 5px;">
+                  <span style="font-size:9px; color:var(--ink3); min-width:60px;">Single-device</span>
+                  <div class="mini-bar-track"><div class="mini-bar-fill bar-gray" style="width:71%"></div></div>
+                  <span class="mini-bar-label" style="color:var(--ink3)">71%</span>
+                </div>
+                <div class="slide-b" style="margin-top: 6px;">Internal Iridium deployment data · comparable remote environments</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Slide 3 -->
+          <div class="slide-wrap">
+            <div class="slide-num-label">Slide 3 — Operational simplicity</div>
+            <div class="slide-thumb">
+              <div class="slide-corner"></div>
+              <div class="slide-t">Two devices. One in Preet's hands.</div>
+              <div>
+                <div class="slide-chips">
+                  <span class="slide-chip chip-blue">GO! → configured once, runs passively</span>
+                  <span class="slide-chip chip-teal">Extreme → only device Preet touches</span>
+                </div>
+                <div class="slide-b" style="margin-top: 6px;">Addresses the complexity objection directly.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Slide 4 -->
+          <div class="slide-wrap">
+            <div class="slide-num-label">Slide 4 — Pricing summary (pending)</div>
+            <div class="slide-thumb pending">
+              <div class="slide-t" style="color:var(--ink3)">Bundle pricing overview</div>
+              <div>
+                <div class="slide-b">Hardware + airtime delta for adding GO! to Extreme-only config. Include expedition bundle tier if applicable.</div>
+                <div class="pending-label" style="margin-top: 8px;">⚠ Analyst to populate from rate card before Thursday</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div style="padding: 0.875rem 1rem; background: var(--surface2); border-radius: var(--radius-sm); margin-top: 0.25rem;">
+          <p style="font-size: 12px; color: var(--ink3); line-height: 1.5;">All slide content is drawn directly from data surfaced in Elements 1–3. No new research required to build slides 1–3 — all figures and framing are already resolved above. Slide 4 is the only blocker pending rate card confirmation.</p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- FOOTER NOTE -->
+<div class="footer-note">
+  <p><strong>Note for coder / CTO:</strong> This document is a schematic of the post-meeting deliverables tab — not final code. Each element maps to a distinct output module. The mock data placeholders (brackets) indicate fields that will be auto-populated by Consul from the pre-session data feed. Slides in Element 4 are thumbnails; the actual slide generator should output a downloadable deck.</p>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consul — Real-Time Briefing · Iridium × GTC</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #fafaf8;
+    --bg-card: #ffffff;
+    --bg-subtle: #f5f4f0;
+    --bg-blue: #EEF5FD;
+    --border: #e8e6e0;
+    --border-blue: #b5d4f4;
+    --text-primary: #1a1a18;
+    --text-secondary: #6b6a66;
+    --text-tertiary: #a8a7a2;
+    --accent-blue: #185FA5;
+    --accent-blue-mid: #378ADD;
+    --success: #1a7a45;
+    --danger: #8a1a1a;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    padding: 3rem 1.5rem;
+  }
+
+  .container { max-width: 860px; margin: 0 auto; }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .header-eyebrow {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+  }
+
+  .header h1 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 34px;
+    font-weight: 400;
+    letter-spacing: -0.5px;
+    color: var(--text-primary);
+    line-height: 1.15;
+    margin-bottom: 6px;
+  }
+
+  .header-sub {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 300;
+  }
+
+  .consul-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-blue);
+    border: 1px solid var(--border-blue);
+    border-radius: 100px;
+    padding: 9px 18px;
+    flex-shrink: 0;
+    margin-top: 6px;
+  }
+
+  .pulse-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent-blue-mid);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.3;transform:scale(0.8)} }
+
+  .consul-pill span {
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    color: var(--accent-blue);
+    font-weight: 500;
+    letter-spacing: 0.05em;
+  }
+
+  /* Sources bar */
+  .sources-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 2.5rem;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+
+  .sources-label {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    font-family: 'DM Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-right: 4px;
+  }
+
+  .stag {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    padding: 3px 9px;
+    border-radius: 4px;
+  }
+
+  .stag-int  { background: #edf7f1; color: #1a7a45; border: 1px solid #b8e0c8; }
+  .stag-web  { background: var(--bg-blue); color: var(--accent-blue); border: 1px solid var(--border-blue); }
+  .stag-prod { background: #f3f0fd; color: #4a2d8a; border: 1px solid #cfc8f0; }
+
+  /* Sections */
+  .section {
+    margin-bottom: 2rem;
+    opacity: 0;
+    transform: translateY(10px);
+    animation: fadeUp 0.5s ease forwards;
+  }
+
+  .section:nth-child(1) { animation-delay: 0.05s; }
+  .section:nth-child(2) { animation-delay: 0.18s; }
+  .section:nth-child(3) { animation-delay: 0.3s; }
+  .section:nth-child(4) { animation-delay: 0.42s; }
+  .section:nth-child(5) { animation-delay: 0.54s; }
+
+  @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+
+  .section-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .section-num {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-tertiary);
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 8px;
+    letter-spacing: 0.06em;
+    flex-shrink: 0;
+  }
+
+  .section-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 2rem 0;
+  }
+
+  /* Device cards */
+  .device-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  @media (max-width: 580px) { .device-grid { grid-template-columns: 1fr; } }
+
+  .device-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+  }
+
+  .device-card.primary {
+    border-color: var(--border-blue);
+    box-shadow: 0 0 0 3px rgba(55,138,221,0.06);
+  }
+
+  .badge {
+    display: inline-block;
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    padding: 3px 9px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    letter-spacing: 0.04em;
+  }
+
+  .badge-primary   { background: var(--bg-blue); color: var(--accent-blue); border: 1px solid var(--border-blue); }
+  .badge-secondary { background: var(--bg-subtle); color: var(--text-secondary); border: 1px solid var(--border); }
+
+  .device-name { font-size: 16px; font-weight: 500; margin-bottom: 2px; }
+  .device-sub  { font-size: 12px; color: var(--text-secondary); font-weight: 300; margin-bottom: 16px; }
+
+  .feature-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+    gap: 8px;
+  }
+
+  .feature-row:last-child { border-bottom: none; }
+  .feature-name { font-size: 12px; color: var(--text-secondary); }
+  .feature-val  { font-size: 12px; font-weight: 500; text-align: right; flex-shrink: 0; }
+  .val-yes { color: var(--success); }
+  .val-no  { color: var(--danger); }
+  .val-neu { color: var(--text-primary); }
+
+  /* Insight */
+  .insight-box {
+    background: var(--bg-blue);
+    border: 1px solid var(--border-blue);
+    border-radius: 12px;
+    padding: 1.35rem;
+    margin-bottom: 14px;
+  }
+
+  .insight-text {
+    font-size: 14px;
+    color: #1a3a5c;
+    line-height: 1.8;
+    font-style: italic;
+    font-family: 'Instrument Serif', serif;
+  }
+
+  .insight-source {
+    display: inline-block;
+    margin-top: 12px;
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    color: var(--accent-blue);
+    background: rgba(24,95,165,0.06);
+    border: 1px solid var(--border-blue);
+    border-radius: 4px;
+    padding: 2px 8px;
+  }
+
+  /* Metrics */
+  .metric-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  @media (max-width: 480px) { .metric-row { grid-template-columns: 1fr 1fr; } }
+
+  .metric-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem 1.1rem;
+  }
+
+  .metric-label {
+    font-size: 10px;
+    color: var(--text-secondary);
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 6px;
+    line-height: 1.4;
+  }
+
+  .metric-value {
+    font-family: 'Instrument Serif', serif;
+    font-size: 30px;
+    font-weight: 400;
+    color: var(--text-primary);
+    letter-spacing: -0.5px;
+  }
+
+  /* Chart */
+  .chart-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.25rem;
+  }
+
+  .chart-legend {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .leg-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-family: 'DM Mono', monospace;
+  }
+
+  .leg-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+  .chart-canvas-wrap { position: relative; width: 100%; height: 210px; }
+
+  .chart-note {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    font-family: 'DM Mono', monospace;
+    margin-top: 12px;
+    line-height: 1.6;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div>
+      <div class="header-eyebrow">Consul · Real-time briefing</div>
+      <h1>Iridium × GTC<br><em style="color:var(--text-secondary);">Pre-client prep</em></h1>
+      <div class="header-sub">Preet Chandi South Pole expedition · Device strategy</div>
+    </div>
+    <div class="consul-pill">
+      <div class="pulse-dot"></div>
+      <span>Listening now</span>
+    </div>
+  </div>
+
+  <div class="sources-row">
+    <span class="sources-label">Querying</span>
+    <span class="stag stag-prod">product → Extreme spec</span>
+    <span class="stag stag-prod">product → GO! architecture docs</span>
+    <span class="stag stag-int">internal → expedition deployments 2022–2024</span>
+    <span class="stag stag-web">web → polar comms research</span>
+  </div>
+
+  <div class="section">
+    <div class="section-label">
+      <span class="section-num">01</span>
+      <span class="section-title">Product capability comparison — why Preet needs both devices</span>
+    </div>
+    <div class="device-grid">
+      <div class="device-card primary">
+        <div class="badge badge-primary">Recommended</div>
+        <div class="device-name">Iridium Extreme</div>
+        <div class="device-sub">Primary communications device</div>
+        <div class="feature-row"><span class="feature-name">Voice calls</span><span class="feature-val val-yes">✓ Native</span></div>
+        <div class="feature-row"><span class="feature-name">Voice blogs</span><span class="feature-val val-yes">✓ Native</span></div>
+        <div class="feature-row"><span class="feature-name">GPS tracking</span><span class="feature-val val-yes">✓ Integrated</span></div>
+        <div class="feature-row"><span class="feature-name">SOS button</span><span class="feature-val val-yes">✓ One-touch</span></div>
+        <div class="feature-row"><span class="feature-name">Photo upload</span><span class="feature-val val-no">✗ Not supported</span></div>
+        <div class="feature-row"><span class="feature-name">Weight</span><span class="feature-val val-neu">247 g</span></div>
+      </div>
+      <div class="device-card">
+        <div class="badge badge-secondary">Secondary</div>
+        <div class="device-name">Iridium GO!</div>
+        <div class="device-sub">Content & data companion</div>
+        <div class="feature-row"><span class="feature-name">Voice calls</span><span class="feature-val val-no">✗ Requires paired device</span></div>
+        <div class="feature-row"><span class="feature-name">Voice blogs</span><span class="feature-val val-no">✗ Requires paired device</span></div>
+        <div class="feature-row"><span class="feature-name">GPS tracking</span><span class="feature-val val-yes">✓ Supported</span></div>
+        <div class="feature-row"><span class="feature-name">SOS button</span><span class="feature-val val-no">✗ Not available</span></div>
+        <div class="feature-row"><span class="feature-name">Photo upload</span><span class="feature-val val-yes">✓ Native</span></div>
+        <div class="feature-row"><span class="feature-name">Weight</span><span class="feature-val val-neu">~160 g</span></div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <div class="section">
+    <div class="section-label">
+      <span class="section-num">02</span>
+      <span class="section-title">GO! operates passively — Preet only touches one device</span>
+    </div>
+    <div class="insight-box">
+      <div class="insight-text">"The Iridium GO! functions as a passive satellite hotspot. Once configured before departure it runs in the background for the entire expedition — no direct interaction required in the field. The only device Preet physically handles on the ice is the Extreme. Two devices in the kit. One device in her hands."</div>
+      <div class="insight-source">Source: Iridium GO! architecture docs — passive mode setup guide</div>
+    </div>
+    <div class="metric-row">
+      <div class="metric-card">
+        <div class="metric-label">Devices in kit</div>
+        <div class="metric-value">2</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Devices in hand on the ice</div>
+        <div class="metric-value">1</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Combined weight</div>
+        <div class="metric-value">407 g</div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <div class="section">
+    <div class="section-label">
+      <span class="section-num">03</span>
+      <span class="section-title">Dual-device deployments: 94% mission success vs 71% single-device</span>
+    </div>
+    <div class="chart-card">
+      <div class="chart-legend">
+        <div class="leg-item"><div class="leg-swatch" style="background:#185FA5;"></div>Dual-device</div>
+        <div class="leg-item"><div class="leg-swatch" style="background:#c8a090;"></div>Single-device</div>
+      </div>
+      <div class="chart-canvas-wrap">
+        <canvas id="chart"></canvas>
+      </div>
+      <div class="chart-note">
+        Source: Internal Iridium sales data — expedition deployments 2022–2024 &nbsp;·&nbsp; External: 68% of polar expedition comms failures traced to single-point-of-failure device setups.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+new Chart(document.getElementById('chart'), {
+  type: 'bar',
+  data: {
+    labels: ['Mission completion', 'Comms uptime', 'Content delivery', 'No critical failures'],
+    datasets: [
+      { label: 'Dual-device',   data: [94, 98, 91, 96], backgroundColor: '#185FA5', borderRadius: 4, barPercentage: 0.45 },
+      { label: 'Single-device', data: [71, 79, 43, 68], backgroundColor: '#c8a090', borderRadius: 4, barPercentage: 0.45 }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#fff',
+        borderColor: '#e8e6e0',
+        borderWidth: 1,
+        titleColor: '#1a1a18',
+        bodyColor: '#6b6a66',
+        padding: 10,
+        callbacks: { label: ctx => ctx.dataset.label + ': ' + Math.round(ctx.parsed.y) + '%' }
+      }
+    },
+    scales: {
+      x: {
+        ticks: { color: '#6b6a66', font: { size: 11, family: 'DM Mono' }, autoSkip: false },
+        grid: { display: false },
+        border: { color: '#e8e6e0' }
+      },
+      y: {
+        min: 0, max: 100,
+        ticks: { color: '#6b6a66', font: { size: 11, family: 'DM Mono' }, callback: v => v + '%' },
+        grid: { color: '#f0ede8' },
+        border: { color: '#e8e6e0' }
+      }
+    }
+  }
+});
+</script>
+</body>
+</html>

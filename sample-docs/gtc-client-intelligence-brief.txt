@@ -1,0 +1,71 @@
+GTC (GLOBAL TELESAT CORP) — CLIENT INTELLIGENCE BRIEF
+=======================================================
+Prepared for: Iridium Sales Team
+Date: March 2026
+Classification: Internal — Sales Use Only
+
+Company Overview
+----------------
+- Full Name: Global Telesat Corporation (GTC)
+- HQ: London, UK with operations hub in Chandler, AZ
+- Founded: 2008
+- Revenue (2025 est.): $340M
+- Employees: ~1,200
+- Industry: Satellite communications services, expedition logistics, remote asset tracking
+
+Business Relationship
+---------------------
+- Iridium partner since 2014
+- Tier 2 reseller (annual purchase volume: $2.1M devices + $1.8M airtime)
+- GTC resells Iridium devices bundled with their own expedition logistics platform "GTC TrackOps"
+- Key contact: Marcus Webb, VP Partnerships
+- Procurement lead: Sarah Chen, Head of Technical Solutions
+- Decision maker: David Okonkwo, CTO
+
+Current Account Status
+----------------------
+- Contract renewal due: June 2026
+- Net Promoter Score (last survey): +62
+- Open support tickets: 3 (2 firmware, 1 billing)
+- Competitor threat: Globalstar Spot X gaining traction with smaller expeditions
+- Upsell opportunity: Certus broadband terminals for base camp connectivity
+
+Key Deals in Pipeline
+---------------------
+1. Preet Chandi South Pole 2026 Expedition (THIS DEAL)
+   - Buyer: GTC on behalf of expedition sponsor consortium
+   - Need: Dual-device setup (voice + data) for solo crossing
+   - Budget range: $5,000-$8,000 for comms package
+   - Timeline: Equipment delivery by September 2026, departure November 2026
+   - Decision date: April 10, 2026
+   - Competitive situation: GTC also evaluating Thuraya XT-PRO as voice alternative
+   - Key objection: "Why two devices? Seems redundant and adds weight."
+
+2. GTC Fleet Upgrade Program
+   - 200-unit refresh of field devices across African mining operations
+   - Budget: ~$350K
+   - Timeline: Q3 2026
+   - Not directly related to this meeting but demonstrates account health
+
+Prior Interactions (Last 6 Months)
+-----------------------------------
+- Oct 2025: Product demo at GTC London HQ — positive reception, asked about GO! exec availability
+- Dec 2025: Sarah Chen requested updated pricing for expedition bundles
+- Jan 2026: GTC submitted RFI for Preet Chandi expedition comms package
+- Feb 2026: Marcus Webb mentioned at trade show that Thuraya rep had visited GTC offices
+- Mar 2026: This meeting — first formal pitch for dual-device expedition package
+
+Strengths to Leverage
+---------------------
+- Preet Chandi used Iridium Extreme on her 2022 crossing — brand loyalty and proven track record
+- GTC TrackOps platform already deeply integrated with Iridium SBD API
+- 100% polar coverage (vs Thuraya which has no coverage above 70° latitude)
+- Dual-device deployment data showing 99.2% comms uptime vs 91.7% single-device
+
+Risks / Objections to Prepare For
+-----------------------------------
+- Weight sensitivity: Every gram matters for solo polar crossing
+- Redundancy objection: "One device should do everything"
+- Price sensitivity: Expedition sponsors want lean budgets
+- Battery life in extreme cold: -40°C degrades Li-ion capacity by ~40%
+- Thuraya alternative: Cheaper device ($599) but NO polar coverage — must make this clear

@@ -1,0 +1,1439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ambient — Meeting Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c0f;
+    --surface: #111318;
+    --surface2: #181c23;
+    --border: rgba(255,255,255,0.07);
+    --border-active: rgba(99,210,190,0.35);
+    --text: #e8eaed;
+    --text-muted: #5a6070;
+    --text-dim: #8892a0;
+    --accent: #63d2be;
+    --accent2: #7b8cff;
+    --accent3: #f5a623;
+    --warn: #ff6b6b;
+    --suggest-bg: rgba(99,210,190,0.06);
+    --card-shadow: 0 4px 32px rgba(0,0,0,0.5);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Subtle noise texture overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 999;
+    opacity: 0.5;
+  }
+
+  /* TOP BAR */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    height: 52px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(10,12,15,0.9);
+    backdrop-filter: blur(20px);
+    flex-shrink: 0;
+    z-index: 10;
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: -0.5px;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .logo-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.7); }
+  }
+
+  .meeting-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .meeting-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .meeting-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,107,107,0.12);
+    border: 1px solid rgba(255,107,107,0.25);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    color: var(--warn);
+    letter-spacing: 0.5px;
+  }
+
+  .rec-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--warn);
+    animation: blink 1.2s step-end infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .avatar-group {
+    display: flex;
+    align-items: center;
+  }
+
+  .avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 600;
+    font-family: 'Syne', sans-serif;
+    margin-left: -8px;
+    flex-shrink: 0;
+  }
+
+  .avatar:first-child { margin-left: 0; }
+
+  .av1 { background: #3d5a8a; color: #a8c4e8; }
+  .av2 { background: #5a3d7a; color: #c4a8e8; }
+  .av3 { background: #3d7a5a; color: #a8e8c4; }
+  .av4 { background: #7a5a3d; color: #e8c4a8; }
+
+  .btn-control {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: none;
+    letter-spacing: 0.3px;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+  }
+
+  .btn-primary:hover {
+    background: #7de8d6;
+    transform: translateY(-1px);
+  }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+  }
+
+  .btn-ghost:hover {
+    background: var(--surface2);
+    color: var(--text);
+  }
+
+  /* MAIN LAYOUT */
+  .main {
+    display: grid;
+    grid-template-columns: 340px 1fr 320px;
+    flex: 1;
+    overflow: hidden;
+    gap: 0;
+  }
+
+  /* LEFT PANEL: Documents */
+  .panel-docs {
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--surface);
+  }
+
+  .panel-header {
+    padding: 16px 18px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  .panel-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+
+  .panel-action {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-muted);
+    font-size: 11px;
+    padding: 3px 8px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s;
+  }
+
+  .panel-action:hover {
+    color: var(--text);
+    border-color: rgba(255,255,255,0.2);
+  }
+
+  .doc-search {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .doc-search input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-size: 12px;
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    transition: border 0.15s;
+  }
+
+  .doc-search input:focus {
+    border-color: var(--border-active);
+  }
+
+  .doc-search input::placeholder {
+    color: var(--text-muted);
+  }
+
+  .doc-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 10px;
+  }
+
+  .doc-list::-webkit-scrollbar { width: 4px; }
+  .doc-list::-webkit-scrollbar-track { background: transparent; }
+  .doc-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .doc-group-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1.2px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    padding: 10px 8px 4px;
+  }
+
+  .doc-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: 1px solid transparent;
+    margin-bottom: 2px;
+  }
+
+  .doc-item:hover {
+    background: var(--surface2);
+    border-color: var(--border);
+  }
+
+  .doc-item.active {
+    background: rgba(99,210,190,0.08);
+    border-color: var(--border-active);
+  }
+
+  .doc-item.referenced {
+    position: relative;
+  }
+
+  .doc-item.referenced::after {
+    content: '';
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+
+  .doc-icon {
+    width: 30px;
+    height: 36px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  .doc-icon-pdf { background: rgba(255,107,107,0.12); }
+  .doc-icon-sheet { background: rgba(99,210,190,0.12); }
+  .doc-icon-deck { background: rgba(123,140,255,0.12); }
+  .doc-icon-doc { background: rgba(245,166,35,0.12); }
+
+  .doc-meta { flex: 1; min-width: 0; }
+  .doc-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .doc-sub {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    margin-top: 1px;
+  }
+
+  .relevance-bar {
+    height: 2px;
+    border-radius: 1px;
+    margin-top: 3px;
+    background: var(--surface2);
+    overflow: hidden;
+  }
+
+  .relevance-fill {
+    height: 100%;
+    border-radius: 1px;
+    background: var(--accent);
+    transition: width 0.8s ease;
+  }
+
+  /* CENTER PANEL: Transcript */
+  .panel-transcript {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--bg);
+    position: relative;
+  }
+
+  .transcript-header {
+    padding: 16px 24px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  .audio-viz {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    height: 20px;
+  }
+
+  .audio-bar {
+    width: 3px;
+    border-radius: 2px;
+    background: var(--accent);
+    animation: audio-wave var(--duration, 0.8s) ease-in-out infinite alternate;
+    opacity: 0.8;
+  }
+
+  @keyframes audio-wave {
+    from { height: 4px; opacity: 0.4; }
+    to { height: var(--max-h, 16px); opacity: 1; }
+  }
+
+  .transcript-feed {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .transcript-feed::-webkit-scrollbar { width: 4px; }
+  .transcript-feed::-webkit-scrollbar-track { background: transparent; }
+  .transcript-feed::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .transcript-line {
+    display: flex;
+    gap: 12px;
+    padding: 6px 0;
+    position: relative;
+    opacity: 0;
+    transform: translateY(8px);
+    animation: fadein-line 0.4s forwards;
+  }
+
+  @keyframes fadein-line {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .transcript-line.highlight {
+    background: rgba(123,140,255,0.05);
+    border-radius: 6px;
+    padding: 8px 10px;
+    margin: 0 -10px;
+  }
+
+  .t-speaker {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    width: 32px;
+    flex-shrink: 0;
+    color: var(--text-muted);
+    padding-top: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .t-speaker.speaker-you { color: var(--accent); }
+  .t-speaker.speaker-sm { color: var(--accent2); }
+  .t-speaker.speaker-jl { color: var(--accent3); }
+
+  .t-time {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--text-muted);
+    padding-top: 3px;
+    width: 36px;
+    flex-shrink: 0;
+    opacity: 0.6;
+  }
+
+  .t-text {
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: var(--text);
+    flex: 1;
+    font-weight: 300;
+  }
+
+  .t-text mark {
+    background: rgba(99,210,190,0.18);
+    color: var(--accent);
+    border-radius: 3px;
+    padding: 0 2px;
+    font-weight: 400;
+  }
+
+  .t-text .fact-flag {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--warn);
+    margin-left: 4px;
+    vertical-align: middle;
+    cursor: pointer;
+    animation: pulse-dot 2s infinite;
+  }
+
+  .live-cursor {
+    display: inline-block;
+    width: 2px;
+    height: 13px;
+    background: var(--accent);
+    margin-left: 2px;
+    vertical-align: middle;
+    animation: blink 0.8s step-end infinite;
+  }
+
+  .transcript-footer {
+    padding: 12px 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-shrink: 0;
+    background: rgba(10,12,15,0.8);
+    backdrop-filter: blur(10px);
+  }
+
+  .ask-input-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 14px;
+    transition: border 0.15s;
+  }
+
+  .ask-input-wrap:focus-within {
+    border-color: var(--border-active);
+  }
+
+  .ask-input-wrap input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .ask-input-wrap input::placeholder {
+    color: var(--text-muted);
+  }
+
+  .ask-send {
+    background: var(--accent);
+    border: none;
+    border-radius: 6px;
+    color: #000;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 5px 12px;
+    cursor: pointer;
+    font-family: 'Syne', sans-serif;
+    transition: all 0.15s;
+  }
+
+  .ask-send:hover { background: #7de8d6; }
+
+  /* RIGHT PANEL: AI Suggestions */
+  .panel-ai {
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--surface);
+  }
+
+  .ai-header {
+    padding: 16px 18px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  .ai-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--accent);
+    font-family: 'DM Mono', monospace;
+  }
+
+  .ai-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse-dot 1.5s ease-in-out infinite;
+  }
+
+  .ai-filter {
+    display: flex;
+    gap: 4px;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    overflow-x: auto;
+  }
+
+  .filter-chip {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    background: none;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+
+  .filter-chip.active {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+    font-weight: 500;
+  }
+
+  .filter-chip:not(.active):hover {
+    color: var(--text);
+    border-color: rgba(255,255,255,0.2);
+  }
+
+  .ai-feed {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .ai-feed::-webkit-scrollbar { width: 4px; }
+  .ai-feed::-webkit-scrollbar-track { background: transparent; }
+  .ai-feed::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .suggestion-card {
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    overflow: hidden;
+    transition: all 0.2s;
+    animation: card-in 0.4s cubic-bezier(0.22,1,0.36,1) forwards;
+    opacity: 0;
+    transform: translateX(20px);
+    position: relative;
+  }
+
+  @keyframes card-in {
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .suggestion-card:hover {
+    border-color: rgba(255,255,255,0.12);
+    box-shadow: var(--card-shadow);
+  }
+
+  .suggestion-card.type-data { border-top: 2px solid var(--accent); }
+  .suggestion-card.type-answer { border-top: 2px solid var(--accent2); }
+  .suggestion-card.type-correction { border-top: 2px solid var(--warn); }
+  .suggestion-card.type-context { border-top: 2px solid var(--accent3); }
+
+  .card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px 6px;
+  }
+
+  .card-type {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .type-data .card-type { color: var(--accent); }
+  .type-answer .card-type { color: var(--accent2); }
+  .type-correction .card-type { color: var(--warn); }
+  .type-context .card-type { color: var(--accent3); }
+
+  .card-age {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--text-muted);
+  }
+
+  .card-dismiss {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 14px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    transition: color 0.15s;
+  }
+
+  .card-dismiss:hover { color: var(--text); }
+
+  .card-body {
+    padding: 2px 12px 10px;
+  }
+
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+    line-height: 1.3;
+  }
+
+  .card-content {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.55;
+    font-weight: 300;
+  }
+
+  .card-content strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .card-source {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 6px 8px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .card-source:hover {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.12);
+  }
+
+  .source-icon {
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  .source-text {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .source-name {
+    font-size: 10px;
+    color: var(--text-dim);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .source-page {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--text-muted);
+  }
+
+  .source-arrow {
+    color: var(--text-muted);
+    font-size: 10px;
+    flex-shrink: 0;
+  }
+
+  .card-data-viz {
+    margin: 8px 0 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .data-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .data-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    width: 60px;
+    flex-shrink: 0;
+  }
+
+  .data-track {
+    flex: 1;
+    height: 4px;
+    background: var(--surface);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .data-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--accent);
+    transition: width 1s ease;
+  }
+
+  .data-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text);
+    font-weight: 500;
+    width: 40px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .card-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .card-btn {
+    flex: 1;
+    padding: 5px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    letter-spacing: 0.3px;
+    transition: all 0.15s;
+    border: none;
+  }
+
+  .card-btn-primary {
+    background: rgba(99,210,190,0.15);
+    color: var(--accent);
+    border: 1px solid rgba(99,210,190,0.2);
+  }
+
+  .card-btn-primary:hover {
+    background: rgba(99,210,190,0.25);
+  }
+
+  .card-btn-ghost {
+    background: none;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+
+  .card-btn-ghost:hover {
+    color: var(--text);
+    border-color: rgba(255,255,255,0.15);
+  }
+
+  /* Thinking indicator */
+  .thinking-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--surface2);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+  }
+
+  .thinking-dots {
+    display: flex;
+    gap: 3px;
+  }
+
+  .thinking-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: thinking 1.2s ease-in-out infinite;
+  }
+
+  .thinking-dot:nth-child(2) { animation-delay: 0.2s; }
+  .thinking-dot:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes thinking {
+    0%, 100% { opacity: 0.2; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.1); }
+  }
+
+  /* Confidence meter on card */
+  .confidence {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 6px;
+  }
+
+  .confidence-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+  }
+
+  .confidence-pips {
+    display: flex;
+    gap: 2px;
+  }
+
+  .pip {
+    width: 12px;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--border);
+  }
+
+  .pip.filled { background: var(--accent); }
+  .pip.filled.warn { background: var(--warn); }
+
+  /* Scrollbar global */
+  * { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+
+  /* Highlight pulse on active doc */
+  @keyframes highlight-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(99,210,190,0); }
+    50% { box-shadow: 0 0 0 4px rgba(99,210,190,0.15); }
+  }
+
+  .doc-item.referenced {
+    animation: highlight-pulse 2.5s ease-in-out infinite;
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-dot"></div>
+    ambient
+  </div>
+  <div class="meeting-info">
+    <div class="meeting-title">Q3 Product Review · All Hands</div>
+    <div class="meeting-badge">
+      <div class="rec-dot"></div>
+      LIVE 42:17
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="avatar-group">
+      <div class="avatar av1">YO</div>
+      <div class="avatar av2">SM</div>
+      <div class="avatar av3">JL</div>
+      <div class="avatar av4">AK</div>
+    </div>
+    <button class="btn-control btn-ghost">⏸ Pause AI</button>
+    <button class="btn-control btn-primary">↗ Share Brief</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- LEFT: DOCUMENTS -->
+  <div class="panel-docs">
+    <div class="panel-header">
+      <span class="panel-label">Documents</span>
+      <button class="panel-action">+ Add</button>
+    </div>
+    <div class="doc-search">
+      <input placeholder="Search documents…" />
+    </div>
+    <div class="doc-list">
+      <div class="doc-group-label">Active in meeting</div>
+
+      <div class="doc-item active referenced">
+        <div class="doc-icon doc-icon-sheet">📊</div>
+        <div class="doc-meta">
+          <div class="doc-name">Q3 Revenue Report.xlsx</div>
+          <div class="doc-sub">Referenced 4× today</div>
+          <div class="relevance-bar"><div class="relevance-fill" style="width:92%"></div></div>
+        </div>
+      </div>
+
+      <div class="doc-item referenced">
+        <div class="doc-icon doc-icon-deck">🎯</div>
+        <div class="doc-meta">
+          <div class="doc-name">Product Roadmap 2024.pptx</div>
+          <div class="doc-sub">Referenced 2× today</div>
+          <div class="relevance-bar"><div class="relevance-fill" style="width:74%"></div></div>
+        </div>
+      </div>
+
+      <div class="doc-item">
+        <div class="doc-icon doc-icon-pdf">📄</div>
+        <div class="doc-meta">
+          <div class="doc-name">Competitor Analysis.pdf</div>
+          <div class="doc-sub">Suggested · not opened</div>
+          <div class="relevance-bar"><div class="relevance-fill" style="width:58%"></div></div>
+        </div>
+      </div>
+
+      <div class="doc-group-label">Uploaded</div>
+
+      <div class="doc-item">
+        <div class="doc-icon doc-icon-doc">📝</div>
+        <div class="doc-meta">
+          <div class="doc-name">Engineering OKRs.docx</div>
+          <div class="doc-sub">Uploaded 3d ago</div>
+          <div class="relevance-bar"><div class="relevance-fill" style="width:30%"></div></div>
+        </div>
+      </div>
+
+      <div class="doc-item">
+        <div class="doc-icon doc-icon-sheet">📊</div>
+        <div class="doc-meta">
+          <div class="doc-name">Customer Churn Data.csv</div>
+          <div class="doc-sub">Uploaded 5d ago</div>
+          <div class="relevance-bar"><div class="relevance-fill" style="width:22%"></div></div>
+        </div>
+      </div>
+
+      <div class="doc-item">
+        <div class="doc-icon doc-icon-pdf">📄</div>
+        <div class="doc-meta">
+          <div class="doc-name">Series B Deck.pdf</div>
+          <div class="doc-sub">Uploaded 12d ago</div>
+          <div class="relevance-bar"><div class="relevance-fill" style="width:15%"></div></div>
+        </div>
+      </div>
+
+      <div class="doc-item">
+        <div class="doc-icon doc-icon-deck">🎯</div>
+        <div class="doc-meta">
+          <div class="doc-name">User Research Synthesis.pptx</div>
+          <div class="doc-sub">Uploaded 18d ago</div>
+          <div class="relevance-bar"><div class="relevance-fill" style="width:10%"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER: TRANSCRIPT -->
+  <div class="panel-transcript">
+    <div class="transcript-header">
+      <div class="panel-label">Live Transcript</div>
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div class="audio-viz">
+          <div class="audio-bar" style="--duration:0.6s;--max-h:8px;"></div>
+          <div class="audio-bar" style="--duration:0.9s;--max-h:18px;"></div>
+          <div class="audio-bar" style="--duration:0.7s;--max-h:14px;"></div>
+          <div class="audio-bar" style="--duration:1.1s;--max-h:20px;"></div>
+          <div class="audio-bar" style="--duration:0.8s;--max-h:11px;"></div>
+          <div class="audio-bar" style="--duration:0.65s;--max-h:16px;"></div>
+          <div class="audio-bar" style="--duration:0.95s;--max-h:9px;"></div>
+          <div class="audio-bar" style="--duration:0.75s;--max-h:17px;"></div>
+        </div>
+        <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--text-muted);">Sarah M. speaking</span>
+      </div>
+      <button class="panel-action">Search transcript</button>
+    </div>
+
+    <div class="transcript-feed" id="transcriptFeed">
+      <div class="transcript-line" style="animation-delay:0s;">
+        <div class="t-speaker speaker-jl">JL</div>
+        <div class="t-time">40:02</div>
+        <div class="t-text">Alright, let's talk about the Q3 numbers. I want to understand where we landed against the <mark>revenue targets</mark> and what's driving the gap.</div>
+      </div>
+
+      <div class="transcript-line" style="animation-delay:0.05s;">
+        <div class="t-speaker speaker-you">YOU</div>
+        <div class="t-time">40:18</div>
+        <div class="t-text">So we came in at $4.2M ARR for the quarter. We were targeting $5M, so there's roughly a 16% shortfall.</div>
+      </div>
+
+      <div class="transcript-line" style="animation-delay:0.1s;">
+        <div class="t-speaker speaker-sm">SM</div>
+        <div class="t-time">40:34</div>
+        <div class="t-text">The <mark>enterprise segment</mark> performed well actually — we closed three new logos. The miss is almost entirely in the SMB channel. Conversion rate dropped from 8% to 5.1% quarter over quarter.</div>
+      </div>
+
+      <div class="transcript-line" style="animation-delay:0.15s;">
+        <div class="t-speaker speaker-jl">JL</div>
+        <div class="t-time">41:02</div>
+        <div class="t-text">What's causing the drop? Is it the pricing change or the product gaps that came up in user research?</div>
+      </div>
+
+      <div class="transcript-line" style="animation-delay:0.2s;">
+        <div class="t-speaker speaker-you">YOU</div>
+        <div class="t-time">41:15</div>
+        <div class="t-text">I think it's a mix. The <mark>pricing increase in July</mark> definitely hurt. But we're also hearing consistent feedback about the onboarding experience being too complex for smaller teams.</div>
+      </div>
+
+      <div class="transcript-line highlight" style="animation-delay:0.25s;">
+        <div class="t-speaker speaker-sm">SM</div>
+        <div class="t-time">41:44</div>
+        <div class="t-text">Right, and we know from the research that SMBs have on average a <strong>2-week evaluation window</strong> before they decide. If they hit friction in week one, they churn out. <span class="fact-flag" title="Verify this stat"></span></div>
+      </div>
+
+      <div class="transcript-line" style="animation-delay:0.3s;">
+        <div class="t-speaker speaker-jl">JL</div>
+        <div class="t-time">42:01</div>
+        <div class="t-text">What's the competitive situation looking like? Are we losing deals to <mark>Notion or Linear</mark>?</div>
+      </div>
+
+      <div class="transcript-line" style="animation-delay:0.35s;">
+        <div class="t-speaker speaker-sm">SM</div>
+        <div class="t-time">42:14</div>
+        <div class="t-text">Mostly Notion actually. About 60% of lost deals cite Notion as the alternative they went with. Linear is more of a threat in the <mark>engineering team</mark> segment but less so overall.<span class="live-cursor"></span></div>
+      </div>
+    </div>
+
+    <div class="transcript-footer">
+      <div class="ask-input-wrap">
+        <span style="color:var(--text-muted);font-size:13px;">✦</span>
+        <input placeholder="Ask about the meeting… e.g. 'What were our Q2 targets?'" />
+        <button class="ask-send">Ask</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: AI SUGGESTIONS -->
+  <div class="panel-ai">
+    <div class="ai-header">
+      <div class="panel-label">AI Suggestions</div>
+      <div class="ai-status">
+        <div class="ai-status-dot"></div>
+        Listening
+      </div>
+    </div>
+
+    <div class="ai-filter">
+      <button class="filter-chip active">All</button>
+      <button class="filter-chip">Data</button>
+      <button class="filter-chip">Answers</button>
+      <button class="filter-chip">Corrections</button>
+      <button class="filter-chip">Context</button>
+    </div>
+
+    <div class="ai-feed" id="aiFeed">
+
+      <!-- Thinking indicator at top -->
+      <div class="thinking-indicator" id="thinkingIndicator">
+        <div class="thinking-dots">
+          <div class="thinking-dot"></div>
+          <div class="thinking-dot"></div>
+          <div class="thinking-dot"></div>
+        </div>
+        Analyzing Notion competitive positioning…
+      </div>
+
+      <!-- CORRECTION CARD -->
+      <div class="suggestion-card type-correction" style="animation-delay:0.1s;">
+        <div class="card-top">
+          <div class="card-type">⚠ Correction</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="card-age">just now</div>
+            <button class="card-dismiss">×</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="card-title">SMB evaluation window is 10 days, not 2 weeks</div>
+          <div class="card-content">Your User Research Synthesis doc (slide 14) reports the median SMB trial evaluation period as <strong>10 days</strong> — not the 2 weeks mentioned.</div>
+          <div class="confidence">
+            <span class="confidence-label">CONF</span>
+            <div class="confidence-pips">
+              <div class="pip filled warn"></div>
+              <div class="pip filled warn"></div>
+              <div class="pip filled warn"></div>
+              <div class="pip filled warn"></div>
+              <div class="pip"></div>
+            </div>
+          </div>
+          <div class="card-source">
+            <div class="source-icon">🎯</div>
+            <div class="source-text">
+              <div class="source-name">User Research Synthesis.pptx</div>
+              <div class="source-page">Slide 14 · Trial Behavior Patterns</div>
+            </div>
+            <div class="source-arrow">↗</div>
+          </div>
+          <div class="card-actions">
+            <button class="card-btn card-btn-primary">Share correction</button>
+            <button class="card-btn card-btn-ghost">Dismiss</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- DATA CARD -->
+      <div class="suggestion-card type-data" style="animation-delay:0.2s;">
+        <div class="card-top">
+          <div class="card-type">◈ Data Pull</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="card-age">1m ago</div>
+            <button class="card-dismiss">×</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="card-title">Q3 Revenue Breakdown</div>
+          <div class="card-content">From Q3 Revenue Report — actual vs target by segment:</div>
+          <div class="card-data-viz">
+            <div class="data-row">
+              <div class="data-label">Enterprise</div>
+              <div class="data-track"><div class="data-fill" style="width:88%;background:var(--accent)"></div></div>
+              <div class="data-val">$2.6M</div>
+            </div>
+            <div class="data-row">
+              <div class="data-label">SMB</div>
+              <div class="data-track"><div class="data-fill" style="width:52%;background:var(--warn)"></div></div>
+              <div class="data-val">$1.6M</div>
+            </div>
+            <div class="data-row">
+              <div class="data-label">Target</div>
+              <div class="data-track"><div class="data-fill" style="width:100%;background:var(--accent2)"></div></div>
+              <div class="data-val">$5.0M</div>
+            </div>
+          </div>
+          <div class="confidence">
+            <span class="confidence-label">CONF</span>
+            <div class="confidence-pips">
+              <div class="pip filled"></div>
+              <div class="pip filled"></div>
+              <div class="pip filled"></div>
+              <div class="pip filled"></div>
+              <div class="pip filled"></div>
+            </div>
+          </div>
+          <div class="card-source">
+            <div class="source-icon">📊</div>
+            <div class="source-text">
+              <div class="source-name">Q3 Revenue Report.xlsx</div>
+              <div class="source-page">Sheet 1 · Revenue Summary</div>
+            </div>
+            <div class="source-arrow">↗</div>
+          </div>
+          <div class="card-actions">
+            <button class="card-btn card-btn-primary">Share to meeting</button>
+            <button class="card-btn card-btn-ghost">Open doc</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ANSWER CARD -->
+      <div class="suggestion-card type-answer" style="animation-delay:0.3s;">
+        <div class="card-top">
+          <div class="card-type">◎ Answer</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="card-age">2m ago</div>
+            <button class="card-dismiss">×</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="card-title">Notion lost-deal breakdown</div>
+          <div class="card-content">The Competitor Analysis doc shows Notion wins primarily on <strong>price (34%)</strong> and <strong>simplicity (41%)</strong> in the SMB segment. Our positioning vs Notion is weakest in the &lt;10 seat tier.</div>
+          <div class="confidence">
+            <span class="confidence-label">CONF</span>
+            <div class="confidence-pips">
+              <div class="pip filled"></div>
+              <div class="pip filled"></div>
+              <div class="pip filled"></div>
+              <div class="pip filled"></div>
+              <div class="pip"></div>
+            </div>
+          </div>
+          <div class="card-source">
+            <div class="source-icon">📄</div>
+            <div class="source-text">
+              <div class="source-name">Competitor Analysis.pdf</div>
+              <div class="source-page">Page 22 · Win/Loss by Competitor</div>
+            </div>
+            <div class="source-arrow">↗</div>
+          </div>
+          <div class="card-actions">
+            <button class="card-btn card-btn-primary">Share to meeting</button>
+            <button class="card-btn card-btn-ghost">Dismiss</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONTEXT CARD -->
+      <div class="suggestion-card type-context" style="animation-delay:0.4s;">
+        <div class="card-top">
+          <div class="card-type">◐ Context</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="card-age">4m ago</div>
+            <button class="card-dismiss">×</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="card-title">Pricing change timeline</div>
+          <div class="card-content">The July pricing increase (+22% for SMB tier) was flagged in the Product Roadmap as a <strong>calculated churn risk</strong>. Projected impact was 2-4% conversion drop — actual drop was 2.9%.</div>
+          <div class="confidence">
+            <span class="confidence-label">CONF</span>
+            <div class="confidence-pips">
+              <div class="pip filled"></div>
+              <div class="pip filled"></div>
+              <div class="pip filled"></div>
+              <div class="pip"></div>
+              <div class="pip"></div>
+            </div>
+          </div>
+          <div class="card-source">
+            <div class="source-icon">🎯</div>
+            <div class="source-text">
+              <div class="source-name">Product Roadmap 2024.pptx</div>
+              <div class="source-page">Slide 31 · Pricing Strategy Risks</div>
+            </div>
+            <div class="source-arrow">↗</div>
+          </div>
+          <div class="card-actions">
+            <button class="card-btn card-btn-ghost">Dismiss</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // Simulate rotating thinking messages
+  const thinkingMessages = [
+    "Analyzing Notion competitive positioning…",
+    "Cross-referencing revenue figures…",
+    "Scanning onboarding friction reports…",
+    "Looking for SMB conversion benchmarks…",
+    "Checking roadmap for Q4 dependencies…",
+  ];
+  let msgIdx = 0;
+  const thinkingEl = document.querySelector('#thinkingIndicator');
+
+  setInterval(() => {
+    msgIdx = (msgIdx + 1) % thinkingMessages.length;
+    thinkingEl.innerHTML = `
+      <div class="thinking-dots">
+        <div class="thinking-dot"></div>
+        <div class="thinking-dot"></div>
+        <div class="thinking-dot"></div>
+      </div>
+      ${thinkingMessages[msgIdx]}
+    `;
+  }, 3000);
+
+  // Filter chips
+  document.querySelectorAll('.filter-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+    });
+  });
+
+  // Dismiss cards
+  document.querySelectorAll('.card-dismiss').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const card = e.target.closest('.suggestion-card');
+      card.style.opacity = '0';
+      card.style.transform = 'translateX(20px)';
+      card.style.transition = 'all 0.25s';
+      setTimeout(() => card.remove(), 250);
+    });
+  });
+
+  // Simulate new transcript line every ~10s
+  const speakers = [
+    { id: 'JL', cls: 'speaker-jl' },
+    { id: 'SM', cls: 'speaker-sm' },
+    { id: 'YOU', cls: 'speaker-you' }
+  ];
+
+  const fakeLines = [
+    "We should look at whether simplifying the onboarding checklist moves the needle on that conversion number.",
+    "Has anyone pulled the churn data for accounts that went live in Q3?",
+    "I think there's also a success story angle here — our NPS in enterprise actually hit 68 this quarter.",
+    "Let's talk about the roadmap. What's the priority ordering for Q4 features?"
+  ];
+
+  let lineIdx = 0;
+  let timeMin = 42; let timeSec = 17;
+
+  setInterval(() => {
+    timeSec += 14;
+    if (timeSec >= 60) { timeSec -= 60; timeMin++; }
+    const timeStr = `${timeMin}:${String(timeSec).padStart(2,'0')}`;
+    const sp = speakers[lineIdx % speakers.length];
+    const feed = document.getElementById('transcriptFeed');
+    const line = document.createElement('div');
+    line.className = 'transcript-line';
+    line.style.animationDelay = '0s';
+    line.innerHTML = `
+      <div class="t-speaker ${sp.cls}">${sp.id}</div>
+      <div class="t-time">${timeStr}</div>
+      <div class="t-text">${fakeLines[lineIdx % fakeLines.length]}<span class="live-cursor"></span></div>
+    `;
+    feed.appendChild(line);
+    feed.scrollTop = feed.scrollHeight;
+
+    // Remove cursor from previous last line
+    feed.querySelectorAll('.live-cursor').forEach((c, i, arr) => {
+      if (i < arr.length - 1) c.remove();
+    });
+
+    lineIdx++;
+  }, 9000);
+</script>
+</body>
+</html>

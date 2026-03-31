@@ -1,0 +1,72 @@
+PREET CHANDI — SOUTH POLE 2026 EXPEDITION BRIEF
+=================================================
+
+Expedition Overview
+-------------------
+- Expedition: Solo, unsupported crossing of Antarctica to the South Pole
+- Explorer: Captain Preet Chandi MBE ("Polar Preet")
+- Departure: November 2026 from Hercules Inlet, Antarctica
+- Target: Geographic South Pole (~1,130 km journey)
+- Duration: Estimated 40-50 days
+- Support: Unsupported — all supplies pulled on pulk (sled), no resupply drops
+
+Previous Record
+---------------
+- January 2022: Preet became the first woman of colour to complete a solo expedition
+  to the South Pole, covering 1,130 km in 40 days
+- Used Iridium Extreme 9575 as primary comms device — zero reported call failures
+- Daily check-in protocol: 2 voice calls + 4 SBD position reports per day
+- Media engagement: Instagram posts via satellite generated 2.3M impressions over expedition
+
+2026 Expedition — Enhanced Requirements
+-----------------------------------------
+Compared to 2022, the 2026 expedition has expanded communications needs:
+
+1. VOICE (same as 2022)
+   - Daily check-in with base camp: 2× per day, ~10 min each
+   - Emergency SOS capability with GPS position
+   - Weather briefing calls with meteorologist
+
+2. DATA (NEW requirement for 2026)
+   - Daily photo upload for sponsors and social media (~3-5 photos/day)
+   - Weather map download (GRIB files, ~50KB each)
+   - Email correspondence with expedition manager
+   - Sponsor-mandated daily blog post (~500 words + 1 photo)
+   - Live GPS tracking shared publicly via GTC TrackOps
+
+3. REDUNDANCY (safety requirement)
+   - Antarctic safety protocols recommend dual-comm capability
+   - If primary device fails, backup must support voice for emergency
+   - Historical data: 8.3% of Antarctic solo expeditions report at least one device failure
+   - Dual-device teams: 0% communication blackouts
+   - Single-device teams: 3.1% experienced >24hr communication blackout
+
+Weight & Power Budget
+---------------------
+- Total pulk weight budget: 90 kg (all gear, food, fuel)
+- Communications weight allocation: max 800g including batteries
+  - Iridium Extreme: 247g + spare battery 80g = 327g
+  - Iridium GO! exec: 300g + spare battery 95g = 395g
+  - Total dual-device: 722g — within budget
+  - Solar panel (shared): 320g — optional, depends on conditions
+
+- Power consumption per day:
+  - Extreme: ~20 min voice + SBD = ~250mAh/day → battery lasts ~9 days
+  - GO! exec: ~30 min hotspot active = ~500mAh/day → battery lasts ~7 days
+  - Cold weather factor: multiply consumption by 1.4x at -30°C
+  - Recommended: 3 spare batteries total, charge via solar when possible
+
+Sponsor Requirements
+--------------------
+- Title sponsor (Redacted): Requires minimum 3 social media posts per week with photos
+- Equipment sponsor (Iridium, if deal closes): Logo placement on pulk, 2 pre-departure press events
+- Media partner: BBC/Sky News wants daily position updates + weekly video diary (compressed)
+
+Decision Criteria (from GTC)
+-----------------------------
+1. Proven reliability in polar conditions (Iridium: ✓ 2022 track record)
+2. Photo upload capability for sponsor obligations (GO! exec: ✓)
+3. Total cost within expedition comms budget ($5,000-$8,000)
+4. Weight within 800g allocation
+5. Ease of use with gloves / in tent conditions
+6. Emergency SOS with rapid response time

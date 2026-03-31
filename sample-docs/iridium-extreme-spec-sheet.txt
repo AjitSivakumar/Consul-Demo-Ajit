@@ -1,0 +1,59 @@
+IRIDIUM EXTREME 9575 — PRODUCT SPECIFICATION SHEET
+=====================================================
+
+Overview
+--------
+The Iridium Extreme 9575 is a ruggedized satellite phone designed for operation in the
+most demanding environments on Earth. It connects via the Iridium LOW Earth Orbit (LEO)
+satellite constellation, providing pole-to-pole coverage including polar regions, open
+ocean, and remote terrain where terrestrial networks are unavailable.
+
+Key Specifications
+------------------
+- Weight: 247 g (8.7 oz) with battery
+- Dimensions: 140 × 60 × 27 mm
+- Operating temperature: -20°C to +55°C
+- Ingress protection: IP65 (dust-tight, water jet resistant)
+- MIL-STD 810F certified (humidity, salt fog, vibration, shock, rain, dust)
+- Battery: Lithium-ion, 3.7V 2300mAh
+- Talk time: Up to 6 hours
+- Standby time: Up to 30 hours
+- SOS button: Dedicated programmable emergency button with GPS coordinates
+
+Voice & Data
+------------
+- Circuit-switched voice: 2.4 kbps vocoder
+- SMS: Up to 160 characters, store-and-forward capable
+- Short Burst Data (SBD): Up to 1,960 bytes MO / 1,890 bytes MT
+- GPS: Integrated GPS receiver, position accuracy ±10m
+- Emergency SOS: One-touch alert with lat/long to GEOS emergency response center
+
+Satellite Network
+-----------------
+- Constellation: 66 active LEO satellites at 780 km altitude
+- Coverage: 100% of Earth's surface including both poles
+- Latency: ~300-600 ms round-trip
+- Handoff: Seamless inter-satellite crosslinks, no ground station dependency for routing
+- Uptime: 99.9% network availability (historical 2020-2025)
+
+Deployment History — Polar Expeditions
+--------------------------------------
+- Used by 94% of Antarctic expeditions 2020-2025 as primary voice device
+- British Antarctic Survey: standard issue since 2018
+- Preet Chandi 2022 solo crossing: Extreme carried as primary comms, zero call drops reported
+- Average mission comms uptime (dual-device teams): 99.2%
+- Average mission comms uptime (single-device teams): 91.7%
+
+Pricing (Enterprise / Expedition Rate Card Q1 2026)
+---------------------------------------------------
+- Device unit cost: $1,299 MSRP
+- Expedition bundle (device + 500 min voice + 200 SBD messages): $2,450
+- Enterprise volume (10+ units): $1,099/unit + $18/min airtime
+- GTC preferred partner discount: 12% off MSRP, 8% off airtime
+- Extended warranty (3yr): $199/unit
+
+Accessories
+-----------
+- Vehicular docking station with external antenna: $399
+- Solar charger panel (7W): $149
+- Pelican waterproof carry case: $89
