@@ -1,0 +1,43 @@
+{
+  "manifest_version": 3,
+  "name": "Ambi – Google Meet Connector",
+  "version": "1.0.0",
+  "description": "Captures live Google Meet captions and sends them to the Ambi meeting intelligence app.",
+  "permissions": ["activeTab", "storage", "tabs", "scripting"],
+  "host_permissions": [
+    "https://meet.google.com/*",
+    "http://localhost:5173/*",
+    "http://localhost:3000/*",
+    "https://*.vercel.app/*"
+  ],
+  "icons": {
+    "48": "icon48.png",
+    "128": "icon128.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://meet.google.com/*"],
+      "js": ["content-meet.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "http://localhost:5173/*",
+        "http://localhost:3000/*",
+        "https://*.vercel.app/*"
+      ],
+      "js": ["content-ambi.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
+  }
+}

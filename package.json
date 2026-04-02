@@ -4,11 +4,15 @@
   "description": "Ambi real-time meeting copilot",
   "scripts": {
     "dev": "vite",
+    "dev:recall": "node server/index.js",
+    "dev:all": "npx concurrently \"vite\" \"node server/index.js\"",
     "build": "tsc && vite build",
     "preview": "vite preview"
   },
   "type": "module",
   "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
     "js-base64": "^3.7.8",
     "openai": "^6.33.0",
     "react": "^19.2.4",
@@ -21,6 +25,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
+    "concurrently": "^9.1.2",
     "typescript": "^6.0.2",
     "vite": "^8.0.3"
   }

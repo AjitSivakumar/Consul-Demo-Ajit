@@ -1,9 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { generateLiveTranscriptTurns } from '../services/aiService';
+import {
+  createRecallBot,
+  stopRecallBot,
+  subscribeToTranscript,
+  RecallTranscriptEvent,
+} from '../services/recallService';
 import { useMeetingStore } from '../state/MeetingStore';
 import { TranscriptEvent } from '../types/domain';
 
-export type TranscriptStreamMode = 'ai-live' | 'microphone';
+export type TranscriptStreamMode = 'ai-live' | 'microphone' | 'google-meet' | 'recall-bot';
 
 export function useTranscriptRunner(): {
   start: () => void;
@@ -18,6 +24,14 @@ export function useTranscriptRunner(): {
   micInterimText: string;
   micSpeaker: string;
   setMicSpeaker: (speaker: string) => void;
+  // Recall.ai bot
+  recallBotId: string | null;
+  recallBotStatus: string;
+  recallError: string | null;
+  recallMeetingUrl: string;
+  setRecallMeetingUrl: (url: string) => void;
+  sendRecallBot: () => Promise<void>;
+  removeRecallBot: () => Promise<void>;
 } {
   const { state, dispatch } = useMeetingStore();
   const stateRef = useRef(state);
@@ -34,6 +48,13 @@ export function useTranscriptRunner(): {
   const [micError, setMicError] = useState<string | null>(null);
   const [micInterimText, setMicInterimText] = useState('');
   const [micSpeaker, setMicSpeaker] = useState('Account Exec');
+
+  // Recall.ai bot state
+  const [recallBotId, setRecallBotId] = useState<string | null>(null);
+  const [recallBotStatus, setRecallBotStatus] = useState('idle');
+  const [recallError, setRecallError] = useState<string | null>(null);
+  const [recallMeetingUrl, setRecallMeetingUrl] = useState('');
+  const recallUnsubRef = useRef<(() => void) | null>(null);
 
   const speechCtor =
     typeof window !== 'undefined'
@@ -66,6 +87,29 @@ export function useTranscriptRunner(): {
     dispatch({ type: 'PROCESS_EVENT', payload: makeEvent(trimmedSpeaker, trimmedText) });
   };
 
+  // Listen for captions from the Ambi Chrome extension (Google Meet connector)
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      if (event.data?.type === 'AMBI_CAPTION_FROM_EXTENSION') {
+        const { speaker, text } = event.data;
+        console.log('%c[Ambi App]', 'color:#63d2be;font-weight:bold',
+          `Received from extension: ${speaker}: ${text?.substring(0, 60)}`);
+        if (speaker && text) {
+          // Auto-start listening if idle when captions arrive
+          if (stateRef.current.liveStatus === 'idle') {
+            console.log('%c[Ambi App]', 'color:#63d2be;font-weight:bold', 'Auto-starting from idle');
+            dispatch({ type: 'START_LISTENING' });
+          }
+          dispatch({ type: 'PROCESS_EVENT', payload: makeEvent(speaker, text) });
+        }
+      }
+    };
+
+    window.addEventListener('message', handler);
+    console.log('%c[Ambi App]', 'color:#63d2be;font-weight:bold', 'postMessage listener registered');
+    return () => window.removeEventListener('message', handler);
+  }, [dispatch]);
+
   const stopMicrophone = (): void => {
     manuallyStoppingMicRef.current = true;
     if (micRetryTimerRef.current) {
@@ -82,7 +126,7 @@ export function useTranscriptRunner(): {
       return;
     }
 
-    if (mode === 'microphone') {
+    if (mode === 'microphone' || mode === 'google-meet' || mode === 'recall-bot') {
       return;
     }
 
@@ -250,6 +294,88 @@ export function useTranscriptRunner(): {
     };
   }, [dispatch, micSpeaker, micSupported, mode, speechCtor, state.liveStatus]);
 
+  // ── Recall.ai bot: send bot to meeting ──
+  const sendRecallBot = async (): Promise<void> => {
+    if (!recallMeetingUrl.trim()) {
+      setRecallError('Please enter a meeting URL');
+      return;
+    }
+
+    setRecallError(null);
+    setRecallBotStatus('creating');
+
+    try {
+      const result = await createRecallBot(recallMeetingUrl.trim());
+      setRecallBotId(result.botId);
+      setRecallBotStatus('joining');
+      console.log('%c[Recall]', 'color:#63d2be;font-weight:bold', `Bot created: ${result.botId}`);
+
+      // Auto-start listening
+      if (stateRef.current.liveStatus === 'idle') {
+        dispatch({ type: 'START_LISTENING' });
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to create bot';
+      setRecallError(msg);
+      setRecallBotStatus('error');
+    }
+  };
+
+  // ── Recall.ai bot: remove bot from meeting ──
+  const removeRecallBot = async (): Promise<void> => {
+    if (!recallBotId) return;
+
+    try {
+      await stopRecallBot(recallBotId);
+    } catch {
+      // Bot may already have left
+    }
+
+    recallUnsubRef.current?.();
+    recallUnsubRef.current = null;
+    setRecallBotId(null);
+    setRecallBotStatus('idle');
+  };
+
+  // ── Recall.ai SSE subscription ──
+  useEffect(() => {
+    if (mode !== 'recall-bot' || !recallBotId) {
+      recallUnsubRef.current?.();
+      recallUnsubRef.current = null;
+      return;
+    }
+
+    const handleEvent = (evt: RecallTranscriptEvent) => {
+      // Only process final (non-partial) transcripts
+      if (evt.isPartial) return;
+
+      const speaker = evt.speaker || 'Unknown';
+      const text = evt.text?.trim();
+      if (!text) return;
+
+      console.log('%c[Recall]', 'color:#63d2be;font-weight:bold', `${speaker}: ${text.substring(0, 80)}`);
+
+      if (stateRef.current.liveStatus === 'idle') {
+        dispatch({ type: 'START_LISTENING' });
+      }
+
+      dispatch({ type: 'PROCESS_EVENT', payload: makeEvent(speaker, text) });
+      setRecallBotStatus('transcribing');
+    };
+
+    const handleError = (error: Error) => {
+      console.error('[Recall] SSE error:', error.message);
+      setRecallError(error.message);
+    };
+
+    recallUnsubRef.current = subscribeToTranscript(recallBotId, handleEvent, handleError);
+
+    return () => {
+      recallUnsubRef.current?.();
+      recallUnsubRef.current = null;
+    };
+  }, [dispatch, mode, recallBotId]);
+
   return {
     start: () => dispatch({ type: 'START_LISTENING' }),
     pause: () => {
@@ -258,10 +384,15 @@ export function useTranscriptRunner(): {
     },
     reset: () => {
       stopMicrophone();
+      recallUnsubRef.current?.();
+      recallUnsubRef.current = null;
       cursorRef.current = 0;
       queueRef.current = [];
       setUpcomingTurn(null);
       setMicError(null);
+      setRecallBotId(null);
+      setRecallBotStatus('idle');
+      setRecallError(null);
       dispatch({ type: 'RESET' });
     },
     mode,
@@ -272,6 +403,14 @@ export function useTranscriptRunner(): {
     micError,
     micInterimText,
     micSpeaker,
-    setMicSpeaker
+    setMicSpeaker,
+    // Recall.ai bot
+    recallBotId,
+    recallBotStatus,
+    recallError,
+    recallMeetingUrl,
+    setRecallMeetingUrl,
+    sendRecallBot,
+    removeRecallBot
   };
 }

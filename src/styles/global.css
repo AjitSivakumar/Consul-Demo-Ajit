@@ -905,6 +905,92 @@ h1 em {
   color: #63d2be;
 }
 
+/* ── Recall.ai Bot Panel ── */
+.ambient-recall-panel {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ambient-recall-url-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.ambient-recall-url-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  padding: 7px 10px;
+  color: #e4e8ee;
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.ambient-recall-url-input:focus {
+  border-color: #63d2be;
+}
+
+.ambient-recall-url-input:disabled {
+  opacity: 0.5;
+}
+
+.ambient-ctx-btn.recall-send {
+  background: #63d2be;
+  color: #0e1117;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ambient-ctx-btn.recall-send:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ambient-ctx-btn.recall-stop {
+  background: rgba(255, 136, 136, 0.15);
+  color: #ff8888;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ambient-recall-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.recall-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #555;
+  flex-shrink: 0;
+}
+
+.recall-dot.active {
+  background: #63d2be;
+  box-shadow: 0 0 6px rgba(99, 210, 190, 0.5);
+  animation: recall-pulse 1.5s infinite;
+}
+
+.recall-dot.error {
+  background: #ff8888;
+}
+
+@keyframes recall-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.recall-status-text {
+  font-size: 11px;
+  color: #8792a2;
+}
+
 .ambient-transcript-feed {
   padding: 14px;
 }

@@ -202,6 +202,8 @@ export function RealtimeMeetingPage(): React.JSX.Element {
           <select value={runner.mode} onChange={(e) => runner.setMode(e.target.value as typeof runner.mode)}>
             <option value="ai-live">AI Live</option>
             <option value="microphone">Microphone</option>
+            <option value="google-meet">Google Meet</option>
+            <option value="recall-bot">Recall.ai Bot</option>
           </select>
           <button type="button" className="ambient-ctx-btn" onClick={runner.start}>Start</button>
           <button type="button" className="ambient-ctx-btn" onClick={runner.reset}>Reset</button>
@@ -232,6 +234,49 @@ export function RealtimeMeetingPage(): React.JSX.Element {
 
           {sidebarTab === 'transcript' && (
             <div className="ambient-sidebar-content">
+              {runner.mode === 'recall-bot' && (
+                <div className="ambient-recall-panel">
+                  <div className="ambient-recall-url-row">
+                    <input
+                      className="ambient-recall-url-input"
+                      value={runner.recallMeetingUrl}
+                      onChange={(e) => runner.setRecallMeetingUrl(e.target.value)}
+                      placeholder="Paste meeting URL (Meet, Zoom, Teams…)"
+                      disabled={runner.recallBotId !== null}
+                    />
+                    {!runner.recallBotId ? (
+                      <button
+                        type="button"
+                        className="ambient-ctx-btn recall-send"
+                        onClick={() => void runner.sendRecallBot()}
+                        disabled={!runner.recallMeetingUrl.trim() || runner.recallBotStatus === 'creating'}
+                      >
+                        {runner.recallBotStatus === 'creating' ? 'Sending…' : 'Send Bot'}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="ambient-ctx-btn recall-stop"
+                        onClick={() => void runner.removeRecallBot()}
+                      >
+                        Remove Bot
+                      </button>
+                    )}
+                  </div>
+                  <div className="ambient-recall-status">
+                    <span className={`recall-dot ${runner.recallBotStatus === 'transcribing' ? 'active' : runner.recallBotStatus === 'error' ? 'error' : ''}`} />
+                    <span className="recall-status-text">
+                      {runner.recallBotStatus === 'idle' && 'Ready — paste a meeting URL above'}
+                      {runner.recallBotStatus === 'creating' && 'Creating bot…'}
+                      {runner.recallBotStatus === 'joining' && 'Bot joining meeting…'}
+                      {runner.recallBotStatus === 'transcribing' && 'Transcribing live'}
+                      {runner.recallBotStatus === 'error' && 'Error'}
+                    </span>
+                  </div>
+                  {runner.recallError && <p className="ambient-mic-error">{runner.recallError}</p>}
+                </div>
+              )}
+
               {runner.micError ? <p className="ambient-mic-error">{runner.micError}</p> : null}
               {runner.mode === 'microphone' && runner.micInterimText ? (
                 <p className="ambient-mic-live">Listening: {runner.micInterimText}</p>
