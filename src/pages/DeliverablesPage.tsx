@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { ActionList } from '../components/deliverables/ActionList';
 import { QASection } from '../components/deliverables/QASection';
 import { ResearchCard } from '../components/deliverables/ResearchCard';
@@ -6,7 +6,13 @@ import { SlideGrid } from '../components/deliverables/SlideGrid';
 import { useMeetingStore } from '../state/MeetingStore';
 
 export function DeliverablesPage(): React.JSX.Element {
-  const { state } = useMeetingStore();
+  const { state, dispatch } = useMeetingStore();
+  const navigate = useNavigate();
+
+  const handleNewMeeting = (): void => {
+    dispatch({ type: 'RESET' });
+    navigate('/realtime');
+  };
   const g = state.generatedContent;
   const hasContent = Boolean(g.research || g.qa || g.actions || g.slides);
 
@@ -29,9 +35,9 @@ export function DeliverablesPage(): React.JSX.Element {
         </div>
 
         <div className="ambient-topbar-right">
-          <Link to="/realtime" className="ambient-btn ghost">
-            ← Back to Meeting
-          </Link>
+          <button type="button" className="ambient-btn ghost" onClick={handleNewMeeting}>
+            ← New Meeting
+          </button>
         </div>
       </header>
 
@@ -91,9 +97,9 @@ export function DeliverablesPage(): React.JSX.Element {
                   Start the meeting, let Ambi capture the conversation, and end the meeting
                   to generate the full deliverables package.
                 </p>
-                <Link to="/realtime" className="ambient-btn" style={{ display: 'inline-block', textDecoration: 'none', marginTop: 8 }}>
+                <button type="button" className="ambient-btn" style={{ marginTop: 8 }} onClick={handleNewMeeting}>
                   Go to Meeting
-                </Link>
+                </button>
               </div>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ConversationFlowPanel } from '../components/realtime/ConversationFlowPanel';
+import { InsightsFeed } from '../components/realtime/ConversationFlowPanel';
+import { DeepDivePanel } from '../components/realtime/DeepDivePanel';
 import { useAmbientMeetingAI } from '../hooks/useAmbientMeetingAI';
 import { useTranscriptRunner } from '../hooks/useTranscriptRunner';
 import { extractTextFromFile, getAllDocuments, uploadDocument, UploadedDocument } from '../services/documentService';
@@ -18,18 +19,40 @@ export function RealtimeMeetingPage(): React.JSX.Element {
   const [injectSpeaker, setInjectSpeaker] = useState('Account Exec');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(state.context.title);
-  const [sidebarTab, setSidebarTab] = useState<'transcript' | 'docs'>('transcript');
+  const [selectedNeedId, setSelectedNeedId] = useState<string | null>(null);
+  const [transcriptVisible, setTranscriptVisible] = useState(true);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Timer
+  useEffect(() => {
+    if (state.liveStatus === 'listening' && !timerRef.current) {
+      timerRef.current = setInterval(() => setElapsedSeconds((s) => s + 1), 1000);
+    }
+    if (state.liveStatus === 'paused' || state.liveStatus === 'ended') {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [state.liveStatus]);
+
+  const formatTime = (s: number) => {
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+  };
 
   useEffect(() => {
-    if (state.liveStatus === 'ended') {
-      navigate('/deliverables');
-    }
+    if (state.liveStatus === 'ended') navigate('/deliverables');
   }, [navigate, state.liveStatus]);
 
   useEffect(() => {
-    if (!isEditingTitle) {
-      setTitleDraft(state.context.title);
-    }
+    if (!isEditingTitle) setTitleDraft(state.context.title);
   }, [isEditingTitle, state.context.title]);
 
   const referencedTitles = useMemo(
@@ -37,14 +60,16 @@ export function RealtimeMeetingPage(): React.JSX.Element {
     [state.evidence]
   );
 
-  const liveBadge =
-    state.liveStatus === 'listening'
-      ? 'LIVE'
-      : state.liveStatus === 'paused'
-        ? 'PAUSED'
-        : state.liveStatus === 'ending'
-          ? 'ENDING'
-          : 'IDLE';
+  const liveBadgeText =
+    state.liveStatus === 'listening' ? 'Live'
+    : state.liveStatus === 'paused' ? 'Paused'
+    : state.liveStatus === 'ending' ? 'Ending'
+    : 'Idle';
+
+  const livePillClass =
+    state.liveStatus === 'listening' ? ''
+    : state.liveStatus === 'paused' ? 'paused'
+    : 'idle';
 
   const onUploadClick = (): void => fileRef.current?.click();
 
@@ -66,297 +91,258 @@ export function RealtimeMeetingPage(): React.JSX.Element {
       setIsEditingTitle(false);
       return;
     }
-
     dispatch({ type: 'SET_MEETING_TITLE', payload: nextTitle });
     setIsEditingTitle(false);
   };
 
-  const uniqueParticipants = useMemo(() => {
-    const fromTranscript = state.transcript.map((t) => t.speaker);
-    const all = [...state.context.participants, ...fromTranscript];
-    return [...new Set(all)].filter(Boolean);
-  }, [state.context.participants, state.transcript]);
-
   const activeNeeds = state.needs.filter((n) => n.status !== 'dismissed');
-  const resolvedCount = activeNeeds.filter((n) => n.status === 'resolved' || n.status === 'kept').length;
   const pendingCount = activeNeeds.filter((n) => n.status === 'new' || n.status === 'retrieving').length;
+  const resolvedCount = activeNeeds.filter((n) => n.status === 'resolved' || n.status === 'kept').length;
 
   return (
-    <main className="ambient-shell">
-      {/* ── Top Bar ── */}
-      <header className="ambient-topbar">
-        <div className="ambient-logo">
-          <span className="ambient-logo-dot" />
-          ambi
-        </div>
-
-        <div className="ambient-meeting-info">
-          <div className="ambient-title-edit-wrap">
-            {isEditingTitle ? (
-              <input
-                className="ambient-title-input"
-                value={titleDraft}
-                onChange={(e) => setTitleDraft(e.target.value)}
-                autoFocus
-                onBlur={commitTitle}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    commitTitle();
-                  }
-
-                  if (e.key === 'Escape') {
-                    setTitleDraft(state.context.title);
-                    setIsEditingTitle(false);
-                  }
-                }}
-              />
-            ) : (
-              <>
-                <div className="ambient-meeting-title">{state.context.title || 'New Meeting'}</div>
-                <button
-                  type="button"
-                  className="ambient-title-edit-btn"
-                  onClick={() => setIsEditingTitle(true)}
-                  aria-label="Edit meeting title"
-                >
-                  Edit
-                </button>
-              </>
-            )}
-          </div>
-          <div className="ambient-live-badge">
-            <span className="ambient-rec-dot" />
-            {liveBadge}
+    <main className="db-wrap">
+      {/* ── Top Navigation ── */}
+      <header className="topnav">
+        <div className="nav-left">
+          <div className="consul-mark">
+            <div className="mark-ring"><div className="mark-dot" /></div>
+            <span className="wordmark">AMBI</span>
           </div>
         </div>
 
-        <div className="ambient-topbar-right">
-          <button type="button" className="ambient-btn ghost" onClick={runner.pause}>
+        <div className="nav-center">
+          {isEditingTitle ? (
+            <input
+              className="title-edit-input"
+              value={titleDraft}
+              onChange={(e) => setTitleDraft(e.target.value)}
+              autoFocus
+              onBlur={commitTitle}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') { e.preventDefault(); commitTitle(); }
+                if (e.key === 'Escape') { setTitleDraft(state.context.title); setIsEditingTitle(false); }
+              }}
+            />
+          ) : (
+            <div className="title-edit-wrap" onClick={() => setIsEditingTitle(true)}>
+              <div className="meeting-title">{state.context.title || 'New Meeting'}</div>
+              <button type="button" className="title-edit-btn">Edit</button>
+            </div>
+          )}
+          <div className="meeting-sub">{state.context.discussedThemes.slice(0, 3).join(' · ') || 'Meeting in progress'}</div>
+        </div>
+
+        <div className="nav-right">
+          <div className={`live-pill ${livePillClass}`}>
+            <div className="live-dot" />
+            {liveBadgeText}
+          </div>
+          <span className="timer">{formatTime(elapsedSeconds)}</span>
+          <button type="button" className="pause-btn" onClick={runner.pause}>
+            <div className="pause-icon"><div className="pause-bar" /><div className="pause-bar" /></div>
             Pause
           </button>
+          <Link to="/deliverables" className="nav-btn deliver">Deliverables</Link>
           <button
             type="button"
-            className="ambient-btn"
+            className="nav-btn end"
             disabled={state.isGenerating || state.liveStatus === 'ending' || state.liveStatus === 'ended'}
             onClick={() => void ambientAI.endMeeting()}
           >
-            {state.isGenerating ? 'Generating...' : 'End Meeting'}
+            {state.isGenerating ? 'Generating…' : 'End meeting'}
           </button>
-          <Link to="/deliverables" className="ambient-btn ghost">
-            Deliverables
-          </Link>
         </div>
       </header>
 
-      {/* ── Context Strip ── */}
-      <div className="ambient-context-strip">
-        <div className="ambient-context-group">
-          <span className="ambient-context-label">Participants</span>
-          <div className="ambient-participant-pills">
-            {uniqueParticipants.length === 0 && <span className="ambient-context-value dim">None yet</span>}
-            {uniqueParticipants.map((p) => (
-              <span key={p} className="ambient-participant-pill">{p}</span>
-            ))}
-          </div>
-        </div>
-        <div className="ambient-context-divider" />
-        <div className="ambient-context-group">
-          <span className="ambient-context-label">Themes</span>
-          <span className="ambient-context-value">{state.context.discussedThemes.length}</span>
-        </div>
-        <div className="ambient-context-divider" />
-        <div className="ambient-context-group">
-          <span className="ambient-context-label">Transcript</span>
-          <span className="ambient-context-value">{state.transcript.length} lines</span>
-        </div>
-        <div className="ambient-context-divider" />
-        <div className="ambient-context-group">
-          <span className="ambient-context-label">Gaps</span>
-          <span className="ambient-context-value">
-            <span className="ctx-gap-pending">{pendingCount} open</span>
-            {resolvedCount > 0 && <span className="ctx-gap-resolved"> · {resolvedCount} resolved</span>}
-          </span>
-        </div>
-        <div className="ambient-context-divider" />
-        <div className="ambient-context-group">
-          <span className="ambient-context-label">Docs</span>
-          <span className="ambient-context-value">{docs.length} loaded</span>
-        </div>
+      {/* ── Controls Strip ── */}
+      <div className="controls-strip">
+        <span className="ctrl-label">Mode</span>
+        <select value={runner.mode} onChange={(e) => runner.setMode(e.target.value as typeof runner.mode)}>
+          <option value="ai-live">AI Live</option>
+          <option value="microphone">Microphone</option>
+          <option value="google-meet">Google Meet</option>
+          <option value="recall-bot">Recall.ai Bot</option>
+        </select>
 
-        <div className="ambient-context-controls">
-          <select
-            value=""
-            onChange={(e) => {
-              const preset = meetingPresets.find((p) => p.id === e.target.value);
-              if (preset) {
-                dispatch({ type: 'LOAD_PRESET', payload: { context: preset.context, transcript: preset.transcript } });
-              }
-            }}
-          >
-            <option value="" disabled>Load preset…</option>
-            {meetingPresets.map((p) => (
-              <option key={p.id} value={p.id}>{p.label}</option>
-            ))}
-          </select>
-          <select value={runner.mode} onChange={(e) => runner.setMode(e.target.value as typeof runner.mode)}>
-            <option value="ai-live">AI Live</option>
-            <option value="microphone">Microphone</option>
-            <option value="google-meet">Google Meet</option>
-            <option value="recall-bot">Recall.ai Bot</option>
-          </select>
-          <button type="button" className="ambient-ctx-btn" onClick={runner.start}>Start</button>
-          <button type="button" className="ambient-ctx-btn" onClick={runner.reset}>Reset</button>
-        </div>
+        <div className="ctrl-divider" />
+        <span className="ctrl-label">Preset</span>
+        <select
+          value=""
+          onChange={(e) => {
+            const preset = meetingPresets.find((p) => p.id === e.target.value);
+            if (preset) dispatch({ type: 'LOAD_PRESET', payload: { context: preset.context, transcript: preset.transcript } });
+          }}
+        >
+          <option value="" disabled>Load preset…</option>
+          {meetingPresets.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+        </select>
+
+        <div className="ctrl-divider" />
+        <button type="button" className="ctrl-btn" onClick={runner.start}>Start</button>
+        <button type="button" className="ctrl-btn" onClick={runner.reset}>Reset</button>
+
+        <div className="ctrl-divider" />
+        <span className="ctrl-label">Gaps</span>
+        <span className="ctrl-stat pending">{pendingCount} open</span>
+        <span className="ctrl-stat resolved">{resolvedCount} resolved</span>
+
+        <div className="ctrl-divider" />
+        <span className="ctrl-label">Docs</span>
+        <span className="ctrl-stat">{docs.length}</span>
       </div>
 
-      {/* ── Main Grid: Gaps (hero) | Sidebar (transcript + docs) ── */}
-      <section className="ambient-main-grid">
-        <ConversationFlowPanel />
+      {/* ── 3‑Column Body ── */}
+      <section className="neon-body">
+        {/* LEFT — Insights Feed */}
+        <div className="col-left">
+          <InsightsFeed
+            selectedNeedId={selectedNeedId}
+            onSelectNeed={setSelectedNeedId}
+          />
+        </div>
 
-        <aside className="ambient-sidebar">
-          <div className="ambient-sidebar-tabs">
-            <button
-              type="button"
-              className={`ambient-sidebar-tab ${sidebarTab === 'transcript' ? 'active' : ''}`}
-              onClick={() => setSidebarTab('transcript')}
-            >
-              Transcript ({state.transcript.length})
+        {/* CENTER — Deep Dive */}
+        <div className="col-center">
+          <DeepDivePanel selectedNeedId={selectedNeedId} />
+        </div>
+
+        {/* RIGHT — Sources + Popup Tray + Transcript */}
+        <div className="col-right">
+          <div className="col-header">
+            <span className="col-title">Sources</span>
+            <button type="button" className="upload-btn" onClick={onUploadClick}>
+              ↑ Upload doc
             </button>
-            <button
-              type="button"
-              className={`ambient-sidebar-tab ${sidebarTab === 'docs' ? 'active' : ''}`}
-              onClick={() => setSidebarTab('docs')}
-            >
-              Docs ({docs.length})
-            </button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".txt,.md,.pdf"
+              hidden
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void onUploadFile(file);
+              }}
+            />
           </div>
 
-          {sidebarTab === 'transcript' && (
-            <div className="ambient-sidebar-content">
-              {runner.mode === 'recall-bot' && (
-                <div className="ambient-recall-panel">
-                  <div className="ambient-recall-url-row">
-                    <input
-                      className="ambient-recall-url-input"
-                      value={runner.recallMeetingUrl}
-                      onChange={(e) => runner.setRecallMeetingUrl(e.target.value)}
-                      placeholder="Paste meeting URL (Meet, Zoom, Teams…)"
-                      disabled={runner.recallBotId !== null}
-                    />
-                    {!runner.recallBotId ? (
-                      <button
-                        type="button"
-                        className="ambient-ctx-btn recall-send"
-                        onClick={() => void runner.sendRecallBot()}
-                        disabled={!runner.recallMeetingUrl.trim() || runner.recallBotStatus === 'creating'}
-                      >
-                        {runner.recallBotStatus === 'creating' ? 'Sending…' : 'Send Bot'}
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        className="ambient-ctx-btn recall-stop"
-                        onClick={() => void runner.removeRecallBot()}
-                      >
-                        Remove Bot
-                      </button>
-                    )}
+          <div className="source-list">
+            {docs.length === 0 && (
+              <div className="feed-empty">No documents uploaded yet.</div>
+            )}
+            {docs.map((doc) => {
+              const referenced = referencedTitles.has(doc.name.toLowerCase());
+              return (
+                <div key={doc.id} className={`src-item ${referenced ? 'referenced' : ''}`}>
+                  <div className="src-header">
+                    <div className="src-type-dot" style={{ background: doc.type === 'pdf' ? '#185FA5' : '#3B6D11' }} />
+                    <span className="src-title">{doc.name}</span>
                   </div>
-                  <div className="ambient-recall-status">
-                    <span className={`recall-dot ${runner.recallBotStatus === 'transcribing' ? 'active' : runner.recallBotStatus === 'error' ? 'error' : ''}`} />
-                    <span className="recall-status-text">
-                      {runner.recallBotStatus === 'idle' && 'Ready — paste a meeting URL above'}
-                      {runner.recallBotStatus === 'creating' && 'Creating bot…'}
-                      {runner.recallBotStatus === 'joining' && 'Bot joining meeting…'}
-                      {runner.recallBotStatus === 'transcribing' && 'Transcribing live'}
-                      {runner.recallBotStatus === 'error' && 'Error'}
-                    </span>
+                  <div className="src-meta">
+                    {doc.type === 'pdf' ? 'PDF' : 'Text'} · Uploaded {new Date(doc.uploadedAt).toLocaleTimeString()}
                   </div>
-                  {runner.recallError && <p className="ambient-mic-error">{runner.recallError}</p>}
+                  <div className="src-excerpt">{doc.content.slice(0, 100)}…</div>
+                  {referenced && (
+                    <div className="src-conf-bar">
+                      <div className="src-conf-fill" style={{ width: '88%', background: '#1D9E75' }} />
+                    </div>
+                  )}
                 </div>
+              );
+            })}
+          </div>
+
+          {/* Recall.ai Panel — always visible */}
+          <div className="recall-panel">
+            <div className="col-header" style={{ marginBottom: '8px' }}>
+              <span className="col-title">Bot</span>
+            </div>
+            <div className="recall-url-row">
+              <input
+                className="recall-url-input"
+                value={runner.recallMeetingUrl}
+                onChange={(e) => runner.setRecallMeetingUrl(e.target.value)}
+                placeholder="Paste meeting URL (Meet, Zoom, Teams…)"
+                disabled={runner.recallBotId !== null}
+              />
+              {!runner.recallBotId ? (
+                <button
+                  type="button"
+                  className="recall-send-btn"
+                  onClick={() => { runner.setMode('recall-bot'); void runner.sendRecallBot(); }}
+                  disabled={!runner.recallMeetingUrl.trim() || runner.recallBotStatus === 'creating'}
+                >
+                  {runner.recallBotStatus === 'creating' ? 'Sending…' : 'Send Bot'}
+                </button>
+              ) : (
+                <button type="button" className="recall-stop-btn" onClick={() => void runner.removeRecallBot()}>
+                  Remove Bot
+                </button>
               )}
+            </div>
+            <div className="recall-status">
+              <span className={`recall-status-dot ${runner.recallBotStatus === 'transcribing' ? 'active' : runner.recallBotStatus === 'error' ? 'error' : ''}`} />
+              <span>
+                {runner.recallBotStatus === 'idle' && 'Paste a meeting URL to send bot'}
+                {runner.recallBotStatus === 'creating' && 'Creating bot…'}
+                {runner.recallBotStatus === 'joining' && 'Bot joining meeting…'}
+                {runner.recallBotStatus === 'transcribing' && 'Transcribing live'}
+                {runner.recallBotStatus === 'error' && 'Error'}
+              </span>
+            </div>
+            {runner.recallError && <p className="recall-error">{runner.recallError}</p>}
+          </div>
 
-              {runner.micError ? <p className="ambient-mic-error">{runner.micError}</p> : null}
-              {runner.mode === 'microphone' && runner.micInterimText ? (
-                <p className="ambient-mic-live">Listening: {runner.micInterimText}</p>
-              ) : null}
+          {/* Live Transcript */}
+          <div className="transcript-section">
+            <div className="transcript-header">
+              <span className="col-title">Live Transcript</span>
+              <button type="button" className="toggle-btn" onClick={() => setTranscriptVisible((v) => !v)}>
+                {transcriptVisible ? 'Hide' : 'Show'}
+              </button>
+            </div>
 
-              <div className="ambient-transcript-feed">
-                {state.transcript.length === 0 ? (
-                  <p className="ambient-empty">Transcript will appear when stream starts.</p>
-                ) : null}
-                {state.transcript.map((line) => (
-                  <div key={line.id} className="ambient-transcript-line compact">
-                    <div className="ambient-speaker">{line.speaker}</div>
-                    <div className="ambient-text">{line.text}</div>
+            {runner.micError && <p className="mic-error">{runner.micError}</p>}
+            {runner.mode === 'microphone' && runner.micInterimText && (
+              <p className="mic-live">Listening: {runner.micInterimText}</p>
+            )}
+
+            {transcriptVisible && (
+              <div className="transcript-lines">
+                {state.transcript.length === 0 && (
+                  <div className="feed-empty">Transcript will appear when stream starts.</div>
+                )}
+                {state.transcript.slice(-20).map((line, idx) => (
+                  <div key={line.id} className="tline">
+                    <span className="tspk">{line.speaker}</span>
+                    <span className={`ttxt ${idx === state.transcript.slice(-20).length - 1 ? 'active' : ''}`}>
+                      {idx === state.transcript.slice(-20).length - 1 && <span className="tmarker" />}
+                      {line.text}
+                    </span>
                   </div>
                 ))}
               </div>
+            )}
 
-              <div className="ambient-transcript-footer compact">
-                <input
-                  value={injectSpeaker}
-                  onChange={(e) => setInjectSpeaker(e.target.value)}
-                  placeholder="Speaker"
-                  className="ambient-speaker-input"
-                />
-                <input
-                  value={injectText}
-                  onChange={(e) => setInjectText(e.target.value)}
-                  placeholder="Inject a live line..."
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && injectText.trim()) {
-                      handleAskInject();
-                    }
-                  }}
-                />
-                <button type="button" onClick={handleAskInject} disabled={!injectText.trim()}>
-                  Add
-                </button>
-              </div>
+            <div className="inject-bar">
+              <input
+                value={injectSpeaker}
+                onChange={(e) => setInjectSpeaker(e.target.value)}
+                placeholder="Speaker"
+              />
+              <input
+                value={injectText}
+                onChange={(e) => setInjectText(e.target.value)}
+                placeholder="Inject a live line..."
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && injectText.trim()) handleAskInject();
+                }}
+              />
+              <button type="button" onClick={handleAskInject} disabled={!injectText.trim()}>
+                Add
+              </button>
             </div>
-          )}
-
-          {sidebarTab === 'docs' && (
-            <div className="ambient-sidebar-content">
-              <div className="ambient-docs-header-row">
-                <button type="button" className="ambient-ctx-btn" onClick={onUploadClick}>
-                  + Upload
-                </button>
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept=".txt,.md,.pdf"
-                  hidden
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      void onUploadFile(file);
-                    }
-                  }}
-                />
-              </div>
-              <div className="ambient-doc-list">
-                {docs.length === 0 ? <p className="ambient-empty">No documents uploaded yet.</p> : null}
-                {docs.map((doc) => {
-                  const referenced = referencedTitles.has(doc.name.toLowerCase());
-                  return (
-                    <article className={`ambient-doc-item ${referenced ? 'referenced' : ''}`} key={doc.id}>
-                      <div className="ambient-doc-icon">{doc.type === 'pdf' ? 'PDF' : 'TXT'}</div>
-                      <div className="ambient-doc-meta">
-                        <div className="ambient-doc-name">{doc.name}</div>
-                        <div className="ambient-doc-sub">
-                          {referenced ? 'Referenced in evidence' : `Uploaded ${new Date(doc.uploadedAt).toLocaleTimeString()}`}
-                        </div>
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </aside>
+          </div>
+        </div>
       </section>
     </main>
   );

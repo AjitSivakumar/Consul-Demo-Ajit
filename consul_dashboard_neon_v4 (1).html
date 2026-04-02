@@ -1,0 +1,463 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+@keyframes breathe { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(0.5);opacity:0.3} }
+@keyframes pulse-ring { 0%{box-shadow:0 0 0 0 rgba(29,158,117,0.6)} 70%{box-shadow:0 0 0 12px rgba(29,158,117,0)} 100%{box-shadow:0 0 0 0 rgba(29,158,117,0)} }
+@keyframes slidein-popup { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
+@keyframes ticker { 0%{opacity:0.3} 50%{opacity:1} 100%{opacity:0.3} }
+@keyframes glow-purple { 0%,100%{box-shadow:0 4px 18px rgba(180,0,255,0.5)} 50%{box-shadow:0 4px 32px rgba(180,0,255,0.85)} }
+@keyframes glow-red { 0%,100%{box-shadow:0 0 8px 2px rgba(255,0,80,0.35)} 50%{box-shadow:0 0 18px 5px rgba(255,0,80,0.65)} }
+@keyframes glow-yellow { 0%,100%{box-shadow:0 0 8px 2px rgba(255,230,0,0.35)} 50%{box-shadow:0 0 18px 5px rgba(255,230,0,0.65)} }
+
+.db-wrap { background: #f2f0e8; min-height: 100vh; font-family: Arial, sans-serif; display: flex; flex-direction: column; }
+
+.topnav { display: flex; align-items: center; justify-content: space-between; padding: 0 28px; height: 72px; background: #fff; border-bottom: 3px solid #e2dfd4; flex-shrink: 0; position: relative; }
+.nav-left { display: flex; align-items: center; gap: 14px; }
+.nav-center { position: absolute; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.meeting-title { font-size: 20px; font-weight: 700; color: #111; }
+.meeting-sub { font-size: 14px; color: #888; font-weight: 700; }
+.consul-mark { display: flex; align-items: center; gap: 13px; }
+.mark-ring { width: 42px; height: 42px; border-radius: 50%; border: 3px solid #1D9E75; background: rgba(29,158,117,0.08); display: flex; align-items: center; justify-content: center; animation: pulse-ring 2.2s ease-out infinite; }
+.mark-dot { width: 14px; height: 14px; border-radius: 50%; background: #1D9E75; animation: breathe 2.4s ease-in-out infinite; }
+.wordmark { font-size: 30px; font-weight: 700; color: #111; letter-spacing: 0.08em; }
+.nav-right { display: flex; align-items: center; gap: 8px; }
+.live-pill { display: flex; align-items: center; gap: 7px; padding: 6px 16px; border-radius: 20px; background: #1D9E75; color: #fff; font-size: 13px; font-weight: 700; }
+.live-dot { width: 8px; height: 8px; border-radius: 50%; background: #fff; animation: breathe 1.4s ease-in-out infinite; }
+.timer { font-size: 15px; color: #111; font-variant-numeric: tabular-nums; font-weight: 700; }
+.pause-btn { display: flex; align-items: center; gap: 7px; padding: 7px 16px; border-radius: 9px; font-size: 13px; font-weight: 700; border: 2.5px solid #ddd; background: #fff; color: #111; cursor: pointer; }
+.pause-icon { display: flex; gap: 3px; align-items: center; }
+.pause-bar { width: 3px; height: 12px; border-radius: 2px; background: currentColor; }
+.nav-btn { padding: 7px 16px; border-radius: 9px; font-size: 13px; font-weight: 700; border: 2.5px solid #e2dfd4; background: #fff; color: #111; cursor: pointer; }
+.nav-btn.end { background: #fff0f0; color: #b02020; border-color: #f0a0a0; }
+.nav-btn.deliver { background: #f0eeff; color: #3820c0; border-color: #b0a8f0; }
+
+.body { display: grid; grid-template-columns: 330px 1fr 310px; flex: 1; min-height: 0; }
+.col-left { display: flex; flex-direction: column; overflow: hidden; background: #fff; border-right: 3px solid #e2dfd4; }
+.col-center { display: flex; flex-direction: column; overflow: hidden; background: #fff; border-right: 3px solid #e2dfd4; }
+.col-right { display: flex; flex-direction: column; overflow: hidden; background: #fff; }
+
+.col-header { padding: 16px 20px 14px; border-bottom: 3px solid #e2dfd4; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.col-title { font-size: 15px; color: #111; letter-spacing: 0.05em; text-transform: uppercase; font-weight: 700; }
+.col-count { font-size: 14px; font-weight: 700; color: #fff; background: #1D9E75; border-radius: 20px; padding: 4px 13px; }
+.upload-btn { display: flex; align-items: center; gap: 6px; font-size: 13px; padding: 7px 14px; border-radius: 8px; border: 2.5px solid #ddd; background: #fff; color: #111; cursor: pointer; font-weight: 700; }
+
+.feed-body { padding: 13px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; flex: 1; }
+
+.irow { border-radius: 14px; padding: 14px 16px; cursor: pointer; display: flex; flex-direction: column; gap: 9px; background: #fff; border: 3px solid #7DF9FF; box-shadow: 0 2px 14px rgba(125,249,255,0.25); transition: box-shadow 0.15s, border-color 0.15s; }
+.irow:hover { border-color: #00e8ff; box-shadow: 0 4px 22px rgba(0,232,255,0.4); }
+.irow.selected { border-color: #00e8ff; box-shadow: 0 4px 28px rgba(0,232,255,0.5); }
+
+.trigger-pill { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.trigger-word { font-size: 10px; font-weight: 700; letter-spacing: 0.09em; color: #00a8bb; text-transform: uppercase; }
+.trigger-quote { background: #edfeff; border-radius: 7px; padding: 4px 10px; font-size: 12px; color: #006f80; font-style: italic; border: 2px solid #b0f4ff; font-weight: 700; }
+
+.irow-q { font-size: 15px; color: #111; line-height: 1.3; font-weight: 700; }
+.irow-a { font-size: 13px; color: #333; line-height: 1.5; }
+.irow-foot { display: flex; align-items: center; justify-content: space-between; }
+.irow-src { display: flex; align-items: center; gap: 5px; }
+.sdot { width: 7px; height: 7px; border-radius: 50%; }
+.sname { font-size: 11px; color: #555; font-weight: 700; }
+.irow-time { font-size: 11px; color: #888; font-weight: 700; }
+
+/* NEON PURPLE proactive */
+.proactive {
+  background: #B400FF;
+  border: 3px solid #B400FF;
+  border-radius: 14px;
+  animation: glow-purple 2.5s ease-in-out infinite;
+}
+.proactive:hover { background: #9e00e0; border-color: #9e00e0; }
+.proactive .pro-label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; color: rgba(255,255,255,0.75); }
+.proactive .irow-q { color: #fff; }
+.proactive .irow-a { color: rgba(255,255,255,0.85); }
+.proactive .sname { color: rgba(255,255,255,0.75); }
+.proactive .irow-time { color: rgba(255,255,255,0.55); }
+
+/* NEON RED caution tag */
+.caution-tag { display: inline-flex; align-items: center; gap: 5px; background: #fff0f3; border: 2px solid #FF0050; border-radius: 8px; padding: 4px 10px; font-size: 11px; font-weight: 700; color: #cc0040; box-shadow: 0 0 6px rgba(255,0,80,0.3); }
+.caution-dot { width: 7px; height: 7px; border-radius: 50%; background: #FF0050; animation: breathe 1.4s ease-in-out infinite; }
+
+/* NEON YELLOW diagram tag */
+.diagram-tag { display: inline-flex; align-items: center; gap: 5px; background: #FFFD; border: 2px solid #FFE600; border-radius: 8px; padding: 4px 10px; font-size: 11px; font-weight: 700; color: #6b5c00; box-shadow: 0 0 6px rgba(255,230,0,0.4); }
+.diagram-dot { width: 7px; height: 7px; border-radius: 4px; background: #FFE600; }
+
+.ev-header { padding: 26px 32px 20px; border-bottom: 3px solid #e2dfd4; flex-shrink: 0; background: #fff; }
+.deep-dive-label { font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: #888; margin-bottom: 13px; display: flex; align-items: center; gap: 9px; font-weight: 700; }
+.deep-dive-label span { height: 2px; flex: 1; background: #e2dfd4; display: inline-block; }
+.ev-question { font-size: 24px; font-weight: 700; color: #111; line-height: 1.25; margin-bottom: 11px; }
+.ev-answer { font-size: 15px; color: #333; line-height: 1.65; }
+.ev-src-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.ev-src-badge { font-size: 13px; padding: 5px 13px; border-radius: 20px; border: 2px solid #b0f4ff; color: #006f80; display: flex; align-items: center; gap: 6px; background: #edfeff; font-weight: 700; }
+.ev-conf { font-size: 13px; color: #555; margin-left: auto; font-weight: 700; }
+.ev-conf b { color: #1D9E75; font-weight: 700; }
+
+.ev-body { flex: 1; padding: 26px 32px; display: flex; flex-direction: column; gap: 22px; overflow-y: auto; background: #fff; }
+.ev-section-label { font-size: 12px; color: #555; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 14px; font-weight: 700; }
+
+/* NEON RED caution banner */
+.caution-banner { background: #fff0f3; border: 2.5px solid #FF0050; border-radius: 12px; padding: 14px 16px; display: none; animation: slidein-popup 0.3s ease forwards; box-shadow: 0 0 14px rgba(255,0,80,0.2); }
+.caution-banner.visible { display: block; }
+.caution-banner-head { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.caution-icon { width: 22px; height: 22px; border-radius: 50%; background: #FF0050; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0; }
+.caution-title { font-size: 15px; font-weight: 700; color: #cc0040; }
+.caution-body { font-size: 13px; color: #880030; line-height: 1.55; }
+.caution-body strong { color: #FF0050; }
+
+/* NEON YELLOW diagram banner */
+.diagram-banner { background: #fffde6; border: 2.5px solid #FFE600; border-radius: 12px; padding: 14px 16px; display: none; animation: slidein-popup 0.3s ease forwards; box-shadow: 0 0 14px rgba(255,230,0,0.25); }
+.diagram-banner.visible { display: block; }
+.diagram-banner-head { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.diagram-icon { width: 22px; height: 22px; border-radius: 6px; background: #FFE600; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #5a4800; flex-shrink: 0; }
+.diagram-title { font-size: 15px; font-weight: 700; color: #6b5c00; }
+.diagram-body-text { font-size: 13px; color: #4a3e00; line-height: 1.55; margin-bottom: 8px; }
+.diagram-nodes { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.diagram-node { padding: 3px 9px; border-radius: 6px; background: rgba(255,230,0,0.18); border: 1.5px solid rgba(255,230,0,0.6); font-size: 11px; color: #6b5c00; font-weight: 700; }
+.diagram-arr { font-size: 12px; color: #c8b000; font-weight: 700; }
+
+.stat-row { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 13px; }
+.stat { background: #fff; border-radius: 13px; padding: 18px 20px; border: 3px solid #e2dfd4; }
+.stat-val { font-size: 32px; font-weight: 700; line-height: 1; margin-bottom: 7px; }
+.stat-lbl { font-size: 12px; color: #555; font-weight: 700; }
+
+.dig-row { display: flex; gap: 10px; }
+.dig-btn { flex:1; padding: 14px 0; border-radius: 11px; font-size: 14px; font-weight: 700; border: 2.5px solid #e2dfd4; background: #fff; color: #111; cursor: pointer; }
+.dig-btn.primary { background: #B400FF; color: #fff; border-color: #B400FF; }
+.dig-btn.primary:hover { background: #9e00e0; }
+
+.qbar { padding: 15px 24px; border-top: 3px solid #e2dfd4; flex-shrink: 0; background: #fff; }
+.qwrap { display: flex; align-items: center; gap: 9px; background: #f5f3ec; border: 2.5px solid #e2dfd4; border-radius: 13px; padding: 12px 18px; }
+.qinput { flex:1; background: transparent; border: none; outline: none; font-size: 15px; color: #111; font-family: Arial, sans-serif; }
+.qinput::placeholder { color: #aaa; }
+
+.source-list { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; flex: 1; }
+.src-item { padding: 14px 15px; border-radius: 12px; background: #fff; border: 2.5px solid #e2dfd4; }
+.src-header { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+.src-type-dot { width: 10px; height: 10px; border-radius: 50%; }
+.src-title { font-size: 14px; font-weight: 700; color: #111; }
+.src-meta { font-size: 12px; color: #666; margin-bottom: 7px; font-weight: 700; }
+.src-excerpt { font-size: 13px; color: #333; line-height: 1.5; }
+.src-conf-bar { height: 4px; border-radius: 3px; background: #e2dfd4; margin-top: 11px; overflow: hidden; }
+.src-conf-fill { height: 100%; border-radius: 3px; }
+
+.popup-tray { padding: 10px 14px; border-top: 3px solid #e2dfd4; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+
+/* NEON RED popup card */
+.fc-card { background: #fff0f3; border: 2.5px solid #FF0050; border-radius: 12px; overflow: hidden; animation: slidein-popup 0.35s ease forwards; box-shadow: 0 0 12px rgba(255,0,80,0.25); animation: slidein-popup 0.35s ease forwards, glow-red 2.5s ease-in-out infinite; }
+.fc-card.hidden { display: none; }
+.fc-head { display: flex; align-items: center; gap: 8px; padding: 9px 12px; background: rgba(255,0,80,0.08); border-bottom: 1.5px solid rgba(255,0,80,0.25); }
+.fc-icon { width: 18px; height: 18px; border-radius: 50%; background: #FF0050; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #fff; flex-shrink: 0; }
+.fc-title { font-size: 13px; font-weight: 700; color: #cc0040; flex: 1; }
+.fc-close { font-size: 18px; color: rgba(204,0,64,0.4); cursor: pointer; line-height: 1; }
+.fc-close:hover { color: #FF0050; }
+.fc-body { padding: 10px 12px; }
+.fc-text { font-size: 12px; color: #880030; line-height: 1.5; margin-bottom: 9px; }
+.fc-text strong { color: #FF0050; }
+.fc-btns { display: flex; gap: 6px; }
+.fc-btn { flex:1; padding: 7px 0; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; text-align: center; border: 2px solid rgba(255,0,80,0.4); color: #cc0040; background: rgba(255,0,80,0.1); }
+.fc-btn.remove { border-color: #ddd; color: #888; background: #fff; }
+.fc-btn:hover { opacity: 0.8; }
+
+/* NEON YELLOW popup card */
+.dg-card { background: #fffde6; border: 2.5px solid #FFE600; border-radius: 12px; overflow: hidden; box-shadow: 0 0 12px rgba(255,230,0,0.3); animation: slidein-popup 0.35s ease forwards, glow-yellow 2.5s ease-in-out infinite; }
+.dg-card.hidden { display: none; }
+.dg-head { display: flex; align-items: center; gap: 8px; padding: 9px 12px; background: rgba(255,230,0,0.1); border-bottom: 1.5px solid rgba(255,230,0,0.35); }
+.dg-icon { width: 18px; height: 18px; border-radius: 5px; background: #FFE600; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #5a4800; flex-shrink: 0; }
+.dg-title { font-size: 13px; font-weight: 700; color: #6b5c00; flex: 1; }
+.dg-close { font-size: 18px; color: rgba(107,92,0,0.4); cursor: pointer; line-height: 1; }
+.dg-close:hover { color: #6b5c00; }
+.dg-body { padding: 10px 12px; }
+.dg-preview { background: rgba(255,230,0,0.08); border: 1.5px solid rgba(255,230,0,0.4); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; }
+.dg-preview-label { font-size: 9px; color: rgba(107,92,0,0.65); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; font-weight: 700; }
+.dg-nodes-row { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.dg-node { padding: 2px 7px; border-radius: 5px; background: rgba(255,230,0,0.18); border: 1.5px solid rgba(255,230,0,0.55); font-size: 10px; color: #6b5c00; font-weight: 700; }
+.dg-arr { font-size: 10px; color: #c8b000; font-weight: 700; }
+.dg-text { font-size: 12px; color: #4a3e00; line-height: 1.5; margin-bottom: 9px; }
+.dg-btns { display: flex; gap: 6px; }
+.dg-btn { flex:1; padding: 7px 0; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; text-align: center; border: 2px solid rgba(255,230,0,0.5); color: #6b5c00; background: rgba(255,230,0,0.15); }
+.dg-btn.remove { border-color: #ddd; color: #888; background: #fff; }
+.dg-btn:hover { opacity: 0.8; }
+
+.transcript-section { border-top: 3px solid #e2dfd4; padding: 15px 17px; flex-shrink: 0; }
+.transcript-header { display: flex; align-items: center; justify-content: space-between; }
+.toggle-btn { font-size: 12px; padding: 5px 12px; border-radius: 20px; border: 2.5px solid #ddd; background: #fff; color: #111; cursor: pointer; font-weight: 700; }
+.transcript-lines { display: flex; flex-direction: column; gap: 12px; margin-top: 13px; }
+.tline { display: flex; gap: 10px; }
+.tspk { font-size: 12px; color: #555; min-width: 60px; padding-top: 2px; font-weight: 700; }
+.ttxt { font-size: 13px; color: #444; line-height: 1.5; }
+.ttxt.active { color: #111; font-weight: 700; }
+.tmarker { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #1D9E75; margin-right: 5px; vertical-align: middle; animation: ticker 1.2s ease-in-out infinite; }
+</style>
+
+<div class="db-wrap">
+  <div class="topnav">
+    <div class="nav-left">
+      <div class="consul-mark">
+        <div class="mark-ring"><div class="mark-dot"></div></div>
+        <span class="wordmark">CONSUL</span>
+      </div>
+    </div>
+    <div class="nav-center">
+      <div class="meeting-title">Series B Board Prep</div>
+      <div class="meeting-sub">Q1 2025</div>
+    </div>
+    <div class="nav-right">
+      <div class="live-pill"><div class="live-dot"></div>Live</div>
+      <span class="timer" id="timer">00:47:12</span>
+      <button class="pause-btn"><div class="pause-icon"><div class="pause-bar"></div><div class="pause-bar"></div></div>Pause</button>
+      <button class="nav-btn deliver">Deliverables</button>
+      <button class="nav-btn end">End meeting</button>
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="col-left">
+      <div class="col-header">
+        <span class="col-title">Insights Feed</span>
+        <span class="col-count">14</span>
+      </div>
+      <div class="feed-body">
+
+        <div class="irow selected" onclick="selectRow(this)">
+          <div id="feed-caution-tag" class="caution-tag" style="display:none;"><div class="caution-dot"></div>Caution</div>
+          <div class="trigger-pill"><span class="trigger-word">Triggered</span><span class="trigger-quote">"what's the market comp?"</span></div>
+          <div class="irow-q">SaaS Series B valuations, Q1 2025</div>
+          <div class="irow-a">Median ARR multiple is 6.2×, down from 9.1× in 2021.</div>
+          <div class="irow-foot">
+            <div class="irow-src"><div class="sdot" style="background:#3B6D11;"></div><span class="sname">PitchBook · 2025</span></div>
+            <span class="irow-time">2 min ago</span>
+          </div>
+        </div>
+
+        <div class="irow proactive" onclick="selectRow(this)">
+          <div id="feed-diagram-tag" class="diagram-tag" style="display:none;"><div class="diagram-dot"></div>Diagram Suggested</div>
+          <div class="pro-label">PROACTIVE</div>
+          <div class="irow-q">Time-to-term-sheet is up 40% in 2025</div>
+          <div class="irow-a">More diligence before committing — 4.2 months on average.</div>
+          <div class="irow-foot">
+            <div class="irow-src"><div class="sdot" style="background:rgba(255,255,255,0.8);"></div><span class="sname">Crunchbase · 2025</span></div>
+            <span class="irow-time">just now</span>
+          </div>
+        </div>
+
+        <div class="irow" onclick="selectRow(this)">
+          <div class="trigger-pill"><span class="trigger-word">Triggered</span><span class="trigger-quote">"what does a16z care about?"</span></div>
+          <div class="irow-q">What top-tier VCs look for at Series B</div>
+          <div class="irow-a">&gt;100% NRR, path to $50M ARR, defensible moat.</div>
+          <div class="irow-foot">
+            <div class="irow-src"><div class="sdot" style="background:#3B6D11;"></div><span class="sname">a16z · 2024</span></div>
+            <span class="irow-time">9 min ago</span>
+          </div>
+        </div>
+
+        <div class="irow" onclick="selectRow(this)">
+          <div class="trigger-pill"><span class="trigger-word">Triggered</span><span class="trigger-quote">"our burn rate"</span></div>
+          <div class="irow-q">Cash runway projection</div>
+          <div class="irow-a">14 months remaining at $680K/mo burn.</div>
+          <div class="irow-foot">
+            <div class="irow-src"><div class="sdot" style="background:#185FA5;"></div><span class="sname">Internal · Finance deck</span></div>
+            <span class="irow-time">18 min ago</span>
+          </div>
+        </div>
+
+        <div class="irow" onclick="selectRow(this)">
+          <div class="trigger-pill"><span class="trigger-word">Triggered</span><span class="trigger-quote">"dilution"</span></div>
+          <div class="irow-q">Typical Series B dilution ranges</div>
+          <div class="irow-a">Founders give up 15–25%. Median 20% per NVCA.</div>
+          <div class="irow-foot">
+            <div class="irow-src"><div class="sdot" style="background:#3B6D11;"></div><span class="sname">NVCA · 2024</span></div>
+            <span class="irow-time">24 min ago</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="col-center">
+      <div class="ev-header">
+        <div class="deep-dive-label">Deep Dive <span></span></div>
+        <div class="ev-question">SaaS Series B valuations, Q1 2025</div>
+        <div class="ev-answer">Median ARR multiple for B-stage SaaS is 6.2× as of Q1 2025, down from the 2021 peak of 9.1×. Top-quartile deals ranging 8–11×.</div>
+        <div class="ev-src-row">
+          <div class="ev-src-badge"><div class="sdot" style="background:#3B6D11;width:8px;height:8px;border-radius:50%;"></div>PitchBook Q1 2025</div>
+          <div class="ev-src-badge"><div class="sdot" style="background:#3B6D11;width:8px;height:8px;border-radius:50%;"></div>Bessemer Cloud Index</div>
+          <div class="ev-conf">Match <b>94%</b></div>
+        </div>
+      </div>
+      <div class="ev-body">
+
+        <div id="dd-caution-banner" class="caution-banner">
+          <div class="caution-banner-head">
+            <div class="caution-icon">!</div>
+            <div class="caution-title">Caution</div>
+          </div>
+          <div class="caution-body">The <strong>6.2× median figure</strong> from PitchBook may reflect only venture-backed deals. Bessemer's broader data suggests a lower median of <strong>5.1×</strong> when including bootstrapped exits. Verify which dataset applies to your raise.</div>
+        </div>
+
+        <div id="dd-diagram-banner" class="diagram-banner">
+          <div class="diagram-banner-head">
+            <div class="diagram-icon">→</div>
+            <div class="diagram-title">Diagram Suggested</div>
+          </div>
+          <div class="diagram-body-text">CONSUL identified a funding stage progression in this data that may be clearer as a diagram.</div>
+          <div class="diagram-nodes">
+            <span class="diagram-node">Seed</span>
+            <span class="diagram-arr">→</span>
+            <span class="diagram-node">Series A</span>
+            <span class="diagram-arr">→</span>
+            <span class="diagram-node">Series B</span>
+            <span class="diagram-arr">→</span>
+            <span class="diagram-node">Growth</span>
+            <span class="diagram-arr">→</span>
+            <span class="diagram-node">Exit</span>
+          </div>
+        </div>
+
+        <div>
+          <div class="ev-section-label">Key numbers</div>
+          <div class="stat-row">
+            <div class="stat"><div class="stat-val" style="color:#1D9E75;">6.2×</div><div class="stat-lbl">Median ARR multiple</div></div>
+            <div class="stat"><div class="stat-val" style="color:#B400FF;">9.1×</div><div class="stat-lbl">2021 peak</div></div>
+            <div class="stat"><div class="stat-val" style="color:#D85A30;">8–11×</div><div class="stat-lbl">Top quartile</div></div>
+          </div>
+        </div>
+        <div>
+          <div class="ev-section-label">ARR multiple compression 2021–2025</div>
+          <div style="position:relative;width:100%;height:170px;"><canvas id="chart1"></canvas></div>
+        </div>
+        <div>
+          <div class="ev-section-label">Median multiple by sector, Q1 2025</div>
+          <div style="position:relative;width:100%;height:140px;"><canvas id="chart2"></canvas></div>
+        </div>
+        <div class="dig-row">
+          <button class="dig-btn primary">Dig deeper into this insight</button>
+          <button class="dig-btn">Save to deliverables</button>
+        </div>
+      </div>
+      <div class="qbar">
+        <div class="qwrap">
+          <span style="font-size:17px;color:#aaa;">◎</span>
+          <input class="qinput" placeholder="Ask CONSUL anything..." />
+        </div>
+      </div>
+    </div>
+
+    <div class="col-right">
+      <div class="col-header">
+        <span class="col-title">Sources</span>
+        <button class="upload-btn">↑ Upload doc</button>
+      </div>
+      <div class="source-list">
+        <div class="src-item">
+          <div class="src-header"><div class="src-type-dot" style="background:#3B6D11;"></div><span class="src-title">PitchBook Q1 2025</span></div>
+          <div class="src-meta">External · SaaS benchmarks</div>
+          <div class="src-excerpt">Median ARR multiple for B-stage SaaS at 6.2× as of Q1 2025.</div>
+          <div class="src-conf-bar"><div class="src-conf-fill" style="width:94%;background:#1D9E75;"></div></div>
+        </div>
+        <div class="src-item">
+          <div class="src-header"><div class="src-type-dot" style="background:#3B6D11;"></div><span class="src-title">Bessemer Cloud Index</span></div>
+          <div class="src-meta">External · SaaS benchmarks</div>
+          <div class="src-excerpt">Top-quartile B-stage SaaS NRR averages 115–130%.</div>
+          <div class="src-conf-bar"><div class="src-conf-fill" style="width:81%;background:#1D9E75;"></div></div>
+        </div>
+        <div class="src-item">
+          <div class="src-header"><div class="src-type-dot" style="background:#3B6D11;"></div><span class="src-title">a16z Blog · 2024</span></div>
+          <div class="src-meta">External · Investor criteria</div>
+          <div class="src-excerpt">NRR &gt;100%, path to $50M ARR, defensible moat as key signals.</div>
+          <div class="src-conf-bar"><div class="src-conf-fill" style="width:88%;background:#B400FF;"></div></div>
+        </div>
+        <div class="src-item">
+          <div class="src-header"><div class="src-type-dot" style="background:#185FA5;"></div><span class="src-title">Internal Finance Deck</span></div>
+          <div class="src-meta">Internal · Q4 2024</div>
+          <div class="src-excerpt">Cash position, burn rate, 14-month runway at $680K/mo.</div>
+          <div class="src-conf-bar"><div class="src-conf-fill" style="width:88%;background:#185FA5;"></div></div>
+        </div>
+      </div>
+
+      <div class="popup-tray">
+        <div id="fc-card" class="fc-card">
+          <div class="fc-head">
+            <div class="fc-icon">!</div>
+            <div class="fc-title">Caution</div>
+            <div class="fc-close" onclick="removeFC()">×</div>
+          </div>
+          <div class="fc-body">
+            <div class="fc-text">PitchBook's <strong>6.2× figure</strong> may reflect only VC-backed deals — Bessemer's broader data suggests <strong>5.1×</strong> median when including bootstrapped exits.</div>
+            <div class="fc-btns">
+              <div class="fc-btn" onclick="expandFC()">Expand ↗</div>
+              <div class="fc-btn remove" onclick="removeFC()">Remove</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="dg-card" class="dg-card">
+          <div class="dg-head">
+            <div class="dg-icon">→</div>
+            <div class="dg-title">Diagram Suggested</div>
+            <div class="dg-close" onclick="removeDG()">×</div>
+          </div>
+          <div class="dg-body">
+            <div class="dg-preview">
+              <div class="dg-preview-label">Suggested flow</div>
+              <div class="dg-nodes-row">
+                <span class="dg-node">Seed</span><span class="dg-arr">→</span>
+                <span class="dg-node">Series A</span><span class="dg-arr">→</span>
+                <span class="dg-node">Series B</span><span class="dg-arr">→</span>
+                <span class="dg-node">Exit</span>
+              </div>
+            </div>
+            <div class="dg-text">CONSUL identified a funding stage flow that may be clearer as a diagram.</div>
+            <div class="dg-btns">
+              <div class="dg-btn" onclick="expandDG()">Expand ↗</div>
+              <div class="dg-btn remove" onclick="removeDG()">Remove</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="transcript-section">
+        <div class="transcript-header">
+          <span class="col-title">Live Transcript</span>
+          <button class="toggle-btn" id="transcriptToggle" onclick="toggleTranscript()">Hide</button>
+        </div>
+        <div class="transcript-lines" id="transcriptLines">
+          <div class="tline"><span class="tspk">Sarah K.</span><span class="ttxt">What multiples are investors paying for SaaS at our stage?</span></div>
+          <div class="tline"><span class="tspk">Marcus T.</span><span class="ttxt">Are we in the top quartile or median range?</span></div>
+          <div class="tline"><span class="tspk">Sarah K.</span><span class="ttxt active"><span class="tmarker"></span>What's the market comp right now?</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+var s=47*60+12;
+setInterval(function(){
+  s++; var m=Math.floor(s/60),sec=s%60;
+  var el=document.getElementById('timer');
+  if(el) el.textContent='00:'+String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');
+},1000);
+
+function expandFC(){
+  document.getElementById('fc-card').classList.add('hidden');
+  document.getElementById('feed-caution-tag').style.display='inline-flex';
+  document.getElementById('dd-caution-banner').classList.add('visible');
+}
+function removeFC(){ document.getElementById('fc-card').classList.add('hidden'); }
+function expandDG(){
+  document.getElementById('dg-card').classList.add('hidden');
+  document.getElementById('feed-diagram-tag').style.display='inline-flex';
+  document.getElementById('dd-diagram-banner').classList.add('visible');
+}
+function removeDG(){ document.getElementById('dg-card').classList.add('hidden'); }
+function selectRow(el){ document.querySelectorAll('.irow').forEach(function(r){ r.classList.remove('selected'); }); el.classList.add('selected'); }
+var transcriptVisible=true;
+function toggleTranscript(){
+  transcriptVisible=!transcriptVisible;
+  document.getElementById('transcriptLines').style.display=transcriptVisible?'flex':'none';
+  document.getElementById('transcriptToggle').textContent=transcriptVisible?'Hide':'Show';
+}
+
+new Chart(document.getElementById('chart1'),{type:'line',data:{labels:['2021','2022','2023','2024','Q1 2025'],datasets:[{data:[9.1,7.4,5.8,5.2,6.2],borderColor:'#B400FF',backgroundColor:'rgba(180,0,255,0.07)',borderWidth:3,pointBackgroundColor:['#B400FF','#B400FF','#B400FF','#B400FF','#1D9E75'],pointRadius:[5,5,5,5,9],fill:true,tension:0.35}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{color:'#444',font:{size:11,family:'Arial',weight:'bold'}}},y:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{color:'#444',font:{size:11,family:'Arial'},callback:function(v){return v+'×'}},min:4,max:10}}}});
+new Chart(document.getElementById('chart2'),{type:'bar',data:{labels:['Security','DevTools','FinTech','MarTech','HRTech'],datasets:[{data:[8.2,7.8,6.9,5.4,5.1],backgroundColor:['#FF0050','#1D9E75','#B400FF','#c8c4b8','#c8c4b8'],borderRadius:7,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:'#444',font:{size:11,family:'Arial',weight:'bold'}}},y:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{color:'#444',font:{size:11,family:'Arial'},callback:function(v){return v+'×'}},min:0,max:10}}}});
+</script>

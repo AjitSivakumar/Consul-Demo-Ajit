@@ -4,52 +4,21 @@ import { extractRelevantChunks, getAllDocuments } from '../../services/documentS
 import { useMeetingStore } from '../../state/MeetingStore';
 import type { EvidenceCard, InformationNeed } from '../../types/domain';
 
-export function ConversationFlowPanel(): React.JSX.Element {
+interface InsightsFeedProps {
+  selectedNeedId: string | null;
+  onSelectNeed: (id: string | null) => void;
+}
+
+export function InsightsFeed({ selectedNeedId, onSelectNeed }: InsightsFeedProps): React.JSX.Element {
   const { state, dispatch } = useMeetingStore();
-  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [retryingId, setRetryingId] = useState<string | null>(null);
 
   /* ── Derived data ── */
 
-  const topicNodes = useMemo(() => {
-    const catMap = new Map<string, { count: number; open: number }>();
-    for (const need of state.needs) {
-      if (need.status === 'dismissed') continue;
-      const prev = catMap.get(need.category) ?? { count: 0, open: 0 };
-      catMap.set(need.category, {
-        count: prev.count + 1,
-        open: prev.open + (['resolved', 'kept'].includes(need.status) ? 0 : 1),
-      });
-    }
-    return [...catMap.entries()].map(([cat, info]) => ({ category: cat, ...info }));
-  }, [state.needs]);
-
-  // Needs visible to user (not dismissed)
   const visibleNeeds = useMemo(
     () => state.needs.filter((n) => n.status !== 'dismissed'),
     [state.needs]
   );
-
-  // Separate by resolution state
-  const pendingNeeds = useMemo(
-    () => visibleNeeds.filter((n) => n.status === 'new' || n.status === 'retrieving'),
-    [visibleNeeds]
-  );
-  const resolvedNeeds = useMemo(
-    () => visibleNeeds.filter((n) => n.status === 'resolved'),
-    [visibleNeeds]
-  );
-  const failedNeeds = useMemo(
-    () => visibleNeeds.filter((n) => n.status === 'failed' || n.status === 'unresolved'),
-    [visibleNeeds]
-  );
-  const keptNeeds = useMemo(
-    () => visibleNeeds.filter((n) => n.status === 'kept'),
-    [visibleNeeds]
-  );
-
-  const keptCount = keptNeeds.length;
-  const openCount = pendingNeeds.length + resolvedNeeds.length + failedNeeds.length;
 
   // Map needs to their triggering transcript line
   const needTriggerMap = useMemo(() => {
@@ -57,7 +26,7 @@ export function ConversationFlowPanel(): React.JSX.Element {
     for (const need of state.needs) {
       const event = state.transcript.find((t) => t.segmentId === need.triggeredBySegmentId);
       if (event) {
-        map.set(need.id, `${event.speaker}: "${event.text.slice(0, 80)}${event.text.length > 80 ? '…' : ''}"`);
+        map.set(need.id, event.text.slice(0, 80) + (event.text.length > 80 ? '…' : ''));
       }
     }
     return map;
@@ -96,14 +65,12 @@ export function ConversationFlowPanel(): React.JSX.Element {
         .map((t) => `${t.speaker}: ${t.text}`)
         .join('\n');
 
-      // 1) Try documents FIRST — primary source
+      // 1) Try documents FIRST
       const docs = getAllDocuments();
       if (docs.length > 0) {
         const chunks = extractRelevantChunks(need.prompt, 8, 1500);
         if (chunks.length > 0) {
-          const docCtx = chunks
-            .map((c) => `[Source: ${c.docName}]\n${c.chunk}`)
-            .join('\n\n---\n\n');
+          const docCtx = chunks.map((c) => `[Source: ${c.docName}]\n${c.chunk}`).join('\n\n---\n\n');
           const docResult = await resolveGapFromDocuments(need.prompt, docCtx);
           if (docResult.confidence >= 0.5) {
             const evidence: EvidenceCard = {
@@ -133,7 +100,7 @@ export function ConversationFlowPanel(): React.JSX.Element {
         }
       }
 
-      // 2) Fallback: try internet
+      // 2) Fallback: internet
       const internetResult = await resolveGapFromInternet(need.prompt, transcriptContext);
       if (internetResult.confidence >= 0.5) {
         const evidence: EvidenceCard = {
@@ -167,234 +134,146 @@ export function ConversationFlowPanel(): React.JSX.Element {
     [dispatch, state.transcript]
   );
 
-  /* ── Render helpers ── */
-
-  const categoryColor: Record<string, string> = {
-    comparison: '#63d2be', risk: '#ff6b6b', pricing: '#e8a948',
-    objection: '#a9a0ff', claim: '#7bb8f0', decision: '#63d2be',
-    open_question: '#e8a948', topic: '#8f98a7', entity: '#7bb8f0',
-    metric: '#63d2be', action_item: '#e8a948',
+  /* ── Time ago helper ── */
+  const timeAgo = (timestamp: number): string => {
+    const diff = Math.floor((Date.now() - timestamp) / 1000);
+    if (diff < 60) return 'just now';
+    if (diff < 120) return '1 min ago';
+    return `${Math.floor(diff / 60)} min ago`;
   };
 
-  const renderCard = (need: InformationNeed, idx: number) => {
+  /* ── Category colors ── */
+  const categoryColor: Record<string, string> = {
+    comparison: '#1D9E75', risk: '#FF0050', pricing: '#e8a948',
+    objection: '#B400FF', claim: '#1D9E75', decision: '#1D9E75',
+    open_question: '#e8a948', topic: '#3B6D11', entity: '#185FA5',
+    metric: '#1D9E75', action_item: '#e8a948',
+  };
+
+  /* ── Render insight card ── */
+  const renderInsightCard = (need: InformationNeed, idx: number) => {
     const trigger = needTriggerMap.get(need.id);
     const evidence = needEvidenceMap.get(need.id);
-    const color = categoryColor[need.category] ?? '#8f98a7';
-    const isExpanded = expandedId === need.id;
+    const isSelected = selectedNeedId === need.id;
     const isRetrying = retryingId === need.id;
-
-    const statusClass =
-      need.status === 'retrieving' ? 'resolving' :
-      need.status === 'resolved' ? 'resolved' :
-      need.status === 'failed' || need.status === 'unresolved' ? 'failed' :
-      need.status === 'kept' ? 'kept' : '';
+    const isCaution = need.category === 'risk' || need.priority === 'p1';
+    const isProactive = need.category === 'objection' && evidence;
+    const sourceColor = categoryColor[need.category] ?? '#3B6D11';
 
     return (
-      <article
-        className={`cflow-gap-card ${statusClass}`}
+      <div
         key={need.id}
-        style={{ animationDelay: `${idx * 150}ms` }}
+        className={`irow ${isSelected ? 'selected' : ''} ${isProactive ? 'proactive' : ''}`}
+        style={{ animationDelay: `${idx * 80}ms` }}
+        onClick={() => onSelectNeed(isSelected ? null : need.id)}
       >
-        {/* Header row */}
-        <div className="cflow-gap-top">
-          <span className={`cflow-priority ${need.priority}`}>{need.priority.toUpperCase()}</span>
-          <span className="cflow-category" style={{ color, borderColor: color }}>
-            {need.category.replace('_', ' ')}
-          </span>
+        {/* Caution / Diagram tags */}
+        {isCaution && (
+          <div className="caution-tag">
+            <div className="caution-dot" />
+            Caution
+          </div>
+        )}
+        {need.category === 'comparison' && evidence && (
+          <div className="diagram-tag">
+            <div className="diagram-dot" />
+            Diagram Suggested
+          </div>
+        )}
 
-          {/* Status indicator */}
-          {need.status === 'retrieving' && <span className="cflow-status-pill resolving">Resolving…</span>}
-          {need.status === 'resolved' && <span className="cflow-status-pill resolved">✓ Resolved</span>}
-          {(need.status === 'failed' || need.status === 'unresolved') && (
-            <span className="cflow-status-pill failed">✗ Unresolved</span>
-          )}
-          {need.status === 'kept' && <span className="cflow-status-pill kept">★ Kept</span>}
+        {/* Proactive label */}
+        {isProactive && <div className="pro-label">PROACTIVE</div>}
 
-          <span className="cflow-confidence">{(need.confidence * 100).toFixed(0)}%</span>
+        {/* Trigger pill */}
+        {trigger && (
+          <div className="trigger-pill">
+            <span className="trigger-word">Triggered</span>
+            <span className="trigger-quote">"{trigger}"</span>
+          </div>
+        )}
+
+        {/* Status badge */}
+        {need.status === 'retrieving' && <span className="irow-status resolving">Resolving…</span>}
+        {(need.status === 'failed' || need.status === 'unresolved') && <span className="irow-status failed">Unresolved</span>}
+        {need.status === 'kept' && <span className="irow-status kept">★ Kept</span>}
+
+        {/* Question */}
+        <div className="irow-q">{need.prompt}</div>
+
+        {/* Answer (if resolved) */}
+        {evidence && (
+          <div className="irow-a">{evidence.summary.slice(0, 120)}{evidence.summary.length > 120 ? '…' : ''}</div>
+        )}
+
+        {/* Footer: source + time */}
+        <div className="irow-foot">
+          <div className="irow-src">
+            <div className="sdot" style={{ background: sourceColor }} />
+            <span className="sname">
+              {evidence?.attributions[0]?.title ?? need.category.replace('_', ' ')}
+            </span>
+          </div>
+          <span className="irow-time">{need.status === 'new' ? 'just now' : need.status}</span>
         </div>
 
-        <p className="cflow-gap-question">{need.prompt}</p>
-
-        {trigger && <p className="cflow-gap-trigger">{trigger}</p>}
-
-        {/* Resolved evidence block — expandable */}
-        {evidence && need.status === 'resolved' && (
-          <div className={`cflow-resolved ${isExpanded ? 'expanded' : ''}`}>
-            <button
-              type="button"
-              className="cflow-resolved-toggle"
-              onClick={() => setExpandedId(isExpanded ? null : need.id)}
-            >
-              <span className="cflow-resolved-via">
-                {evidence.attributions[0]?.sourceType === 'web' ? '🌐' : '📁'}{' '}
-                {evidence.attributions[0]?.title ?? 'Source'}
-              </span>
-              <span className="cflow-toggle-arrow">{isExpanded ? '▾' : '▸'}</span>
+        {/* Action buttons for resolved/failed needs */}
+        {(need.status === 'resolved' || need.status === 'failed' || need.status === 'unresolved') && (
+          <div className="irow-actions" onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="irow-action-btn keep" onClick={() => handleKeep(need.id)}>
+              ✓ Keep
             </button>
-            {isExpanded && (
-              <div className="cflow-resolved-body">
-                <p>{evidence.summary}</p>
-              </div>
+            <button type="button" className="irow-action-btn dismiss" onClick={() => handleDismiss(need.id)}>
+              ✗ Dismiss
+            </button>
+            {(need.status === 'failed' || need.status === 'unresolved') && (
+              <button
+                type="button"
+                className="irow-action-btn retry"
+                disabled={isRetrying}
+                onClick={() => void handleRetry(need)}
+              >
+                {isRetrying ? 'Retrying…' : '↻ Retry'}
+              </button>
             )}
           </div>
         )}
-
-        {/* Failed notice */}
-        {(need.status === 'failed' || need.status === 'unresolved') && (
-          <div className="cflow-failed-notice">
-            <p>Could not find a confident answer from internet or uploaded documents.</p>
-            <button
-              type="button"
-              className="cflow-retry-btn"
-              disabled={isRetrying}
-              onClick={() => void handleRetry(need)}
-            >
-              {isRetrying ? 'Retrying…' : '↻ Retry'}
-            </button>
-          </div>
-        )}
-
-        {/* Keep / Dismiss selection — for resolved and failed needs */}
-        {(need.status === 'resolved' || need.status === 'failed' || need.status === 'unresolved') && (
-          <div className="cflow-selection-bar">
-            <button
-              type="button"
-              className="cflow-select-btn keep"
-              onClick={() => handleKeep(need.id)}
-            >
-              ✓ Keep
-            </button>
-            <button
-              type="button"
-              className="cflow-select-btn dismiss"
-              onClick={() => handleDismiss(need.id)}
-            >
-              ✗ Dismiss
-            </button>
-          </div>
-        )}
-
-        {/* Kept evidence — always show expanded */}
-        {evidence && need.status === 'kept' && (
-          <div className="cflow-resolved expanded">
-            <div className="cflow-resolved-body">
-              <p>{evidence.summary}</p>
-              <span className="cflow-resolved-via kept-source">
-                {evidence.attributions[0]?.sourceType === 'web' ? '🌐' : '📁'}{' '}
-                {evidence.attributions[0]?.title ?? 'Source'}
-              </span>
-            </div>
-          </div>
-        )}
-      </article>
+      </div>
     );
   };
 
   return (
-    <section className="cflow-panel hero">
-      {/* ── Summary Dashboard ── */}
-      <div className="cflow-dashboard">
-        <div className="cflow-dash-stat">
-          <span className="cflow-dash-number pending">{pendingNeeds.length}</span>
-          <span className="cflow-dash-label">Open Gaps</span>
-        </div>
-        <div className="cflow-dash-stat">
-          <span className="cflow-dash-number resolving">
-            {visibleNeeds.filter((n) => n.status === 'retrieving').length}
-          </span>
-          <span className="cflow-dash-label">Resolving</span>
-        </div>
-        <div className="cflow-dash-stat">
-          <span className="cflow-dash-number resolved">{resolvedNeeds.length}</span>
-          <span className="cflow-dash-label">Resolved</span>
-        </div>
-        <div className="cflow-dash-stat">
-          <span className="cflow-dash-number kept">{keptCount}</span>
-          <span className="cflow-dash-label">Kept</span>
-        </div>
-        <div className="cflow-dash-stat">
-          <span className="cflow-dash-number failed">{failedNeeds.length}</span>
-          <span className="cflow-dash-label">Failed</span>
-        </div>
+    <>
+      <div className="col-header">
+        <span className="col-title">Insights Feed</span>
+        <span className="col-count">{visibleNeeds.length}</span>
       </div>
-
-      {/* ── Topic Flow ── */}
-      {topicNodes.length > 0 && (
-        <div className="cflow-topics">
-          {topicNodes.map((node, idx) => (
-            <div className="cflow-topic-wrap" key={node.category}>
-              {idx > 0 && <div className="cflow-topic-connector" />}
-              <div className={`cflow-topic-node ${node.open > 0 ? 'has-open' : 'all-resolved'}`}>
-                <div
-                  className="cflow-topic-dot"
-                  style={{ borderColor: categoryColor[node.category] ?? '#8f98a7' }}
-                />
-                <span className="cflow-topic-label">{node.category.replace('_', ' ')}</span>
-                <span className="cflow-topic-count">{node.count}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* ── Scrollable gap area ── */}
-      <div className="cflow-scroll-area">
-        {/* ── Active (pending + resolved waiting for user selection + failed) ── */}
-        <div className="cflow-section">
-          <div className="cflow-section-head">
-            <span>Live Gaps</span>
-            <span className="cflow-section-count">{openCount}</span>
-          </div>
-          <div className="cflow-card-list">
-            {openCount === 0 && (
-              <div className="cflow-empty">
-                {state.needs.length === 0
-                  ? 'Information gaps will appear as the conversation unfolds…'
-                  : 'All gaps reviewed ✓'}
-              </div>
-            )}
-            {[...pendingNeeds, ...resolvedNeeds, ...failedNeeds].map(renderCard)}
-          </div>
-        </div>
-
-        {/* ── Kept items ── */}
-        {keptNeeds.length > 0 && (
-          <div className="cflow-section">
-            <div className="cflow-section-head">
-              <span>Kept</span>
-              <span className="cflow-section-count resolved">{keptNeeds.length}</span>
-            </div>
-            <div className="cflow-card-list">
-              {keptNeeds.map(renderCard)}
-            </div>
+      <div className="feed-body">
+        {visibleNeeds.length === 0 && (
+          <div className="feed-empty">
+            {state.needs.length === 0
+              ? 'Insights will appear as the conversation unfolds…'
+              : 'All insights reviewed ✓'}
           </div>
         )}
 
-        {/* ── AI Suggestions ── */}
-        {state.ambientSuggestions.length > 0 && (
-          <div className="cflow-section">
-            <div className="cflow-section-head">
-              <span>AI Suggestions</span>
-              <span className="cflow-section-count">{state.ambientSuggestions.length}</span>
-            </div>
-            <div className="cflow-card-list">
-              {state.ambientSuggestions
-                .slice()
-                .reverse()
-                .slice(0, 6)
-                .map((item, idx) => (
-                  <article className="cflow-suggestion" key={`${item.timestamp}-${idx}`}>
-                    <div className="cflow-suggestion-top">
-                      <span>Action</span>
-                      <span>{new Date(item.timestamp).toLocaleTimeString()}</span>
-                    </div>
-                    <p>{item.text}</p>
-                  </article>
-                ))}
+        {/* AI Suggestions as proactive cards */}
+        {state.ambientSuggestions.slice().reverse().slice(0, 3).map((item, idx) => (
+          <div key={`sug-${item.timestamp}-${idx}`} className="irow proactive" style={{ animationDelay: `${idx * 80}ms` }}>
+            <div className="pro-label">PROACTIVE</div>
+            <div className="irow-q">{item.text}</div>
+            <div className="irow-foot">
+              <div className="irow-src">
+                <div className="sdot" style={{ background: 'rgba(255,255,255,0.8)' }} />
+                <span className="sname">AI Suggestion</span>
+              </div>
+              <span className="irow-time">{timeAgo(new Date(item.timestamp).getTime())}</span>
             </div>
           </div>
-        )}
+        ))}
+
+        {/* Insight cards from needs */}
+        {visibleNeeds.map(renderInsightCard)}
       </div>
-    </section>
+    </>
   );
 }
