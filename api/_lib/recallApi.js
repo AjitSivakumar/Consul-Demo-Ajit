@@ -20,9 +20,9 @@ export async function recallFetch(path, options = {}) {
 }
 
 export function getWebhookBaseUrl() {
-  return process.env.RECALL_WEBHOOK_BASE_URL || process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : 'http://localhost:3001';
+  if (process.env.RECALL_WEBHOOK_BASE_URL) return process.env.RECALL_WEBHOOK_BASE_URL;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return 'http://localhost:3001';
 }
 
 export function hasApiKey() {
@@ -31,4 +31,23 @@ export function hasApiKey() {
 
 export function getRegion() {
   return RECALL_REGION;
+}
+
+export function detectPlatform(url) {
+  if (/zoom\.us\/j\//i.test(url)) return 'zoom';
+  if (/meet\.google\.com\//i.test(url)) return 'google_meet';
+  if (/teams\.microsoft\.com\//i.test(url)) return 'teams';
+  return 'unknown';
+}
+
+export function getPlatformCredentials(platform) {
+  const googleId = process.env.RECALL_GOOGLE_CREDENTIAL_ID;
+  const zoomId = process.env.RECALL_ZOOM_OAUTH_CREDENTIAL_ID;
+  if (platform === 'google_meet' && googleId) {
+    return { google_meet: { login_required: true, google_login_group_id: googleId } };
+  }
+  if (platform === 'zoom' && zoomId) {
+    return { zoom: { oauth_credential_id: zoomId } };
+  }
+  return {};
 }

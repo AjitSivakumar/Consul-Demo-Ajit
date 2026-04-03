@@ -433,40 +433,57 @@ Rules:
 /**
  * Generate ambient suggestions for real-time panel
  */
+export interface ProactiveSuggestion {
+  headline: string;
+  prompt: string;
+  rationale: string;
+  category: 'comparison' | 'risk' | 'pricing' | 'objection' | 'claim' | 'decision' | 'metric';
+}
+
 export async function generateAmbientSuggestion(
   transcript: string,
-  previousSuggestions: string[]
-): Promise<string> {
+  previousHeadlines: string[]
+): Promise<ProactiveSuggestion | null> {
   try {
-    const suggestionContext =
-      previousSuggestions.length > 0
-        ? `\n\nPrevious suggestions from this meeting (avoid repetition):\n${previousSuggestions.slice(-3).join('\n')}`
+    const prevContext =
+      previousHeadlines.length > 0
+        ? `\n\nAlready surfaced (avoid repeating these topics):\n${previousHeadlines.slice(-3).join('\n')}`
         : '';
 
     const response = await client.chat.completions.create({
       model: 'gpt-4o-mini',
-      temperature: 0.8,
-      max_tokens: 100,
+      temperature: 0.3,
+      max_tokens: 200,
+      response_format: { type: 'json_object' },
       messages: [
         {
           role: 'system',
           content:
-            'You are a real-time meeting assistant. Suggest ONE concrete action the sales team should take right now, based on the discussion.',
+            'You are a real-time meeting assistant. Identify ONE piece of information that would be genuinely useful to surface right now — a specific stat, factual correction, comparison, or answer to an implied question. It must be concrete and researchable. If nothing is worth surfacing, return {"skip": true}.',
         },
         {
           role: 'user',
-          content: `Latest transcript:
-${transcript}${suggestionContext}
+          content: `Latest transcript segment:
+${transcript}${prevContext}
 
-Suggest ONE concise action (1 sentence max):`,
+Return JSON with exactly these fields (or {"skip": true} if nothing worth surfacing):
+{
+  "headline": "short card title (max 8 words)",
+  "prompt": "specific question to research and answer for the team",
+  "rationale": "one sentence: why this is useful right now",
+  "category": "comparison|risk|pricing|objection|claim|decision|metric"
+}`,
         },
       ],
     });
 
-    return (response.choices[0].message.content || '').trim();
+    const content = (response.choices[0].message.content || '').trim();
+    const parsed = JSON.parse(content);
+    if (parsed.skip || !parsed.headline || !parsed.prompt) return null;
+    return parsed as ProactiveSuggestion;
   } catch (err) {
     console.error('Ambient suggestion error:', err);
-    return '';
+    return null;
   }
 }
 

@@ -257,19 +257,36 @@ export function InsightsFeed({ selectedNeedId, onSelectNeed }: InsightsFeedProps
         )}
 
         {/* AI Suggestions as proactive cards */}
-        {state.ambientSuggestions.slice().reverse().slice(0, 3).map((item, idx) => (
-          <div key={`sug-${item.timestamp}-${idx}`} className="irow proactive" style={{ animationDelay: `${idx * 80}ms` }}>
-            <div className="pro-label">PROACTIVE</div>
-            <div className="irow-q">{item.text}</div>
-            <div className="irow-foot">
-              <div className="irow-src">
-                <div className="sdot" style={{ background: 'rgba(255,255,255,0.8)' }} />
-                <span className="sname">AI Suggestion</span>
+        {state.ambientSuggestions.slice().reverse().slice(0, 3).map((item, idx) => {
+          const isSelected = selectedNeedId === item.needId;
+          const need = state.needs.find((n) => n.id === item.needId);
+          const evidence = state.evidence.find((e) => e.needId === item.needId);
+          return (
+            <div
+              key={`sug-${item.timestamp}-${idx}`}
+              className={`irow proactive${isSelected ? ' selected' : ''}`}
+              style={{ animationDelay: `${idx * 80}ms` }}
+              onClick={() => onSelectNeed(isSelected ? null : item.needId)}
+            >
+              <div className="pro-label">⬡ PROACTIVE</div>
+              <div className="irow-q">{item.headline}</div>
+              {need && (
+                <div className="irow-a" style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12 }}>
+                  {need.rationale}
+                </div>
+              )}
+              <div className="irow-foot">
+                <div className="irow-src">
+                  <div className="sdot" style={{ background: 'rgba(255,255,255,0.8)' }} />
+                  <span className="sname">
+                    {evidence ? (evidence.verification === 'verified' ? '✓ Resolved' : '~ Inferred') : need?.status === 'retrieving' ? 'Researching…' : 'AI Suggestion'}
+                  </span>
+                </div>
+                <span className="irow-time">{timeAgo(new Date(item.timestamp).getTime())}</span>
               </div>
-              <span className="irow-time">{timeAgo(new Date(item.timestamp).getTime())}</span>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {/* Insight cards from needs */}
         {visibleNeeds.map(renderInsightCard)}

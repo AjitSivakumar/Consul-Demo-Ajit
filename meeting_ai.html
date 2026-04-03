@@ -21,6 +21,8 @@
     --warn: #ff6b6b;
     --suggest-bg: rgba(99,210,190,0.06);
     --card-shadow: 0 4px 32px rgba(0,0,0,0.5);
+    --neon-purple: #c084fc;
+    --neon-blue:   #60a5fa;
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -676,10 +678,11 @@
     box-shadow: var(--card-shadow);
   }
 
-  .suggestion-card.type-data { border-top: 2px solid var(--accent); }
-  .suggestion-card.type-answer { border-top: 2px solid var(--accent2); }
-  .suggestion-card.type-correction { border-top: 2px solid var(--warn); }
-  .suggestion-card.type-context { border-top: 2px solid var(--accent3); }
+  .suggestion-card.type-data { border-top: 2px solid var(--neon-purple); }
+  .suggestion-card.type-answer { border-top: 2px solid var(--neon-blue); border: 1px solid rgba(96,165,250,0.25); border-top: 2px solid var(--neon-blue); }
+  .suggestion-card.type-correction { border-top: 2px solid var(--neon-purple); }
+  .suggestion-card.type-context { border-top: 2px solid var(--neon-purple); }
+  .suggestion-card.type-diagram { border-top: 2px solid var(--neon-purple); }
 
   .card-top {
     display: flex;
@@ -699,10 +702,11 @@
     font-weight: 500;
   }
 
-  .type-data .card-type { color: var(--accent); }
-  .type-answer .card-type { color: var(--accent2); }
-  .type-correction .card-type { color: var(--warn); }
-  .type-context .card-type { color: var(--accent3); }
+  .type-data .card-type { color: var(--neon-purple); }
+  .type-answer .card-type { color: var(--neon-blue); }
+  .type-correction .card-type { color: var(--neon-purple); }
+  .type-context .card-type { color: var(--neon-purple); }
+  .type-diagram .card-type { color: var(--neon-purple); }
 
   .card-age {
     font-family: 'DM Mono', monospace;
@@ -830,7 +834,8 @@
     height: 100%;
     border-radius: 2px;
     background: var(--accent);
-    transition: width 1s ease;
+    transition: width 1.1s cubic-bezier(0.22, 1, 0.36, 1);
+    width: 0;
   }
 
   .data-val {
@@ -961,6 +966,286 @@
   .doc-item.referenced {
     animation: highlight-pulse 2.5s ease-in-out infinite;
   }
+
+  /* ── MODALS ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.65);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal-box {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.96);
+    background: var(--surface2);
+    border-radius: 16px;
+    border: 1px solid rgba(192,132,252,0.25);
+    padding: 24px;
+    width: 440px;
+    max-width: 92vw;
+    box-shadow: 0 12px 60px rgba(0,0,0,0.75), 0 0 0 1px rgba(192,132,252,0.1);
+    animation: modal-in 0.22s cubic-bezier(0.22,1,0.36,1) forwards;
+  }
+
+  @keyframes modal-in {
+    to { transform: translate(-50%, -50%) scale(1); }
+  }
+
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .modal-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--neon-purple);
+    letter-spacing: 0.3px;
+  }
+
+  .modal-close {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 0 2px;
+    transition: color 0.15s;
+    line-height: 1;
+  }
+  .modal-close:hover { color: var(--text); }
+
+  .modal-body {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
+
+  .modal-body strong { color: var(--text); font-weight: 500; }
+
+  .modal-source-ref {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-top: 10px;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .modal-btn {
+    flex: 1;
+    padding: 7px 12px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+    text-align: center;
+  }
+
+  .modal-btn-primary {
+    background: rgba(192,132,252,0.15);
+    color: var(--neon-purple);
+    border: 1px solid rgba(192,132,252,0.3);
+  }
+  .modal-btn-primary:hover { background: rgba(192,132,252,0.25); }
+
+  .modal-btn-ghost {
+    background: none;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+  .modal-btn-ghost:hover { color: var(--text); border-color: rgba(255,255,255,0.15); }
+
+  /* Diagram modal diagram preview */
+  .diagram-preview {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    margin-bottom: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .diagram-node-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .diagram-node {
+    background: rgba(192,132,252,0.1);
+    border: 1px solid rgba(192,132,252,0.3);
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 11px;
+    color: var(--neon-purple);
+    font-family: 'DM Mono', monospace;
+    white-space: nowrap;
+  }
+
+  .diagram-arrow {
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+
+  /* ── NOTES PANEL ── */
+  .notes-panel {
+    border-top: 1px solid var(--border);
+    background: rgba(10,12,15,0.6);
+    flex-shrink: 0;
+    max-height: 220px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .notes-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 24px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .notes-header-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1.2px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+
+  .notes-toggle-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 11px;
+    cursor: pointer;
+    transition: color 0.15s;
+  }
+  .notes-toggle-btn:hover { color: var(--text); }
+
+  .notes-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+  }
+  .notes-content.collapsed { display: none; }
+
+  .notes-input-row {
+    display: flex;
+    gap: 8px;
+    padding: 10px 24px 8px;
+    flex-shrink: 0;
+  }
+
+  .notes-textarea {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-size: 12px;
+    font-family: 'DM Sans', sans-serif;
+    resize: none;
+    outline: none;
+    height: 60px;
+    transition: border 0.15s;
+  }
+  .notes-textarea:focus { border-color: var(--border-active); }
+  .notes-textarea::placeholder { color: var(--text-muted); }
+
+  .notes-save-btn {
+    background: rgba(192,132,252,0.15);
+    color: var(--neon-purple);
+    border: 1px solid rgba(192,132,252,0.3);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 10px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    align-self: flex-start;
+    transition: all 0.15s;
+  }
+  .notes-save-btn:hover { background: rgba(192,132,252,0.25); }
+
+  .notes-list {
+    overflow-y: auto;
+    padding: 0 24px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+  }
+  .notes-list::-webkit-scrollbar { width: 4px; }
+  .notes-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .note-item {
+    display: flex;
+    gap: 10px;
+    padding: 6px 10px;
+    background: rgba(192,132,252,0.06);
+    border: 1px solid rgba(192,132,252,0.12);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.5;
+    animation: fadein-line 0.3s forwards;
+  }
+
+  .note-time {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    padding-top: 2px;
+  }
+
+  /* ── PRINT / PDF ── */
+  @media print {
+    .topbar, .panel-docs, .panel-ai, .notes-panel { display: none !important; }
+    .main { display: block !important; }
+    .panel-transcript { width: 100% !important; overflow: visible !important; }
+    .transcript-feed { overflow: visible !important; max-height: none !important; }
+    body { background: #fff !important; color: #111 !important; overflow: auto !important; }
+    body::before { display: none !important; }
+    .transcript-footer { display: none !important; }
+    .t-text mark { background: #e8f4ff !important; color: #185fa5 !important; }
+    .live-cursor { display: none !important; }
+  }
 </style>
 </head>
 <body>
@@ -985,7 +1270,8 @@
       <div class="avatar av3">JL</div>
       <div class="avatar av4">AK</div>
     </div>
-    <button class="btn-control btn-ghost">⏸ Pause AI</button>
+    <button class="btn-control btn-ghost" id="pauseBtn">⏸ Pause AI</button>
+    <button class="btn-control btn-ghost" onclick="window.print()">⬇ Export PDF</button>
     <button class="btn-control btn-primary">↗ Share Brief</button>
   </div>
 </div>
@@ -1142,6 +1428,21 @@
       </div>
     </div>
 
+    <!-- NOTES PANEL -->
+    <div class="notes-panel">
+      <div class="notes-header" id="notesHeader">
+        <span class="notes-header-label">📝 Notes</span>
+        <button class="notes-toggle-btn" id="notesToggle">▾</button>
+      </div>
+      <div class="notes-content" id="notesContent">
+        <div class="notes-input-row">
+          <textarea class="notes-textarea" id="notesInput" placeholder="Add a note for deliverables…"></textarea>
+          <button class="notes-save-btn" id="notesSave">Save to<br>Deliverables</button>
+        </div>
+        <div class="notes-list" id="notesList"></div>
+      </div>
+    </div>
+
     <div class="transcript-footer">
       <div class="ask-input-wrap">
         <span style="color:var(--text-muted);font-size:13px;">✦</span>
@@ -1203,7 +1504,7 @@
               <div class="pip"></div>
             </div>
           </div>
-          <div class="card-source">
+          <div class="card-source" data-url="https://docs.google.com/presentation/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms/edit#slide=14">
             <div class="source-icon">🎯</div>
             <div class="source-text">
               <div class="source-name">User Research Synthesis.pptx</div>
@@ -1212,7 +1513,7 @@
             <div class="source-arrow">↗</div>
           </div>
           <div class="card-actions">
-            <button class="card-btn card-btn-primary">Share correction</button>
+            <button class="card-btn card-btn-primary" id="openCautionBtn">⚠ View Caution</button>
             <button class="card-btn card-btn-ghost">Dismiss</button>
           </div>
         </div>
@@ -1233,17 +1534,17 @@
           <div class="card-data-viz">
             <div class="data-row">
               <div class="data-label">Enterprise</div>
-              <div class="data-track"><div class="data-fill" style="width:88%;background:var(--accent)"></div></div>
+              <div class="data-track"><div class="data-fill" data-width="88%" style="background:var(--accent)"></div></div>
               <div class="data-val">$2.6M</div>
             </div>
             <div class="data-row">
               <div class="data-label">SMB</div>
-              <div class="data-track"><div class="data-fill" style="width:52%;background:var(--warn)"></div></div>
+              <div class="data-track"><div class="data-fill" data-width="52%" style="background:var(--warn)"></div></div>
               <div class="data-val">$1.6M</div>
             </div>
             <div class="data-row">
               <div class="data-label">Target</div>
-              <div class="data-track"><div class="data-fill" style="width:100%;background:var(--accent2)"></div></div>
+              <div class="data-track"><div class="data-fill" data-width="100%" style="background:var(--accent2)"></div></div>
               <div class="data-val">$5.0M</div>
             </div>
           </div>
@@ -1257,7 +1558,7 @@
               <div class="pip filled"></div>
             </div>
           </div>
-          <div class="card-source">
+          <div class="card-source" data-url="https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms/edit#gid=0">
             <div class="source-icon">📊</div>
             <div class="source-text">
               <div class="source-name">Q3 Revenue Report.xlsx</div>
@@ -1294,7 +1595,7 @@
               <div class="pip"></div>
             </div>
           </div>
-          <div class="card-source">
+          <div class="card-source" data-url="https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms/view?usp=sharing">
             <div class="source-icon">📄</div>
             <div class="source-text">
               <div class="source-name">Competitor Analysis.pdf</div>
@@ -1331,7 +1632,7 @@
               <div class="pip"></div>
             </div>
           </div>
-          <div class="card-source">
+          <div class="card-source" data-url="https://docs.google.com/presentation/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms/edit#slide=31">
             <div class="source-icon">🎯</div>
             <div class="source-text">
               <div class="source-name">Product Roadmap 2024.pptx</div>
@@ -1345,13 +1646,115 @@
         </div>
       </div>
 
+      <!-- DIAGRAM SUGGESTED CARD -->
+      <div class="suggestion-card type-diagram" style="animation-delay:0.5s;">
+        <div class="card-top">
+          <div class="card-type">⬡ Diagram Suggested</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="card-age">5m ago</div>
+            <button class="card-dismiss">×</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="card-title">SMB funnel drop-off flow</div>
+          <div class="card-content">Based on discussion, a funnel diagram would clarify the onboarding → activation → churn stages for the SMB segment.</div>
+          <div class="card-actions">
+            <button class="card-btn card-btn-primary" id="openDiagramBtn">View Diagram</button>
+            <button class="card-btn card-btn-ghost">Dismiss</button>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
 </div>
 
+<!-- CAUTION MODAL -->
+<div class="modal-overlay" id="cautionModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">⚠ Caution — Incorrect Fact</span>
+      <button class="modal-close" data-modal="cautionModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <p><strong>Claim made:</strong> "SMBs have on average a <strong>2-week evaluation window</strong> before they decide."</p>
+      <p style="margin-top:10px;"><strong>What the data says:</strong> Your User Research Synthesis (Slide 14) records the median SMB trial evaluation period as <strong>10 days</strong>, not 14. This is an 8% shorter window — material for conversion timing decisions.</p>
+      <div class="modal-source-ref">
+        <span>🎯</span>
+        <span>User Research Synthesis.pptx · Slide 14 · Trial Behavior Patterns</span>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-primary" id="cautionExpandBtn">Expand → Insight</button>
+      <button class="modal-btn modal-btn-ghost" data-modal="cautionModal">Dismiss</button>
+    </div>
+  </div>
+</div>
+
+<!-- CAUTION INSIGHT MODAL -->
+<div class="modal-overlay" id="insightModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">◈ Insight — SMB Trial Patterns</span>
+      <button class="modal-close" data-modal="insightModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <p>The 10-day median evaluation window reflects a bimodal distribution: <strong>fast-churn SMBs</strong> (days 1–5) and <strong>conversion-ready SMBs</strong> (days 8–12). This means day-7 interventions — like a check-in or a demo nudge — capture the highest-leverage cohort.</p>
+      <p style="margin-top:10px;">The July pricing increase (+22%) likely pushed more SMBs into the fast-churn bucket by increasing perceived switching cost before they reached activation.</p>
+      <div class="modal-source-ref">
+        <span>📄</span>
+        <span>Cross-references: User Research Synthesis · Slide 14, 15, 22 — Competitor Analysis · Page 8</span>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-primary">Share insight to meeting</button>
+      <button class="modal-btn modal-btn-ghost" data-modal="insightModal">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- DIAGRAM SUGGESTED MODAL -->
+<div class="modal-overlay" id="diagramModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title">⬡ Diagram — SMB Funnel Drop-off</span>
+      <button class="modal-close" data-modal="diagramModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <p>Suggested flow based on discussion:</p>
+      <div class="diagram-preview" style="margin-top:12px;">
+        <div class="diagram-node-row">
+          <div class="diagram-node">Trial Start</div>
+          <div class="diagram-arrow">→</div>
+          <div class="diagram-node">Onboarding</div>
+          <div class="diagram-arrow">→</div>
+          <div class="diagram-node">Activation</div>
+        </div>
+        <div class="diagram-node-row" style="padding-left:120px;">
+          <div class="diagram-arrow" style="transform:rotate(90deg);">↓</div>
+        </div>
+        <div class="diagram-node-row" style="justify-content:flex-end;padding-right:12px;">
+          <div class="diagram-node" style="border-color:rgba(255,107,107,0.4);color:var(--warn);">Churn (day 1–5)</div>
+          <div class="diagram-arrow">←</div>
+          <div class="diagram-node" style="border-color:rgba(255,107,107,0.4);color:var(--warn);">Friction point</div>
+        </div>
+        <div class="diagram-node-row" style="margin-top:8px;">
+          <div class="diagram-node" style="border-color:rgba(96,165,250,0.4);color:var(--neon-blue);">Check-in (day 7)</div>
+          <div class="diagram-arrow">→</div>
+          <div class="diagram-node" style="border-color:rgba(96,165,250,0.4);color:var(--neon-blue);">Convert (day 8–12)</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-primary">Share to meeting</button>
+      <button class="modal-btn modal-btn-ghost" data-modal="diagramModal">Close</button>
+    </div>
+  </div>
+</div>
+
 <script>
-  // Simulate rotating thinking messages
+  // ── THINKING INDICATOR ──
   const thinkingMessages = [
     "Analyzing Notion competitive positioning…",
     "Cross-referencing revenue figures…",
@@ -1361,20 +1764,31 @@
   ];
   let msgIdx = 0;
   const thinkingEl = document.querySelector('#thinkingIndicator');
+  let thinkingInterval = null;
 
-  setInterval(() => {
-    msgIdx = (msgIdx + 1) % thinkingMessages.length;
-    thinkingEl.innerHTML = `
-      <div class="thinking-dots">
-        <div class="thinking-dot"></div>
-        <div class="thinking-dot"></div>
-        <div class="thinking-dot"></div>
-      </div>
-      ${thinkingMessages[msgIdx]}
-    `;
-  }, 3000);
+  function startThinking() {
+    thinkingEl.style.display = '';
+    thinkingInterval = setInterval(() => {
+      msgIdx = (msgIdx + 1) % thinkingMessages.length;
+      thinkingEl.innerHTML = `
+        <div class="thinking-dots">
+          <div class="thinking-dot"></div>
+          <div class="thinking-dot"></div>
+          <div class="thinking-dot"></div>
+        </div>
+        ${thinkingMessages[msgIdx]}
+      `;
+    }, 3000);
+  }
 
-  // Filter chips
+  function stopThinking() {
+    clearInterval(thinkingInterval);
+    thinkingEl.style.display = 'none';
+  }
+
+  startThinking();
+
+  // ── FILTER CHIPS ──
   document.querySelectorAll('.filter-chip').forEach(chip => {
     chip.addEventListener('click', () => {
       document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
@@ -1382,18 +1796,127 @@
     });
   });
 
-  // Dismiss cards
-  document.querySelectorAll('.card-dismiss').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const card = e.target.closest('.suggestion-card');
-      card.style.opacity = '0';
-      card.style.transform = 'translateX(20px)';
-      card.style.transition = 'all 0.25s';
-      setTimeout(() => card.remove(), 250);
+  // ── DISMISS CARDS ──
+  function attachDismiss(root) {
+    root.querySelectorAll('.card-dismiss').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const card = e.target.closest('.suggestion-card');
+        card.style.opacity = '0';
+        card.style.transform = 'translateX(20px)';
+        card.style.transition = 'all 0.25s';
+        setTimeout(() => card.remove(), 250);
+      });
+    });
+  }
+  attachDismiss(document);
+
+  // ── PAUSE / RESUME ──
+  let isPaused = false;
+  let transcriptInterval = null;
+  const pauseBtn = document.getElementById('pauseBtn');
+
+  pauseBtn.addEventListener('click', () => {
+    isPaused = !isPaused;
+    if (isPaused) {
+      pauseBtn.textContent = '▶ Resume AI';
+      pauseBtn.style.color = 'var(--accent)';
+      pauseBtn.style.borderColor = 'rgba(99,210,190,0.4)';
+      stopThinking();
+      clearInterval(transcriptInterval);
+      transcriptInterval = null;
+    } else {
+      pauseBtn.textContent = '⏸ Pause AI';
+      pauseBtn.style.color = '';
+      pauseBtn.style.borderColor = '';
+      startThinking();
+      startTranscript();
+    }
+  });
+
+  // ── BAR CHART ANIMATION ──
+  setTimeout(() => {
+    document.querySelectorAll('.data-fill[data-width]').forEach(el => {
+      el.style.width = el.dataset.width;
+    });
+  }, 200);
+
+  // ── SOURCE LINKS ──
+  document.querySelectorAll('.card-source[data-url]').forEach(el => {
+    el.addEventListener('click', () => window.open(el.dataset.url, '_blank'));
+  });
+
+  // ── MODALS ──
+  function openModal(id) {
+    document.getElementById(id).classList.add('open');
+  }
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+  }
+
+  // Close buttons and overlay clicks
+  document.querySelectorAll('.modal-close, .modal-btn-ghost[data-modal]').forEach(btn => {
+    btn.addEventListener('click', () => closeModal(btn.dataset.modal));
+  });
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.classList.remove('open');
     });
   });
 
-  // Simulate new transcript line every ~10s
+  // Caution modal trigger
+  document.getElementById('openCautionBtn').addEventListener('click', () => openModal('cautionModal'));
+
+  // Caution → Insight expand
+  document.getElementById('cautionExpandBtn').addEventListener('click', () => {
+    closeModal('cautionModal');
+    setTimeout(() => openModal('insightModal'), 150);
+  });
+
+  // Diagram modal trigger
+  document.getElementById('openDiagramBtn').addEventListener('click', () => openModal('diagramModal'));
+
+  // ── NOTES PANEL ──
+  const notesHeader = document.getElementById('notesHeader');
+  const notesContent = document.getElementById('notesContent');
+  const notesToggle = document.getElementById('notesToggle');
+  const notesInput = document.getElementById('notesInput');
+  const notesSave = document.getElementById('notesSave');
+  const notesList = document.getElementById('notesList');
+
+  notesHeader.addEventListener('click', () => {
+    const collapsed = notesContent.classList.toggle('collapsed');
+    notesToggle.textContent = collapsed ? '▸' : '▾';
+  });
+
+  // Load saved notes
+  const savedNotes = JSON.parse(localStorage.getItem('meetingNotes') || '[]');
+  savedNotes.forEach(n => appendNoteItem(n.text, n.time));
+
+  notesSave.addEventListener('click', () => {
+    const text = notesInput.value.trim();
+    if (!text) return;
+    const now = new Date();
+    const timeStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
+    appendNoteItem(text, timeStr);
+    const notes = JSON.parse(localStorage.getItem('meetingNotes') || '[]');
+    notes.push({ text, time: timeStr });
+    localStorage.setItem('meetingNotes', JSON.stringify(notes));
+    notesInput.value = '';
+  });
+
+  notesInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) notesSave.click();
+  });
+
+  function appendNoteItem(text, time) {
+    const item = document.createElement('div');
+    item.className = 'note-item';
+    item.innerHTML = `<span class="note-time">${time}</span><span>${text}</span>`;
+    notesList.appendChild(item);
+    notesList.scrollTop = notesList.scrollHeight;
+  }
+
+  // ── TRANSCRIPT SIMULATION ──
   const speakers = [
     { id: 'JL', cls: 'speaker-jl' },
     { id: 'SM', cls: 'speaker-sm' },
@@ -1410,30 +1933,31 @@
   let lineIdx = 0;
   let timeMin = 42; let timeSec = 17;
 
-  setInterval(() => {
-    timeSec += 14;
-    if (timeSec >= 60) { timeSec -= 60; timeMin++; }
-    const timeStr = `${timeMin}:${String(timeSec).padStart(2,'0')}`;
-    const sp = speakers[lineIdx % speakers.length];
-    const feed = document.getElementById('transcriptFeed');
-    const line = document.createElement('div');
-    line.className = 'transcript-line';
-    line.style.animationDelay = '0s';
-    line.innerHTML = `
-      <div class="t-speaker ${sp.cls}">${sp.id}</div>
-      <div class="t-time">${timeStr}</div>
-      <div class="t-text">${fakeLines[lineIdx % fakeLines.length]}<span class="live-cursor"></span></div>
-    `;
-    feed.appendChild(line);
-    feed.scrollTop = feed.scrollHeight;
+  function startTranscript() {
+    transcriptInterval = setInterval(() => {
+      timeSec += 14;
+      if (timeSec >= 60) { timeSec -= 60; timeMin++; }
+      const timeStr = `${timeMin}:${String(timeSec).padStart(2,'0')}`;
+      const sp = speakers[lineIdx % speakers.length];
+      const feed = document.getElementById('transcriptFeed');
+      const line = document.createElement('div');
+      line.className = 'transcript-line';
+      line.style.animationDelay = '0s';
+      line.innerHTML = `
+        <div class="t-speaker ${sp.cls}">${sp.id}</div>
+        <div class="t-time">${timeStr}</div>
+        <div class="t-text">${fakeLines[lineIdx % fakeLines.length]}<span class="live-cursor"></span></div>
+      `;
+      feed.appendChild(line);
+      feed.scrollTop = feed.scrollHeight;
+      feed.querySelectorAll('.live-cursor').forEach((c, i, arr) => {
+        if (i < arr.length - 1) c.remove();
+      });
+      lineIdx++;
+    }, 9000);
+  }
 
-    // Remove cursor from previous last line
-    feed.querySelectorAll('.live-cursor').forEach((c, i, arr) => {
-      if (i < arr.length - 1) c.remove();
-    });
-
-    lineIdx++;
-  }, 9000);
+  startTranscript();
 </script>
 </body>
 </html>

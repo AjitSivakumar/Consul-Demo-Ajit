@@ -7,7 +7,7 @@ import {
   generateSlideDeck,
   inferNeedsWithAI,
   resolveGapFromDocuments,
-  resolveGapFromInternet
+  resolveGapFromInternet,
 } from '../services/aiService';
 import { extractRelevantChunks, getAllDocuments } from '../services/documentService';
 import { useMeetingStore } from '../state/MeetingStore';
@@ -53,9 +53,12 @@ export function useAmbientMeetingAI(): {
   const lastInferenceTimeRef = useRef<number>(0);
   const eventsSinceLastInference = useRef<number>(0);
 
-  // Cooldown: require at least 12s or 4 transcript events between AI inferences
-  const AI_INFERENCE_COOLDOWN_MS = 12_000;
-  const AI_INFERENCE_MIN_EVENTS = 4;
+  // Cooldown: require at least 20s AND 5 transcript events between AI inferences
+  const AI_INFERENCE_COOLDOWN_MS = 20_000;
+  const AI_INFERENCE_MIN_EVENTS = 5;
+  // Cooldown between ambient suggestion calls: 10s minimum
+  const AMBIENT_SUGGESTION_COOLDOWN_MS = 10_000;
+  const lastAmbientTsRef = useRef<number>(0);
 
   // Auto-resolve: when new needs appear, try docs → internet → mark failed
   // Stagger by 3s per need so each gets fully processed before the next starts
@@ -91,7 +94,7 @@ export function useAmbientMeetingAI(): {
                 .map((c) => `[Source: ${c.docName}]\n${c.chunk}`)
                 .join('\n\n---\n\n');
               const docResult = await resolveGapFromDocuments(need.prompt, docCtx);
-              if (docResult.confidence >= 0.5) {
+              if (docResult.confidence >= 0.65) {
                 const evidence = buildEvidenceFromResult(need, docResult, 'internal_document');
                 dispatch({ type: 'ADD_RESOLVED_EVIDENCE', payload: evidence });
                 dispatch({ type: 'UPDATE_NEED_STATUS', payload: { needId: need.id, status: 'resolved' } });
@@ -102,7 +105,7 @@ export function useAmbientMeetingAI(): {
 
           // 2) Fallback: try internet (GPT general knowledge)
           const internetResult = await resolveGapFromInternet(need.prompt, transcriptContext);
-          if (internetResult.confidence >= 0.5) {
+          if (internetResult.confidence >= 0.65) {
             const evidence = buildEvidenceFromResult(need, internetResult, 'web');
             dispatch({ type: 'ADD_RESOLVED_EVIDENCE', payload: evidence });
             dispatch({ type: 'UPDATE_NEED_STATUS', payload: { needId: need.id, status: 'resolved' } });
@@ -130,10 +133,28 @@ export function useAmbientMeetingAI(): {
     eventsSinceLastInference.current += 1;
 
     void (async () => {
-      const previousSuggestions = state.ambientSuggestions.map((s) => s.text);
-      const suggestion = await generateAmbientSuggestion(latest.text, previousSuggestions);
-      if (suggestion) {
-        dispatch({ type: 'ADD_AMBIENT_SUGGESTION', payload: suggestion });
+      // Only call ambient suggestion if: enough time has passed AND enough words spoken
+      const wordCount = latest.text.trim().split(/\s+/).length;
+      const ambientElapsed = Date.now() - lastAmbientTsRef.current;
+      if (wordCount >= 15 && ambientElapsed >= AMBIENT_SUGGESTION_COOLDOWN_MS) {
+        lastAmbientTsRef.current = Date.now();
+        const previousHeadlines = state.ambientSuggestions.map((s) => s.headline);
+        const suggestion = await generateAmbientSuggestion(latest.text, previousHeadlines);
+        if (suggestion) {
+          const needId = `proactive-${Date.now()}`;
+          const need: InformationNeed = {
+            id: needId,
+            category: suggestion.category as InformationNeed['category'],
+            prompt: suggestion.prompt,
+            rationale: suggestion.rationale,
+            triggeredBySegmentId: latest.id,
+            confidence: 0.8,
+            priority: 'p1',
+            status: 'new',
+          };
+          dispatch({ type: 'ADD_AI_NEEDS', payload: [need] });
+          dispatch({ type: 'ADD_AMBIENT_SUGGESTION', payload: { headline: suggestion.headline, needId } });
+        }
       }
 
       // Throttle AI inference: wait for cooldown period AND minimum events
@@ -156,7 +177,7 @@ export function useAmbientMeetingAI(): {
       if (aiNeeds.length > 0) {
         // Only keep high-value needs (p1/p2 with decent confidence)
         const filtered = aiNeeds.filter(
-          (n) => (n.priority === 'p1' || n.priority === 'p2') && n.confidence >= 0.6
+          (n) => (n.priority === 'p1' || n.priority === 'p2') && n.confidence >= 0.70
         );
         if (filtered.length > 0) {
           dispatch({ type: 'ADD_AI_NEEDS', payload: filtered });
@@ -166,7 +187,7 @@ export function useAmbientMeetingAI(): {
   }, [dispatch, state.ambientSuggestions, state.liveStatus, state.transcript]);
 
   useEffect(() => {
-    if (state.liveStatus !== 'paused' || state.transcript.length === 0 || autoEndStartedRef.current) {
+    if (state.liveStatus !== 'ending' || state.transcript.length === 0 || autoEndStartedRef.current) {
       return;
     }
 

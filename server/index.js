@@ -28,7 +28,17 @@ const RECALL_API_KEY = process.env.RECALL_API_KEY;
 const RECALL_REGION = process.env.RECALL_REGION || 'us-west-2';
 const RECALL_BASE = `https://${RECALL_REGION}.recall.ai/api/v1`;
 const WEBHOOK_BASE_URL = process.env.RECALL_WEBHOOK_BASE_URL || 'http://localhost:3001';
+const RECALL_GOOGLE_CREDENTIAL_ID = process.env.RECALL_GOOGLE_CREDENTIAL_ID;
+const RECALL_ZOOM_OAUTH_CREDENTIAL_ID = process.env.RECALL_ZOOM_OAUTH_CREDENTIAL_ID;
 const PORT = process.env.RECALL_SERVER_PORT || 3001;
+
+// ── Detect meeting platform from URL ──
+function detectPlatform(url) {
+  if (/zoom\.us\/j\//i.test(url)) return 'zoom';
+  if (/meet\.google\.com\//i.test(url)) return 'google_meet';
+  if (/teams\.microsoft\.com\//i.test(url)) return 'teams';
+  return 'unknown';
+}
 
 // ── In-memory transcript store keyed by botId ──
 const transcriptBuffers = new Map(); // botId → { events: [], clients: Set<res> }
@@ -70,15 +80,19 @@ app.post('/api/recall/bot', async (req, res) => {
       return res.status(400).json({ error: 'meetingUrl is required' });
     }
 
-    const bot = await recallFetch('/bot/', {
-      method: 'POST',
-      body: JSON.stringify({
-        meeting_url: meetingUrl,
-        bot_name: botName || 'Ambi Notetaker',
-        recording_config: {
-          transcript: {
-            provider: { recallai_streaming: {} },
-          },
+    const hasPublicWebhook = WEBHOOK_BASE_URL && !WEBHOOK_BASE_URL.includes('localhost');
+    const platform = detectPlatform(meetingUrl);
+
+    console.log(`[Recall] Detected platform: ${platform} for ${meetingUrl}`);
+
+    const botPayload = {
+      meeting_url: meetingUrl,
+      bot_name: botName || 'Ambi Notetaker',
+      recording_config: {
+        transcript: {
+          provider: { recallai_streaming: {} },
+        },
+        ...(hasPublicWebhook && {
           realtime_endpoints: [
             {
               type: 'webhook',
@@ -86,8 +100,26 @@ app.post('/api/recall/bot', async (req, res) => {
               events: ['transcript.data', 'transcript.partial_data'],
             },
           ],
+        }),
+      },
+      // Google Meet: use OAuth login group if configured
+      ...(platform === 'google_meet' && RECALL_GOOGLE_CREDENTIAL_ID && {
+        google_meet: {
+          login_required: true,
+          google_login_group_id: RECALL_GOOGLE_CREDENTIAL_ID,
         },
       }),
+      // Zoom: use OAuth credential if configured, otherwise bot joins anonymously
+      ...(platform === 'zoom' && RECALL_ZOOM_OAUTH_CREDENTIAL_ID && {
+        zoom: {
+          oauth_credential_id: RECALL_ZOOM_OAUTH_CREDENTIAL_ID,
+        },
+      }),
+    };
+
+    const bot = await recallFetch('/bot/', {
+      method: 'POST',
+      body: JSON.stringify(botPayload),
     });
 
     console.log(`[Recall] Bot created: ${bot.id} for meeting ${meetingUrl}`);
@@ -216,13 +248,52 @@ app.get('/api/recall/transcript-stream/:botId', (req, res) => {
   });
 });
 
-// ── GET /api/recall/transcript/:botId — Polling endpoint (matches Vercel API) ──
-app.get('/api/recall/transcript/:botId', (req, res) => {
+// ── GET /api/recall/transcript/:botId — Polling endpoint ──
+// Primary: in-memory buffer (filled by webhook in production)
+// Fallback: poll Recall.ai API directly (works on localhost without public webhook)
+app.get('/api/recall/transcript/:botId', async (req, res) => {
   const { botId } = req.params;
   const cursor = parseInt(req.query.cursor || '0', 10);
   const buf = getBotBuffer(botId);
-  const newEvents = buf.events.slice(cursor);
-  res.json({ events: newEvents, cursor: buf.events.length });
+
+  // If we have webhook-sourced events, serve those
+  if (buf.events.length > 0) {
+    const newEvents = buf.events.slice(cursor);
+    return res.json({ events: newEvents, cursor: buf.events.length });
+  }
+
+  // Fallback: fetch transcript directly from Recall.ai API
+  try {
+    const data = await recallFetch(`/bot/${botId}/transcript/`);
+    const segments = Array.isArray(data) ? data : (data?.results ?? []);
+
+    // Flatten into our RecallTranscriptEvent shape, skipping partials
+    const events = [];
+    for (const seg of segments) {
+      const words = seg.words ?? [];
+      if (words.length === 0) continue;
+      const text = words.map((w) => w.text).join(' ').trim();
+      if (!text) continue;
+      events.push({
+        speaker: seg.speaker ?? 'Unknown',
+        text,
+        isPartial: false,
+        timestamp: seg.start_timestamp
+          ? Math.floor(seg.start_timestamp * 1000)
+          : Date.now(),
+        participantId: seg.participant?.id,
+      });
+    }
+
+    // Sync into buffer so SSE clients also receive it
+    buf.events = events;
+
+    const newEvents = events.slice(cursor);
+    return res.json({ events: newEvents, cursor: events.length });
+  } catch (err) {
+    console.error('[Recall] Transcript fallback fetch error:', err.message);
+    return res.json({ events: [], cursor: 0 });
+  }
 });
 
 // ── Health check ──
@@ -231,6 +302,9 @@ app.get('/api/recall/health', (_req, res) => {
     ok: true,
     region: RECALL_REGION,
     hasApiKey: Boolean(RECALL_API_KEY),
+    hasGoogleCredential: Boolean(RECALL_GOOGLE_CREDENTIAL_ID),
+    hasZoomCredential: Boolean(RECALL_ZOOM_OAUTH_CREDENTIAL_ID),
+    supportedPlatforms: ['google_meet', 'zoom', 'teams'],
     webhookUrl: `${WEBHOOK_BASE_URL}/api/recall/webhook/transcript`,
   });
 });
@@ -240,6 +314,8 @@ app.listen(PORT, () => {
   console.log(`   Region: ${RECALL_REGION}`);
   console.log(`   Webhook URL: ${WEBHOOK_BASE_URL}/api/recall/webhook/transcript`);
   console.log(`   API Key: ${RECALL_API_KEY ? '✓ configured' : '✗ MISSING — set RECALL_API_KEY'}`);
+  console.log(`   Google Meet credential: ${RECALL_GOOGLE_CREDENTIAL_ID ? '✓ configured' : '— not set (bot joins anonymously)'}`);
+  console.log(`   Zoom credential: ${RECALL_ZOOM_OAUTH_CREDENTIAL_ID ? '✓ configured' : '— not set (bot joins anonymously)'}`);
   console.log(`\n   For local dev, expose this server with ngrok:`);
   console.log(`   ngrok http ${PORT}`);
   console.log(`   Then set RECALL_WEBHOOK_BASE_URL to the ngrok URL\n`);

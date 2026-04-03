@@ -1,4 +1,4 @@
-import { recallFetch, getWebhookBaseUrl, hasApiKey } from '../_lib/recallApi.js';
+import { recallFetch, getWebhookBaseUrl, hasApiKey, detectPlatform, getPlatformCredentials } from '../_lib/recallApi.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -16,6 +16,9 @@ export default async function handler(req, res) {
 
   try {
     const webhookBase = getWebhookBaseUrl();
+    const platform = detectPlatform(meetingUrl);
+    const platformCredentials = getPlatformCredentials(platform);
+
     const bot = await recallFetch('/bot/', {
       method: 'POST',
       body: JSON.stringify({
@@ -33,6 +36,7 @@ export default async function handler(req, res) {
             },
           ],
         },
+        ...platformCredentials,
       }),
     });
 

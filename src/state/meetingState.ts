@@ -19,7 +19,7 @@ export interface MeetingState {
   deliverables: Deliverable[];
   liveStatus: 'idle' | 'listening' | 'paused' | 'ending' | 'ended';
   // Ambient AI features
-  ambientSuggestions: Array<{ timestamp: string; text: string }>;
+  ambientSuggestions: Array<{ timestamp: string; headline: string; needId: string }>;
   lastSuggestionTime: number;
   // Deliverable generation
   generatedContent: GeneratedDeliverables;
@@ -33,7 +33,7 @@ export type MeetingAction =
   | { type: 'SET_MEETING_TITLE'; payload: string }
   | { type: 'PROCESS_EVENT'; payload: TranscriptEvent }
   | { type: 'ADD_AI_NEEDS'; payload: InformationNeed[] }
-  | { type: 'ADD_AMBIENT_SUGGESTION'; payload: string }
+  | { type: 'ADD_AMBIENT_SUGGESTION'; payload: { headline: string; needId: string } }
   | { type: 'UPDATE_NEED_STATUS'; payload: { needId: string; status: InformationNeed['status'] } }
   | { type: 'KEEP_NEED'; payload: string }
   | { type: 'DISMISS_NEED'; payload: string }
@@ -91,7 +91,7 @@ export function meetingReducer(state: MeetingState, action: MeetingAction): Meet
         ...state,
         ambientSuggestions: [
           ...state.ambientSuggestions,
-          { timestamp: new Date().toISOString(), text: action.payload }
+          { timestamp: new Date().toISOString(), headline: action.payload.headline, needId: action.payload.needId }
         ],
         lastSuggestionTime: Date.now()
       };
