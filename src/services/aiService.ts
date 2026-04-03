@@ -493,17 +493,18 @@ Return JSON with exactly these fields (or {"skip": true} if nothing worth surfac
 export async function resolveGapFromInternet(
   question: string,
   transcriptContext: string
-): Promise<{ answer: string; source: string; confidence: number }> {
+): Promise<{ answer: string; source: string; sourceUrl: string | null; confidence: number }> {
   try {
     const response = await client.chat.completions.create({
       model: 'gpt-4o-mini',
       temperature: 0.4,
       max_tokens: 600,
+      response_format: { type: 'json_object' },
       messages: [
         {
           role: 'system',
           content:
-            'You are a research analyst. Provide a concise, factual answer using your knowledge. Include specific data points, numbers, or comparisons where possible. If uncertain, indicate that. Keep the answer to 2-5 sentences.',
+            'You are a research analyst. Answer the question concisely with specific data points where possible (2-5 sentences). Also provide the single most authoritative public URL where someone could verify this (e.g. official company page, Wikipedia, industry report, news article). Return JSON: { "answer": "...", "source_name": "Source name", "source_url": "https://..." or null }',
         },
         {
           role: 'user',
@@ -512,11 +513,15 @@ export async function resolveGapFromInternet(
       ],
     });
 
-    const answer = (response.choices[0].message.content || '').trim();
-    return { answer, source: 'Internet research (AI)', confidence: answer ? 0.75 : 0 };
+    const raw = (response.choices[0].message.content || '').trim();
+    const parsed = JSON.parse(raw);
+    const answer = parsed.answer || raw;
+    const source = parsed.source_name || 'Internet research (AI)';
+    const sourceUrl = parsed.source_url && parsed.source_url.startsWith('http') ? parsed.source_url : null;
+    return { answer, source, sourceUrl, confidence: answer ? 0.75 : 0 };
   } catch (err) {
     console.error('Internet gap resolution error:', err);
-    return { answer: 'Unable to resolve — API error.', source: 'Error', confidence: 0 };
+    return { answer: 'Unable to resolve — API error.', source: 'Error', sourceUrl: null, confidence: 0 };
   }
 }
 

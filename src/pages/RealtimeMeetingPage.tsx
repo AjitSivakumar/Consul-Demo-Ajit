@@ -60,6 +60,20 @@ export function RealtimeMeetingPage(): React.JSX.Element {
     [state.evidence]
   );
 
+  const webSources = useMemo(() => {
+    const seen = new Set<string>();
+    const sources: Array<{ title: string; url: string | undefined; needId: string }> = [];
+    for (const ev of state.evidence) {
+      for (const attr of ev.attributions) {
+        if (attr.sourceType === 'web' && !seen.has(attr.title)) {
+          seen.add(attr.title);
+          sources.push({ title: attr.title, url: attr.url, needId: ev.needId });
+        }
+      }
+    }
+    return sources;
+  }, [state.evidence]);
+
   const liveBadgeText =
     state.liveStatus === 'listening' ? 'Live'
     : state.liveStatus === 'paused' ? 'Paused'
@@ -250,6 +264,35 @@ export function RealtimeMeetingPage(): React.JSX.Element {
               );
             })}
           </div>
+
+          {/* Web Sources */}
+          {webSources.length > 0 && (
+            <div className="source-list" style={{ marginTop: '12px' }}>
+              <div className="col-header" style={{ marginBottom: '8px' }}>
+                <span className="col-title">Web Sources</span>
+                <span className="col-count">{webSources.length}</span>
+              </div>
+              {webSources.map((src, idx) => (
+                <div
+                  key={idx}
+                  className={`src-item${src.url ? ' src-item-link' : ''}`}
+                  onClick={() => src.url && window.open(src.url, '_blank', 'noopener,noreferrer')}
+                  style={{ cursor: src.url ? 'pointer' : 'default' }}
+                >
+                  <div className="src-header">
+                    <div className="src-type-dot" style={{ background: '#185FA5' }} />
+                    <span className="src-title">{src.title}</span>
+                    {src.url && <span className="src-ext-icon">↗</span>}
+                  </div>
+                  {src.url && (
+                    <div className="src-meta" style={{ color: 'rgba(255,255,255,0.35)', fontSize: '11px', marginTop: '2px' }}>
+                      {src.url.replace(/^https?:\/\//, '').split('/')[0]}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Recall.ai Panel — always visible */}
           <div className="recall-panel">

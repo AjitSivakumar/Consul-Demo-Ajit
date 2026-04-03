@@ -115,6 +115,7 @@ export function InsightsFeed({ selectedNeedId, onSelectNeed }: InsightsFeedProps
             sourceId: `src-web-${Date.now()}`,
             sourceType: 'web',
             title: internetResult.source,
+            url: internetResult.sourceUrl ?? undefined,
             freshnessScore: 0.9,
             trustScore: 0.7,
           }],

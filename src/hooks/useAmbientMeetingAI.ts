@@ -17,7 +17,7 @@ const GENERATION_TIMEOUT_MS = 30000;
 
 function buildEvidenceFromResult(
   need: InformationNeed,
-  result: { answer: string; source: string; confidence: number },
+  result: { answer: string; source: string; sourceUrl?: string | null; confidence: number },
   sourceType: 'web' | 'internal_document'
 ): EvidenceCard {
   return {
@@ -33,6 +33,7 @@ function buildEvidenceFromResult(
         sourceId: `src-${sourceType}-${Date.now()}`,
         sourceType,
         title: result.source,
+        url: result.sourceUrl ?? undefined,
         freshnessScore: 0.9,
         trustScore: sourceType === 'web' ? 0.7 : 0.85,
       },
