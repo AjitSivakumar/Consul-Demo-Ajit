@@ -240,7 +240,7 @@ export function RealtimeMeetingPage(): React.JSX.Element {
           </div>
 
           <div className="source-list">
-            {docs.length === 0 && (
+            {docs.length === 0 && webSources.length === 0 && (
               <div className="feed-empty">No documents uploaded yet.</div>
             )}
             {docs.map((doc) => {
@@ -263,36 +263,24 @@ export function RealtimeMeetingPage(): React.JSX.Element {
                 </div>
               );
             })}
-          </div>
-
-          {/* Web Sources */}
-          {webSources.length > 0 && (
-            <div className="source-list" style={{ marginTop: '12px' }}>
-              <div className="col-header" style={{ marginBottom: '8px' }}>
-                <span className="col-title">Web Sources</span>
-                <span className="col-count">{webSources.length}</span>
-              </div>
-              {webSources.map((src, idx) => (
-                <div
-                  key={idx}
-                  className={`src-item${src.url ? ' src-item-link' : ''}`}
-                  onClick={() => src.url && window.open(src.url, '_blank', 'noopener,noreferrer')}
-                  style={{ cursor: src.url ? 'pointer' : 'default' }}
-                >
-                  <div className="src-header">
-                    <div className="src-type-dot" style={{ background: '#185FA5' }} />
-                    <span className="src-title">{src.title}</span>
-                    {src.url && <span className="src-ext-icon">↗</span>}
-                  </div>
-                  {src.url && (
-                    <div className="src-meta" style={{ color: 'rgba(255,255,255,0.35)', fontSize: '11px', marginTop: '2px' }}>
-                      {src.url.replace(/^https?:\/\//, '').split('/')[0]}
-                    </div>
-                  )}
+            {webSources.map((src, idx) => (
+              <div
+                key={`web-${idx}`}
+                className={`src-item${src.url ? ' src-item-link' : ''}`}
+                onClick={() => src.url && window.open(src.url, '_blank', 'noopener,noreferrer')}
+                style={{ cursor: src.url ? 'pointer' : 'default' }}
+              >
+                <div className="src-header">
+                  <div className="src-type-dot" style={{ background: '#185FA5' }} />
+                  <span className="src-title">{src.title}</span>
+                  {src.url && <span className="src-ext-icon">↗</span>}
                 </div>
-              ))}
-            </div>
-          )}
+                <div className="src-meta">
+                  Web · {src.url ? src.url.replace(/^https?:\/\//, '').split('/')[0] : 'AI research'}
+                </div>
+              </div>
+            ))}
+          </div>
 
           {/* Recall.ai Panel — always visible */}
           <div className="recall-panel">
