@@ -94,11 +94,22 @@ export function subscribeToTranscript(
           `${RECALL_SERVER}/api/recall/transcript/${encodeURIComponent(botId)}?cursor=${cursor}`
         );
         if (res.ok) {
-          const data: { events: RecallTranscriptEvent[]; cursor: number } = await res.json();
+          const data: {
+            events: RecallTranscriptEvent[];
+            cursor: number;
+            partials: RecallTranscriptEvent[];
+          } = await res.json();
+
+          // Emit final events (advance cursor)
           for (const evt of data.events) {
             onEvent(evt);
           }
-          cursor = data.cursor;
+          if (data.cursor !== undefined) cursor = data.cursor;
+
+          // Emit latest partials (marked isPartial=true, used for live display)
+          for (const partial of data.partials ?? []) {
+            onEvent({ ...partial, isPartial: true });
+          }
         }
       } catch (err) {
         if (active) {
@@ -106,8 +117,7 @@ export function subscribeToTranscript(
         }
       }
 
-      // Wait 1.5s between polls
-      await new Promise((r) => setTimeout(r, 1500));
+      await new Promise((r) => setTimeout(r, 400));
     }
   };
 

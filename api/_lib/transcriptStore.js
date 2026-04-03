@@ -2,8 +2,8 @@
 // Required Vercel env vars: UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 //
 // Redis layout:
-//   transcript:{botId}          → LIST of final transcript events (RPUSH, atomic)
-//   transcript:{botId}:partial  → HASH of latest partial per speaker (HSET, atomic)
+//   transcript:{botId}          → LIST of final events (RPUSH, atomic append)
+//   transcript:{botId}:partial  → HASH of latest partial per speaker (HSET, atomic overwrite)
 
 import { Redis } from '@upstash/redis';
 
@@ -17,47 +17,44 @@ if (useRedis) {
   });
 }
 
-const TRANSCRIPT_TTL_SECONDS = 60 * 60 * 4; // 4 hours
-const listKey = (botId) => `transcript:${botId}`;
-const partialKey = (botId) => `transcript:${botId}:partial`;
+const TTL = 60 * 60 * 4; // 4 hours
+const listKey    = (id) => `transcript:${id}`;
+const partialKey = (id) => `transcript:${id}:partial`;
 
-// ── In-memory fallback (local dev only) ──
-if (!globalThis.__transcriptStore) {
-  globalThis.__transcriptStore = new Map();
-}
-function getLocalBuffer(botId) {
-  const store = globalThis.__transcriptStore;
-  if (!store.has(botId)) store.set(botId, { finals: [], partials: {} });
-  return store.get(botId);
+// ── In-memory fallback (local dev) ──
+if (!globalThis.__transcriptStore) globalThis.__transcriptStore = new Map();
+function localBuf(botId) {
+  if (!globalThis.__transcriptStore.has(botId))
+    globalThis.__transcriptStore.set(botId, { finals: [], partials: {} });
+  return globalThis.__transcriptStore.get(botId);
 }
 
 // ── Public API ──
 
-// Returns { events: [...finals, ...currentPartials], length: N }
-// length only counts finals so cursor stays stable
+// Returns { finals: [...], cursor: N, partials: { speaker: event } }
+// cursor only counts finals — stable even as partials churn
 export async function getBotBuffer(botId) {
   if (!useRedis) {
-    const buf = getLocalBuffer(botId);
-    const partialEvents = Object.values(buf.partials);
-    return { events: [...buf.finals, ...partialEvents], length: buf.finals.length };
+    const buf = localBuf(botId);
+    return { finals: buf.finals, cursor: buf.finals.length, partials: buf.partials };
   }
-
   const [raw, partialHash] = await Promise.all([
     redis.lrange(listKey(botId), 0, -1),
     redis.hgetall(partialKey(botId)),
   ]);
-
-  const finals = raw.map((item) => (typeof item === 'string' ? JSON.parse(item) : item));
-  const partials = partialHash
-    ? Object.values(partialHash).map((v) => (typeof v === 'string' ? JSON.parse(v) : v))
-    : [];
-
-  return { events: [...finals, ...partials], length: finals.length };
+  const finals = raw.map((v) => (typeof v === 'string' ? JSON.parse(v) : v));
+  const partials = {};
+  if (partialHash) {
+    for (const [speaker, v] of Object.entries(partialHash)) {
+      partials[speaker] = typeof v === 'string' ? JSON.parse(v) : v;
+    }
+  }
+  return { finals, cursor: finals.length, partials };
 }
 
 export async function appendTranscriptEvent(botId, event) {
   if (!useRedis) {
-    const buf = getLocalBuffer(botId);
+    const buf = localBuf(botId);
     if (event.isPartial) {
       buf.partials[event.speaker] = event;
     } else {
@@ -66,25 +63,19 @@ export async function appendTranscriptEvent(botId, event) {
     }
     return;
   }
-
   if (event.isPartial) {
-    // Overwrite latest partial for this speaker atomically
     await redis.hset(partialKey(botId), { [event.speaker]: JSON.stringify(event) });
-    await redis.expire(partialKey(botId), TRANSCRIPT_TTL_SECONDS);
+    await redis.expire(partialKey(botId), TTL);
   } else {
-    // Finalized: append to list and clear speaker's partial
     await Promise.all([
       redis.rpush(listKey(botId), JSON.stringify(event)),
       redis.hdel(partialKey(botId), event.speaker),
     ]);
-    await redis.expire(listKey(botId), TRANSCRIPT_TTL_SECONDS);
+    await redis.expire(listKey(botId), TTL);
   }
 }
 
 export async function clearBotBuffer(botId) {
-  if (!useRedis) {
-    globalThis.__transcriptStore.delete(botId);
-    return;
-  }
+  if (!useRedis) { globalThis.__transcriptStore.delete(botId); return; }
   await Promise.all([redis.del(listKey(botId)), redis.del(partialKey(botId))]);
 }

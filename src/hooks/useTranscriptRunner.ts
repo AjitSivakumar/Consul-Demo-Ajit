@@ -30,6 +30,7 @@ export function useTranscriptRunner(): {
   recallBotStatus: string;
   recallError: string | null;
   recallMeetingUrl: string;
+  recallPartials: Record<string, string>;
   setRecallMeetingUrl: (url: string) => void;
   sendRecallBot: () => Promise<void>;
   removeRecallBot: () => Promise<void>;
@@ -57,6 +58,7 @@ export function useTranscriptRunner(): {
   const [recallMeetingUrl, setRecallMeetingUrl] = useState('');
   const recallUnsubRef = useRef<(() => void) | null>(null);
   const recallStatusPollRef = useRef<number | null>(null);
+  const [recallPartials, setRecallPartials] = useState<Record<string, string>>({});
 
   const RECALL_STORAGE_KEY = 'ambi_recall_bot';
 
@@ -418,8 +420,12 @@ export function useTranscriptRunner(): {
       }
       setRecallBotStatus('transcribing');
 
-      // Only push final events into the meeting transcript for AI processing
-      if (!evt.isPartial) {
+      if (evt.isPartial) {
+        // Show live interim text per speaker
+        setRecallPartials((prev) => ({ ...prev, [speaker]: text }));
+      } else {
+        // Final — clear this speaker's partial and process for AI
+        setRecallPartials((prev) => { const n = { ...prev }; delete n[speaker]; return n; });
         console.log('%c[Recall]', 'color:#63d2be;font-weight:bold', `${speaker}: ${text.substring(0, 80)}`);
         dispatch({ type: 'PROCESS_EVENT', payload: makeEvent(speaker, text) });
       }
@@ -471,6 +477,7 @@ export function useTranscriptRunner(): {
     recallBotStatus,
     recallError,
     recallMeetingUrl,
+    recallPartials,
     setRecallMeetingUrl,
     sendRecallBot,
     removeRecallBot

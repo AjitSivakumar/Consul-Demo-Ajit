@@ -26,7 +26,7 @@ export default async function handler(req, res) {
         bot_name: botName || 'Ambi Notetaker',
         recording_config: {
           transcript: {
-            provider: { recallai_streaming: {} },
+            provider: { recallai_streaming: { mode: 'prioritize_latency' } },
           },
           realtime_endpoints: [
             {

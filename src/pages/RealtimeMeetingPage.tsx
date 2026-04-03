@@ -319,12 +319,18 @@ export function RealtimeMeetingPage(): React.JSX.Element {
                 {state.transcript.length === 0 && (
                   <div className="feed-empty">Transcript will appear when stream starts.</div>
                 )}
-                {state.transcript.slice(-20).map((line, idx) => (
+                {state.transcript.slice(-20).map((line) => (
                   <div key={line.id} className="tline">
                     <span className="tspk">{line.speaker}</span>
-                    <span className={`ttxt ${idx === state.transcript.slice(-20).length - 1 ? 'active' : ''}`}>
-                      {idx === state.transcript.slice(-20).length - 1 && <span className="tmarker" />}
-                      {line.text}
+                    <span className="ttxt">{line.text}</span>
+                  </div>
+                ))}
+                {/* Live partial (interim) text per speaker */}
+                {Object.entries(runner.recallPartials).map(([speaker, text]) => (
+                  <div key={`partial-${speaker}`} className="tline tline-partial">
+                    <span className="tspk">{speaker}</span>
+                    <span className="ttxt active">
+                      <span className="tmarker" />{text}
                     </span>
                   </div>
                 ))}

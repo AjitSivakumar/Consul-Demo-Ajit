@@ -9,10 +9,14 @@ export default async function handler(req, res) {
   const cursor = parseInt(req.query.cursor || '0', 10);
 
   try {
-    const { events, length } = await getBotBuffer(botId);
-    return res.json({ events: events.slice(cursor), cursor: length });
+    const { finals, cursor: newCursor, partials } = await getBotBuffer(botId);
+    return res.json({
+      events: finals.slice(cursor),   // new final events since last poll
+      cursor: newCursor,              // stable — only counts finals
+      partials: Object.values(partials), // latest partial per speaker (replace on each poll)
+    });
   } catch (err) {
     console.error('[Recall] Transcript fetch error:', err.message);
-    return res.json({ events: [], cursor: 0 });
+    return res.json({ events: [], cursor: 0, partials: [] });
   }
 }
