@@ -1,5 +1,8 @@
 // Transcript store — uses Upstash Redis in production, in-memory fallback for local dev.
-// Set UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN in Vercel env vars.
+// Required Vercel env vars: UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
+//
+// Redis layout: each bot uses a LIST key `transcript:{botId}`.
+// RPUSH appends atomically — no read-modify-write race under concurrent webhook calls.
 
 import { Redis } from '@upstash/redis';
 
@@ -14,7 +17,7 @@ if (useRedis) {
 }
 
 const TRANSCRIPT_TTL_SECONDS = 60 * 60 * 4; // 4 hours
-const redisKey = (botId) => `transcript:${botId}`;
+const listKey = (botId) => `transcript:${botId}`;
 
 // ── In-memory fallback (local dev only) ──
 if (!globalThis.__transcriptStore) {
@@ -22,30 +25,35 @@ if (!globalThis.__transcriptStore) {
 }
 function getLocalBuffer(botId) {
   const store = globalThis.__transcriptStore;
-  if (!store.has(botId)) store.set(botId, { events: [], cursor: 0 });
+  if (!store.has(botId)) store.set(botId, []);
   return store.get(botId);
 }
 
 // ── Public API ──
 
+// Returns { events: [...], length: N }
 export async function getBotBuffer(botId) {
-  if (!useRedis) return getLocalBuffer(botId);
-  const data = await redis.get(redisKey(botId));
-  return data ?? { events: [], cursor: 0 };
+  if (!useRedis) {
+    const events = getLocalBuffer(botId);
+    return { events, length: events.length };
+  }
+  const key = listKey(botId);
+  // LRANGE 0 -1 returns all elements atomically
+  const raw = await redis.lrange(key, 0, -1);
+  const events = raw.map((item) => (typeof item === 'string' ? JSON.parse(item) : item));
+  return { events, length: events.length };
 }
 
+// Atomically appends a single event — safe under concurrent webhook calls
 export async function appendTranscriptEvent(botId, event) {
   if (!useRedis) {
-    const buf = getLocalBuffer(botId);
-    buf.events.push(event);
-    buf.cursor = buf.events.length;
+    getLocalBuffer(botId).push(event);
     return;
   }
-  const key = redisKey(botId);
-  const current = (await redis.get(key)) ?? { events: [], cursor: 0 };
-  current.events.push(event);
-  current.cursor = current.events.length;
-  await redis.set(key, current, { ex: TRANSCRIPT_TTL_SECONDS });
+  const key = listKey(botId);
+  await redis.rpush(key, JSON.stringify(event));
+  // Reset TTL on every append so active meetings don't expire
+  await redis.expire(key, TRANSCRIPT_TTL_SECONDS);
 }
 
 export async function clearBotBuffer(botId) {
@@ -53,5 +61,5 @@ export async function clearBotBuffer(botId) {
     globalThis.__transcriptStore.delete(botId);
     return;
   }
-  await redis.del(redisKey(botId));
+  await redis.del(listKey(botId));
 }

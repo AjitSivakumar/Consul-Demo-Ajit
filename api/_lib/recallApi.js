@@ -20,7 +20,11 @@ export async function recallFetch(path, options = {}) {
 }
 
 export function getWebhookBaseUrl() {
+  // Explicit override always wins (set this in Vercel env vars for custom domains)
   if (process.env.RECALL_WEBHOOK_BASE_URL) return process.env.RECALL_WEBHOOK_BASE_URL;
+  // Vercel auto-sets this to the stable production URL (no deploy hash)
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  // Fallback: per-deploy URL (still works, just changes each deploy)
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
   return 'http://localhost:3001';
 }

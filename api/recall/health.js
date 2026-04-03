@@ -5,15 +5,13 @@ export default async function handler(_req, res) {
   const webhookUrl = `${getWebhookBaseUrl()}/api/recall/webhook/transcript`;
   const useRedis = Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
 
-  let redisOk = false;
-  let redisError = null;
+  let storageStatus = 'memory:local-only';
   if (useRedis) {
     try {
-      // Test Redis connectivity with a benign read
-      await getBotBuffer('__health_check__');
-      redisOk = true;
+      await getBotBuffer('__health__');
+      storageStatus = 'redis:ok';
     } catch (err) {
-      redisError = err.message;
+      storageStatus = `redis:error:${err.message}`;
     }
   }
 
@@ -22,6 +20,6 @@ export default async function handler(_req, res) {
     region: getRegion(),
     hasApiKey: hasApiKey(),
     webhookUrl,
-    storage: useRedis ? (redisOk ? 'redis:ok' : `redis:error:${redisError}`) : 'memory:local-only',
+    storage: storageStatus,
   });
 }
