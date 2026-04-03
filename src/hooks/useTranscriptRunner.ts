@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { generateLiveTranscriptTurns } from '../services/aiService';
 import {
   createRecallBot,
@@ -57,6 +57,8 @@ export function useTranscriptRunner(): {
   const [recallMeetingUrl, setRecallMeetingUrl] = useState('');
   const recallUnsubRef = useRef<(() => void) | null>(null);
   const recallStatusPollRef = useRef<number | null>(null);
+
+  const RECALL_STORAGE_KEY = 'ambi_recall_bot';
 
   const speechCtor =
     typeof window !== 'undefined'
@@ -296,6 +298,60 @@ export function useTranscriptRunner(): {
     };
   }, [dispatch, micSpeaker, micSupported, mode, speechCtor, state.liveStatus]);
 
+  // ── Recall.ai: start polling bot status from Recall.ai API ──
+  const startStatusPoll = useCallback((botId: string) => {
+    if (recallStatusPollRef.current) window.clearInterval(recallStatusPollRef.current);
+    recallStatusPollRef.current = window.setInterval(async () => {
+      try {
+        const s = await getRecallBotStatus(botId);
+        if (s.status === 'in_call_recording') {
+          setRecallBotStatus('recording');
+        } else if (s.status === 'in_call_not_recording') {
+          setRecallBotStatus('in_call_waiting');
+        } else if (s.status === 'joining_call') {
+          setRecallBotStatus('joining');
+        } else if (s.status === 'fatal' || s.status === 'done') {
+          setRecallBotStatus(s.status === 'fatal' ? 'error' : 'idle');
+          window.clearInterval(recallStatusPollRef.current!);
+          recallStatusPollRef.current = null;
+          localStorage.removeItem(RECALL_STORAGE_KEY);
+        }
+      } catch {
+        // ignore transient errors
+      }
+    }, 4000);
+  }, [RECALL_STORAGE_KEY]);
+
+  // ── Recall.ai: persist bot state to localStorage ──
+  useEffect(() => {
+    if (recallBotId) {
+      localStorage.setItem(RECALL_STORAGE_KEY, JSON.stringify({ botId: recallBotId, meetingUrl: recallMeetingUrl }));
+    } else {
+      localStorage.removeItem(RECALL_STORAGE_KEY);
+    }
+  }, [recallBotId, recallMeetingUrl, RECALL_STORAGE_KEY]);
+
+  // ── Recall.ai: restore bot state on mount (survives page refresh) ──
+  useEffect(() => {
+    const saved = localStorage.getItem(RECALL_STORAGE_KEY);
+    if (!saved) return;
+    try {
+      const { botId, meetingUrl } = JSON.parse(saved) as { botId: string; meetingUrl: string };
+      if (!botId) return;
+      setRecallBotId(botId);
+      setRecallMeetingUrl(meetingUrl || '');
+      setRecallBotStatus('joining');
+      setMode('recall-bot');
+      startStatusPoll(botId);
+      if (stateRef.current.liveStatus === 'idle') {
+        dispatch({ type: 'START_LISTENING' });
+      }
+    } catch {
+      localStorage.removeItem(RECALL_STORAGE_KEY);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally runs once on mount only
+
   // ── Recall.ai bot: send bot to meeting ──
   const sendRecallBot = async (): Promise<void> => {
     if (!recallMeetingUrl.trim()) {
@@ -312,31 +368,11 @@ export function useTranscriptRunner(): {
       setRecallBotStatus('joining');
       console.log('%c[Recall]', 'color:#63d2be;font-weight:bold', `Bot created: ${result.botId}`);
 
-      // Auto-start listening
       if (stateRef.current.liveStatus === 'idle') {
         dispatch({ type: 'START_LISTENING' });
       }
 
-      // Poll Recall.ai bot status until it's in_call_recording or fatal
-      if (recallStatusPollRef.current) window.clearInterval(recallStatusPollRef.current);
-      recallStatusPollRef.current = window.setInterval(async () => {
-        try {
-          const s = await getRecallBotStatus(result.botId);
-          if (s.status === 'in_call_recording') {
-            setRecallBotStatus('recording');
-          } else if (s.status === 'in_call_not_recording') {
-            setRecallBotStatus('in_call_waiting');
-          } else if (s.status === 'joining_call') {
-            setRecallBotStatus('joining');
-          } else if (s.status === 'fatal' || s.status === 'done') {
-            setRecallBotStatus(s.status === 'fatal' ? 'error' : 'idle');
-            window.clearInterval(recallStatusPollRef.current!);
-            recallStatusPollRef.current = null;
-          }
-        } catch {
-          // ignore transient errors
-        }
-      }, 4000);
+      startStatusPoll(result.botId);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to create bot';
       setRecallError(msg);
