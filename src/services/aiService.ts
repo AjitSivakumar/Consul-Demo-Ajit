@@ -25,7 +25,7 @@ export async function inferNeedsWithAI(
       messages: [
         {
           role: 'user',
-          content: `You are a selective meeting intelligence assistant for tech sales. Only surface truly important information gaps — things the sales team MUST research to succeed.
+          content: `You are a highly selective meeting intelligence assistant for tech sales. Only surface critical information gaps — specific unknowns that, if unanswered, could directly lose the deal.
 
 Meeting context so far:
 ${previousContext}
@@ -33,11 +33,12 @@ ${previousContext}
 Latest transcript segment:
 ${transcript}
 
-Identify 0-2 HIGH-VALUE information needs from this segment. Apply strict criteria:
-- Only flag gaps where missing information could lose the deal or significantly hurt the conversation
-- Skip generic themes, small talk, or topics already covered
-- Prefer p1 (critical) and p2 (important) — never return p3 items
-- Confidence must be >= 0.6 — if you're unsure it's a real gap, don't include it
+Identify 0-1 CRITICAL information needs from this segment. Apply very strict criteria:
+- Only flag if missing this information could directly lose the deal or cause a serious objection
+- Must be a specific, answerable question — not a theme or observation
+- Skip anything already covered, small talk, generic industry topics, or low-stakes details
+- Only p1 (deal-critical) items — no p2 or p3
+- Confidence must be >= 0.80 — if you have any doubt it's a real gap, return empty
 
 Return as JSON:
 {
@@ -438,6 +439,7 @@ export interface ProactiveSuggestion {
   prompt: string;
   rationale: string;
   category: 'comparison' | 'risk' | 'pricing' | 'objection' | 'claim' | 'decision' | 'metric';
+  importance: number; // 1–10
 }
 
 export async function generateAmbientSuggestion(
@@ -459,7 +461,7 @@ export async function generateAmbientSuggestion(
         {
           role: 'system',
           content:
-            'You are a real-time meeting assistant. Identify ONE piece of information that would be genuinely useful to surface right now — a specific stat, factual correction, comparison, or answer to an implied question. It must be concrete and researchable. If nothing is worth surfacing, return {"skip": true}.',
+            'You are a real-time sales meeting assistant. Only surface a suggestion if it would materially help the salesperson right now — a specific stat, factual correction, pricing data point, or direct answer to an implied question. It must be concrete, researchable, and directly relevant to what was just said. Generic observations, vague context, or topics already covered do not qualify. If nothing is genuinely worth surfacing, return {"skip": true}.',
         },
         {
           role: 'user',
@@ -471,7 +473,8 @@ Return JSON with exactly these fields (or {"skip": true} if nothing worth surfac
   "headline": "short card title (max 8 words)",
   "prompt": "specific question to research and answer for the team",
   "rationale": "one sentence: why this is useful right now",
-  "category": "comparison|risk|pricing|objection|claim|decision|metric"
+  "category": "comparison|risk|pricing|objection|claim|decision|metric",
+  "importance": <integer 1-10 — how critical this is to the conversation right now>
 }`,
         },
       ],
@@ -480,6 +483,7 @@ Return JSON with exactly these fields (or {"skip": true} if nothing worth surfac
     const content = (response.choices[0].message.content || '').trim();
     const parsed = JSON.parse(content);
     if (parsed.skip || !parsed.headline || !parsed.prompt) return null;
+    if (typeof parsed.importance !== 'number' || parsed.importance < 7) return null;
     return parsed as ProactiveSuggestion;
   } catch (err) {
     console.error('Ambient suggestion error:', err);

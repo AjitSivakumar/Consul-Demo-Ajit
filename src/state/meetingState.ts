@@ -19,7 +19,7 @@ export interface MeetingState {
   deliverables: Deliverable[];
   liveStatus: 'idle' | 'listening' | 'paused' | 'ending' | 'ended';
   // Ambient AI features
-  ambientSuggestions: Array<{ timestamp: string; headline: string; needId: string }>;
+  ambientSuggestions: Array<{ timestamp: string; headline: string; needId: string; importance: number }>;
   lastSuggestionTime: number;
   // Deliverable generation
   generatedContent: GeneratedDeliverables;
@@ -33,7 +33,8 @@ export type MeetingAction =
   | { type: 'SET_MEETING_TITLE'; payload: string }
   | { type: 'PROCESS_EVENT'; payload: TranscriptEvent }
   | { type: 'ADD_AI_NEEDS'; payload: InformationNeed[] }
-  | { type: 'ADD_AMBIENT_SUGGESTION'; payload: { headline: string; needId: string } }
+  | { type: 'ADD_AMBIENT_SUGGESTION'; payload: { headline: string; needId: string; importance: number } }
+  | { type: 'DISMISS_AMBIENT_SUGGESTION'; payload: string }
   | { type: 'UPDATE_NEED_STATUS'; payload: { needId: string; status: InformationNeed['status'] } }
   | { type: 'KEEP_NEED'; payload: string }
   | { type: 'DISMISS_NEED'; payload: string }
@@ -91,9 +92,14 @@ export function meetingReducer(state: MeetingState, action: MeetingAction): Meet
         ...state,
         ambientSuggestions: [
           ...state.ambientSuggestions,
-          { timestamp: new Date().toISOString(), headline: action.payload.headline, needId: action.payload.needId }
+          { timestamp: new Date().toISOString(), headline: action.payload.headline, needId: action.payload.needId, importance: action.payload.importance }
         ],
         lastSuggestionTime: Date.now()
+      };
+    case 'DISMISS_AMBIENT_SUGGESTION':
+      return {
+        ...state,
+        ambientSuggestions: state.ambientSuggestions.filter((s) => s.needId !== action.payload),
       };
     case 'UPDATE_NEED_STATUS':
       return {
@@ -166,9 +172,9 @@ function applyAdditionalNeeds(state: MeetingState, incomingNeeds: InformationNee
     return state;
   }
 
-  // Quality gate: only admit p1/p2 needs with confidence >= 0.6
+  // Quality gate: only admit p1 needs with confidence >= 0.80
   const qualityFiltered = incomingNeeds.filter(
-    (need) => (need.priority === 'p1' || need.priority === 'p2') && need.confidence >= 0.6
+    (need) => need.priority === 'p1' && need.confidence >= 0.80
   );
 
   if (qualityFiltered.length === 0) {

@@ -60,7 +60,7 @@ export function useTranscriptRunner(): {
   const recallStatusPollRef = useRef<number | null>(null);
   const [recallPartials, setRecallPartials] = useState<Record<string, string>>({});
 
-  const RECALL_STORAGE_KEY = 'ambi_recall_bot';
+  const RECALL_STORAGE_KEY = 'consul_recall_bot';
 
   const speechCtor =
     typeof window !== 'undefined'
@@ -96,14 +96,14 @@ export function useTranscriptRunner(): {
   // Listen for captions from the Ambi Chrome extension (Google Meet connector)
   useEffect(() => {
     const handler = (event: MessageEvent) => {
-      if (event.data?.type === 'AMBI_CAPTION_FROM_EXTENSION') {
+      if (event.data?.type === 'CONSUL_CAPTION_FROM_EXTENSION') {
         const { speaker, text } = event.data;
-        console.log('%c[Ambi App]', 'color:#63d2be;font-weight:bold',
+        console.log('%c[Consul App]', 'color:#63d2be;font-weight:bold',
           `Received from extension: ${speaker}: ${text?.substring(0, 60)}`);
         if (speaker && text) {
           // Auto-start listening if idle when captions arrive
           if (stateRef.current.liveStatus === 'idle') {
-            console.log('%c[Ambi App]', 'color:#63d2be;font-weight:bold', 'Auto-starting from idle');
+            console.log('%c[Consul App]', 'color:#63d2be;font-weight:bold', 'Auto-starting from idle');
             dispatch({ type: 'START_LISTENING' });
           }
           dispatch({ type: 'PROCESS_EVENT', payload: makeEvent(speaker, text) });
@@ -112,7 +112,7 @@ export function useTranscriptRunner(): {
     };
 
     window.addEventListener('message', handler);
-    console.log('%c[Ambi App]', 'color:#63d2be;font-weight:bold', 'postMessage listener registered');
+    console.log('%c[Consul App]', 'color:#63d2be;font-weight:bold', 'postMessage listener registered');
     return () => window.removeEventListener('message', handler);
   }, [dispatch]);
 

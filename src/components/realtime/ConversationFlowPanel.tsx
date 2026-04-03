@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { resolveGapFromDocuments, resolveGapFromInternet } from '../../services/aiService';
 import { extractRelevantChunks, getAllDocuments } from '../../services/documentService';
 import { useMeetingStore } from '../../state/MeetingStore';
@@ -9,28 +9,36 @@ interface InsightsFeedProps {
   onSelectNeed: (id: string | null) => void;
 }
 
+type TagModal = { type: 'caution' | 'diagram'; need: InformationNeed } | null;
+type ConfirmedPanel = { type: 'caution' | 'diagram'; need: InformationNeed } | null;
+
 export function InsightsFeed({ selectedNeedId, onSelectNeed }: InsightsFeedProps): React.JSX.Element {
   const { state, dispatch } = useMeetingStore();
   const [retryingId, setRetryingId] = useState<string | null>(null);
+  const [tagModal, setTagModal] = useState<TagModal>(null);
+  const [confirmedPanel, setConfirmedPanel] = useState<ConfirmedPanel>(null);
+  const shownCriticalIds = useRef<Set<string>>(new Set());
+
+  // Auto-show caution popup for critical new gaps (p1, not yet shown)
+  useEffect(() => {
+    const criticalNew = state.needs.find(
+      (n) =>
+        n.priority === 'p1' &&
+        n.status === 'new' &&
+        !shownCriticalIds.current.has(n.id)
+    );
+    if (criticalNew && !confirmedPanel && !tagModal) {
+      shownCriticalIds.current.add(criticalNew.id);
+      setConfirmedPanel({ type: 'caution', need: criticalNew });
+    }
+  }, [state.needs, confirmedPanel, tagModal]);
 
   /* ── Derived data ── */
 
   const visibleNeeds = useMemo(
-    () => state.needs.filter((n) => n.status !== 'dismissed'),
+    () => state.needs.filter((n) => n.status !== 'dismissed').slice(0, 5),
     [state.needs]
   );
-
-  // Map needs to their triggering transcript line
-  const needTriggerMap = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const need of state.needs) {
-      const event = state.transcript.find((t) => t.segmentId === need.triggeredBySegmentId);
-      if (event) {
-        map.set(need.id, event.text.slice(0, 80) + (event.text.length > 80 ? '…' : ''));
-      }
-    }
-    return map;
-  }, [state.needs, state.transcript]);
 
   // Map resolved needs to their evidence
   const needEvidenceMap = useMemo(() => {
@@ -44,11 +52,6 @@ export function InsightsFeed({ selectedNeedId, onSelectNeed }: InsightsFeedProps
   }, [state.evidence]);
 
   /* ── Handlers ── */
-
-  const handleKeep = useCallback(
-    (needId: string) => dispatch({ type: 'KEEP_NEED', payload: needId }),
-    [dispatch]
-  );
 
   const handleDismiss = useCallback(
     (needId: string) => dispatch({ type: 'DISMISS_NEED', payload: needId }),
@@ -153,91 +156,71 @@ export function InsightsFeed({ selectedNeedId, onSelectNeed }: InsightsFeedProps
 
   /* ── Render insight card ── */
   const renderInsightCard = (need: InformationNeed, idx: number) => {
-    const trigger = needTriggerMap.get(need.id);
     const evidence = needEvidenceMap.get(need.id);
     const isSelected = selectedNeedId === need.id;
     const isRetrying = retryingId === need.id;
     const isCaution = need.category === 'risk' || need.priority === 'p1';
-    const isProactive = need.category === 'objection' && evidence;
     const sourceColor = categoryColor[need.category] ?? '#3B6D11';
 
     return (
       <div
         key={need.id}
-        className={`irow ${isSelected ? 'selected' : ''} ${isProactive ? 'proactive' : ''}`}
-        style={{ animationDelay: `${idx * 80}ms` }}
+        className={`irow ${isSelected ? 'selected' : ''}`}
+        style={{ animationDelay: `${idx * 80}ms`, position: 'relative' }}
         onClick={() => onSelectNeed(isSelected ? null : need.id)}
       >
-        {/* Caution / Diagram tags */}
-        {isCaution && (
-          <div className="caution-tag">
-            <div className="caution-dot" />
-            Caution
-          </div>
-        )}
-        {need.category === 'comparison' && evidence && (
-          <div className="diagram-tag">
-            <div className="diagram-dot" />
-            Diagram Suggested
-          </div>
-        )}
+        <button
+          type="button"
+          className="irow-dismiss-btn"
+          onClick={(e) => { e.stopPropagation(); handleDismiss(need.id); }}
+          title="Dismiss"
+        >✕</button>
 
-        {/* Proactive label */}
-        {isProactive && <div className="pro-label">PROACTIVE</div>}
-
-        {/* Trigger pill */}
-        {trigger && (
-          <div className="trigger-pill">
-            <span className="trigger-word">Triggered</span>
-            <span className="trigger-quote">"{trigger}"</span>
-          </div>
-        )}
-
-        {/* Status badge */}
-        {need.status === 'retrieving' && <span className="irow-status resolving">Resolving…</span>}
-        {(need.status === 'failed' || need.status === 'unresolved') && <span className="irow-status failed">Unresolved</span>}
-        {need.status === 'kept' && <span className="irow-status kept">★ Kept</span>}
+        {/* Tags row */}
+        <div className="irow-tags">
+          {isCaution && (
+            <div className="caution-tag caution-tag-btn" onClick={(e) => { e.stopPropagation(); setTagModal({ type: 'caution', need }); }}>
+              <div className="caution-dot" />
+              Caution
+            </div>
+          )}
+          {need.category === 'comparison' && evidence && (
+            <div className="diagram-tag diagram-tag-btn" onClick={(e) => { e.stopPropagation(); setTagModal({ type: 'diagram', need }); }}>
+              <div className="diagram-dot" />
+              Diagram
+            </div>
+          )}
+        </div>
 
         {/* Question */}
         <div className="irow-q">{need.prompt}</div>
 
-        {/* Answer (if resolved) */}
+        {/* One-liner answer snippet when resolved */}
         {evidence && (
-          <div className="irow-a">{evidence.summary.slice(0, 120)}{evidence.summary.length > 120 ? '…' : ''}</div>
+          <div className="irow-snippet">
+            {evidence.summary.split(/[.!?]/)[0].trim()}
+          </div>
+        )}
+        {need.status === 'retrieving' && !evidence && (
+          <div className="irow-snippet irow-snippet-loading">Researching…</div>
         )}
 
-        {/* Footer: source + time */}
+        {/* Footer: category dot + resolved indicator */}
         <div className="irow-foot">
           <div className="irow-src">
-            <div className="sdot" style={{ background: sourceColor }} />
-            <span className="sname">
-              {evidence?.attributions[0]?.title ?? need.category.replace('_', ' ')}
-            </span>
+            <div className="sdot" style={{ background: evidence ? '#1D9E75' : sourceColor }} />
           </div>
-          <span className="irow-time">{need.status === 'new' ? 'just now' : need.status}</span>
+          {(need.status === 'failed' || need.status === 'unresolved') && (
+            <button
+              type="button"
+              className="irow-action-btn retry"
+              disabled={isRetrying}
+              onClick={(e) => { e.stopPropagation(); void handleRetry(need); }}
+            >
+              {isRetrying ? '…' : '↻'}
+            </button>
+          )}
         </div>
-
-        {/* Action buttons for resolved/failed needs */}
-        {(need.status === 'resolved' || need.status === 'failed' || need.status === 'unresolved') && (
-          <div className="irow-actions" onClick={(e) => e.stopPropagation()}>
-            <button type="button" className="irow-action-btn keep" onClick={() => handleKeep(need.id)}>
-              ✓ Keep
-            </button>
-            <button type="button" className="irow-action-btn dismiss" onClick={() => handleDismiss(need.id)}>
-              ✗ Dismiss
-            </button>
-            {(need.status === 'failed' || need.status === 'unresolved') && (
-              <button
-                type="button"
-                className="irow-action-btn retry"
-                disabled={isRetrying}
-                onClick={() => void handleRetry(need)}
-              >
-                {isRetrying ? 'Retrying…' : '↻ Retry'}
-              </button>
-            )}
-          </div>
-        )}
       </div>
     );
   };
@@ -257,8 +240,12 @@ export function InsightsFeed({ selectedNeedId, onSelectNeed }: InsightsFeedProps
           </div>
         )}
 
-        {/* AI Suggestions as proactive cards */}
-        {state.ambientSuggestions.slice().reverse().slice(0, 3).map((item, idx) => {
+        {/* AI Suggestions as proactive cards — top 2 by importance */}
+        {state.ambientSuggestions
+          .slice()
+          .sort((a, b) => b.importance - a.importance)
+          .slice(0, 2)
+          .map((item, idx) => {
           const isSelected = selectedNeedId === item.needId;
           const need = state.needs.find((n) => n.id === item.needId);
           const evidence = state.evidence.find((e) => e.needId === item.needId);
@@ -266,21 +253,22 @@ export function InsightsFeed({ selectedNeedId, onSelectNeed }: InsightsFeedProps
             <div
               key={`sug-${item.timestamp}-${idx}`}
               className={`irow proactive${isSelected ? ' selected' : ''}`}
-              style={{ animationDelay: `${idx * 80}ms` }}
+              style={{ animationDelay: `${idx * 80}ms`, position: 'relative' }}
               onClick={() => onSelectNeed(isSelected ? null : item.needId)}
             >
+              <button
+                type="button"
+                className="irow-dismiss-btn irow-dismiss-btn-proactive"
+                onClick={(e) => { e.stopPropagation(); dispatch({ type: 'DISMISS_AMBIENT_SUGGESTION', payload: item.needId }); }}
+                title="Dismiss"
+              >✕</button>
               <div className="pro-label">⬡ PROACTIVE</div>
               <div className="irow-q">{item.headline}</div>
-              {need && (
-                <div className="irow-a" style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12 }}>
-                  {need.rationale}
-                </div>
-              )}
               <div className="irow-foot">
                 <div className="irow-src">
                   <div className="sdot" style={{ background: 'rgba(255,255,255,0.8)' }} />
                   <span className="sname">
-                    {evidence ? (evidence.verification === 'verified' ? '✓ Resolved' : '~ Inferred') : need?.status === 'retrieving' ? 'Researching…' : 'AI Suggestion'}
+                    {evidence ? '✓ Resolved' : need?.status === 'retrieving' ? 'Researching…' : 'AI'}
                   </span>
                 </div>
                 <span className="irow-time">{timeAgo(new Date(item.timestamp).getTime())}</span>
@@ -292,6 +280,100 @@ export function InsightsFeed({ selectedNeedId, onSelectNeed }: InsightsFeedProps
         {/* Insight cards from needs */}
         {visibleNeeds.map(renderInsightCard)}
       </div>
+
+      {/* ── Tag Modals ── */}
+      {tagModal && (
+        <div className="tag-modal-overlay" onClick={() => setTagModal(null)}>
+          <div className="tag-modal-box" onClick={(e) => e.stopPropagation()}>
+            {tagModal.type === 'caution' ? (
+              <>
+                <div className="tag-modal-header caution">
+                  <div className="caution-dot" />
+                  Caution
+                </div>
+                <div className="tag-modal-body">
+                  <div className="tag-modal-question">{tagModal.need.prompt}</div>
+                  {tagModal.need.rationale && (
+                    <div className="tag-modal-detail">{tagModal.need.rationale}</div>
+                  )}
+                  <div className="tag-modal-hint">This is a critical missing piece of information that could affect the outcome of this conversation.</div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="tag-modal-header diagram">
+                  <div className="diagram-dot" />
+                  Diagram Suggested
+                </div>
+                <div className="tag-modal-body">
+                  <div className="tag-modal-question">{tagModal.need.prompt}</div>
+                  {tagModal.need.rationale && (
+                    <div className="tag-modal-detail">{tagModal.need.rationale}</div>
+                  )}
+                  <div className="tag-modal-hint">A visual comparison or diagram would help clarify this topic. Confirm to expand it.</div>
+                </div>
+              </>
+            )}
+            <div className="tag-modal-actions">
+              <button
+                type="button"
+                className="tag-modal-btn confirm"
+                onClick={() => {
+                  setConfirmedPanel({ type: tagModal.type, need: tagModal.need });
+                  setTagModal(null);
+                }}
+              >
+                Confirm
+              </button>
+              <button
+                type="button"
+                className="tag-modal-btn remove"
+                onClick={() => {
+                  dispatch({ type: 'DISMISS_NEED', payload: tagModal.need.id });
+                  setTagModal(null);
+                }}
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Confirmed Center Panel ── */}
+      {confirmedPanel && (() => {
+        const evidence = state.evidence.find((e) => e.needId === confirmedPanel.need.id);
+        return (
+          <div className="confirmed-overlay" onClick={() => setConfirmedPanel(null)}>
+            <div className={`confirmed-panel confirmed-panel-${confirmedPanel.type}`} onClick={(e) => e.stopPropagation()}>
+              <button type="button" className="confirmed-close" onClick={() => setConfirmedPanel(null)}>✕</button>
+              <div className={`confirmed-header ${confirmedPanel.type}`}>
+                {confirmedPanel.type === 'caution'
+                  ? <><div className="caution-dot" /> Caution</>
+                  : <><div className="diagram-dot" /> Diagram Suggested</>
+                }
+              </div>
+              <div className="confirmed-question">{confirmedPanel.need.prompt}</div>
+              {confirmedPanel.need.rationale && (
+                <div className="confirmed-rationale">{confirmedPanel.need.rationale}</div>
+              )}
+              {evidence && (
+                <div className="confirmed-answer">
+                  <div className="confirmed-answer-label">Research</div>
+                  <div className="confirmed-answer-text">{evidence.summary}</div>
+                </div>
+              )}
+              <button
+                type="button"
+                className="confirmed-deepdive-btn"
+                onClick={() => { onSelectNeed(confirmedPanel.need.id); setConfirmedPanel(null); }}
+              >
+                Open in Deep Dive →
+              </button>
+            </div>
+          </div>
+        );
+      })()}
     </>
   );
 }

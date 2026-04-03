@@ -19,7 +19,15 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
   const [queryText, setQueryText] = useState('');
   const [isQuerying, setIsQuerying] = useState(false);
   const [queryHistory, setQueryHistory] = useState<QueryEntry[]>([]);
+  const [notesMap, setNotesMap] = useState<Record<string, string>>({});
   const bodyRef = useRef<HTMLDivElement | null>(null);
+
+  const currentNote = (selectedNeedId ? notesMap[selectedNeedId] : notesMap['__general__']) ?? '';
+  const noteKey = selectedNeedId ?? '__general__';
+
+  const handleNoteChange = (value: string): void => {
+    setNotesMap((prev) => ({ ...prev, [noteKey]: value }));
+  };
 
   const selectedNeed = useMemo(
     () => (selectedNeedId ? state.needs.find((n) => n.id === selectedNeedId) ?? null : null),
@@ -129,7 +137,7 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
         <span style={{ fontSize: 16, color: 'var(--text-tertiary)', flexShrink: 0 }}>◎</span>
         <input
           className="qinput"
-          placeholder="Ask Ambi anything about this meeting…"
+          placeholder="Ask Consul anything about this meeting…"
           value={queryText}
           onChange={(e) => setQueryText(e.target.value)}
           onKeyDown={(e) => {
@@ -162,19 +170,20 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
   if (!selectedNeed) {
     return (
       <>
-        <div className="ev-header">
-          <div className="deep-dive-label">Deep Dive <span /></div>
-          <div className="ev-question" style={{ color: 'var(--text-tertiary)' }}>Select an insight to explore</div>
-        </div>
         <div className="ev-body" ref={bodyRef}>
+          <div className="ev-header-inline">
+            <div className="deep-dive-label">Deep Dive <span /></div>
+            <div className="ev-question" style={{ color: 'var(--text-tertiary)' }}>Select an insight to explore</div>
+          </div>
           {queryHistory.length === 0 && (
             <div className="deep-dive-empty">
               <div className="deep-dive-empty-icon">◎</div>
               <div className="deep-dive-empty-text">
-                Click any insight card in the feed<br />to see a detailed breakdown here,<br />or ask Ambi anything below.
+                Click any insight card in the feed<br />to see a detailed breakdown here,<br />or ask Consul anything below.
               </div>
             </div>
           )}
+          <NotesSection note={currentNote} onChange={handleNoteChange} />
           {queryHistory.map((entry, i) => (
             <QueryThread key={i} entry={entry} />
           ))}
@@ -186,42 +195,40 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
 
   return (
     <>
-      {/* Header */}
-      <div className="ev-header">
-        <div className="deep-dive-label">Deep Dive <span /></div>
-        <div className="ev-question">{selectedNeed.prompt}</div>
-        {evidence && (
-          <>
-            <div className="ev-answer">{evidence.summary}</div>
-            <div className="ev-src-row">
-              {evidence.attributions.map((attr) => (
-                <div key={attr.sourceId} className="ev-src-badge">
-                  <div className="sdot" style={{
-                    background: attr.sourceType === 'web' ? '#185FA5' : '#3B6D11',
-                    width: 8, height: 8, borderRadius: '50%',
-                  }} />
-                  {attr.title}
-                </div>
-              ))}
-              <div className="ev-conf">
-                Match <b>{(evidence.confidence * 100).toFixed(0)}%</b>
-              </div>
-            </div>
-          </>
-        )}
-        {!evidence && selectedNeed.status === 'retrieving' && (
-          <div className="ev-answer" style={{ color: 'var(--dl-teal)' }}>Resolving this insight…</div>
-        )}
-        {!evidence && (selectedNeed.status === 'failed' || selectedNeed.status === 'unresolved') && (
-          <div className="ev-answer" style={{ color: 'var(--danger)' }}>Could not resolve this insight. Try retrying or uploading relevant docs.</div>
-        )}
-        {!evidence && selectedNeed.status === 'new' && (
-          <div className="ev-answer" style={{ color: 'var(--text-tertiary)' }}>Waiting for AI to process this insight…</div>
-        )}
-      </div>
-
-      {/* Body */}
+      {/* Body — header scrolls with content */}
       <div className="ev-body" ref={bodyRef}>
+        <div className="ev-header-inline">
+          <div className="deep-dive-label">Deep Dive <span /></div>
+          <div className="ev-question">{selectedNeed.prompt}</div>
+          {evidence && (
+            <>
+              <div className="ev-answer">{evidence.summary}</div>
+              <div className="ev-src-row">
+                {evidence.attributions.map((attr) => (
+                  <div key={attr.sourceId} className="ev-src-badge">
+                    <div className="sdot" style={{
+                      background: attr.sourceType === 'web' ? '#185FA5' : '#3B6D11',
+                      width: 8, height: 8, borderRadius: '50%',
+                    }} />
+                    {attr.title}
+                  </div>
+                ))}
+                <div className="ev-conf">
+                  Match <b>{(evidence.confidence * 100).toFixed(0)}%</b>
+                </div>
+              </div>
+            </>
+          )}
+          {!evidence && selectedNeed.status === 'retrieving' && (
+            <div className="ev-answer" style={{ color: 'var(--dl-teal)' }}>Resolving this insight…</div>
+          )}
+          {!evidence && (selectedNeed.status === 'failed' || selectedNeed.status === 'unresolved') && (
+            <div className="ev-answer" style={{ color: 'var(--danger)' }}>Could not resolve this insight. Try retrying or uploading relevant docs.</div>
+          )}
+          {!evidence && selectedNeed.status === 'new' && (
+            <div className="ev-answer" style={{ color: 'var(--text-tertiary)' }}>Waiting for AI to process this insight…</div>
+          )}
+        </div>
         {isCaution && evidence && (
           <div className="caution-banner">
             <div className="caution-banner-head">
@@ -241,7 +248,7 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
               <div className="diagram-title">Diagram Suggested</div>
             </div>
             <div className="diagram-body-text">
-              Ambi identified a comparison flow in this data that may be clearer as a diagram.
+              Consul identified a comparison flow in this data that may be clearer as a diagram.
             </div>
             <div className="diagram-nodes">
               {topicNodes.map((node, i) => (
@@ -297,6 +304,7 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
           </div>
         )}
 
+        <NotesSection note={currentNote} onChange={handleNoteChange} />
         {queryHistory.map((entry, i) => (
           <QueryThread key={i} entry={entry} />
         ))}
@@ -304,6 +312,21 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
 
       {queryBar}
     </>
+  );
+}
+
+function NotesSection({ note, onChange }: { note: string; onChange: (v: string) => void }): React.JSX.Element {
+  return (
+    <div className="dd-notes">
+      <div className="dd-notes-label">Notes</div>
+      <textarea
+        className="dd-notes-input"
+        value={note}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Add notes for this insight…"
+        rows={3}
+      />
+    </div>
   );
 }
 

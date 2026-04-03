@@ -120,7 +120,7 @@ export function RealtimeMeetingPage(): React.JSX.Element {
         <div className="nav-left">
           <div className="consul-mark">
             <div className="mark-ring"><div className="mark-dot" /></div>
-            <span className="wordmark">AMBI</span>
+            <span className="wordmark">CONSUL</span>
           </div>
         </div>
 
@@ -197,8 +197,7 @@ export function RealtimeMeetingPage(): React.JSX.Element {
 
         <div className="ctrl-divider" />
         <span className="ctrl-label">Gaps</span>
-        <span className="ctrl-stat pending">{pendingCount} open</span>
-        <span className="ctrl-stat resolved">{resolvedCount} resolved</span>
+        <span className="ctrl-stat">{pendingCount + resolvedCount}</span>
 
         <div className="ctrl-divider" />
         <span className="ctrl-label">Docs</span>

@@ -39,7 +39,7 @@ function buildEvidenceFromResult(
       },
     ],
     triggeredBySegmentId: need.triggeredBySegmentId,
-    explainWhyNow: 'Auto-resolved by Ambi during meeting',
+    explainWhyNow: 'Auto-resolved by Consul during meeting',
     verification: sourceType === 'web' ? 'inferred' : 'verified',
   };
 }
@@ -54,11 +54,13 @@ export function useAmbientMeetingAI(): {
   const lastInferenceTimeRef = useRef<number>(0);
   const eventsSinceLastInference = useRef<number>(0);
 
-  // Cooldown: require at least 20s AND 5 transcript events between AI inferences
-  const AI_INFERENCE_COOLDOWN_MS = 20_000;
-  const AI_INFERENCE_MIN_EVENTS = 5;
-  // Cooldown between ambient suggestion calls: 10s minimum
-  const AMBIENT_SUGGESTION_COOLDOWN_MS = 10_000;
+  // Cooldown: require at least 35s AND 7 transcript events between AI inferences
+  const AI_INFERENCE_COOLDOWN_MS = 35_000;
+  const AI_INFERENCE_MIN_EVENTS = 7;
+  // Max active information gaps (non-dismissed)
+  const MAX_ACTIVE_GAPS = 5;
+  // Cooldown between ambient suggestion calls: 15s minimum
+  const AMBIENT_SUGGESTION_COOLDOWN_MS = 15_000;
   const lastAmbientTsRef = useRef<number>(0);
 
   // Auto-resolve: when new needs appear, try docs → internet → mark failed
@@ -154,7 +156,7 @@ export function useAmbientMeetingAI(): {
             status: 'new',
           };
           dispatch({ type: 'ADD_AI_NEEDS', payload: [need] });
-          dispatch({ type: 'ADD_AMBIENT_SUGGESTION', payload: { headline: suggestion.headline, needId } });
+          dispatch({ type: 'ADD_AMBIENT_SUGGESTION', payload: { headline: suggestion.headline, needId, importance: suggestion.importance } });
         }
       }
 
@@ -174,12 +176,16 @@ export function useAmbientMeetingAI(): {
         .map((segment) => `${segment.speaker}: ${segment.text}`)
         .join('\n');
 
+      // Don't add more gaps if already at the cap
+      const activeGaps = state.needs.filter((n) => n.status !== 'dismissed').length;
+      if (activeGaps >= MAX_ACTIVE_GAPS) return;
+
       const aiNeeds = await inferNeedsWithAI(latest.text, previousContext);
       if (aiNeeds.length > 0) {
-        // Only keep high-value needs (p1/p2 with decent confidence)
-        const filtered = aiNeeds.filter(
-          (n) => (n.priority === 'p1' || n.priority === 'p2') && n.confidence >= 0.70
-        );
+        // Only keep critical needs (p1 only, high confidence)
+        const filtered = aiNeeds
+          .filter((n) => n.priority === 'p1' && n.confidence >= 0.80)
+          .slice(0, MAX_ACTIVE_GAPS - activeGaps); // never exceed cap
         if (filtered.length > 0) {
           dispatch({ type: 'ADD_AI_NEEDS', payload: filtered });
         }

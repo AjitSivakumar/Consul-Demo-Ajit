@@ -24,7 +24,7 @@ export function DeliverablesPage(): React.JSX.Element {
       <header className="ambient-topbar">
         <div className="ambient-logo">
           <span className="ambient-logo-dot" />
-          ambi
+          Consul
         </div>
 
         <div className="ambient-meeting-info">
@@ -73,11 +73,11 @@ export function DeliverablesPage(): React.JSX.Element {
       <div className="dl-mock-banner">
         <div className="dl-mock-icon">📂</div>
         <div className="dl-mock-content">
-          <h4>Pre-call data feed — context provided to Ambi</h4>
+          <h4>Pre-call data feed — context provided to Consul</h4>
           <p>
-            Before the meeting, context documents were uploaded to Ambi&apos;s session:
+            Before the meeting, context documents were uploaded to Consul&apos;s session:
             {' '}<strong>internal product docs</strong>, <strong>client intelligence</strong>,
-            and any relevant prior materials. Ambi indexed these at session start so live
+            and any relevant prior materials. Consul indexed these at session start so live
             research triggers could pull from them during the call.
           </p>
         </div>
@@ -94,7 +94,7 @@ export function DeliverablesPage(): React.JSX.Element {
               </div>
               <div className="dl-card-body">
                 <p className="dl-info-text">
-                  Start the meeting, let Ambi capture the conversation, and end the meeting
+                  Start the meeting, let Consul capture the conversation, and end the meeting
                   to generate the full deliverables package.
                 </p>
                 <button type="button" className="ambient-btn" style={{ marginTop: 8 }} onClick={handleNewMeeting}>
