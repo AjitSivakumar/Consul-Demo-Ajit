@@ -409,21 +409,20 @@ export function useTranscriptRunner(): {
     }
 
     const handleEvent = (evt: RecallTranscriptEvent) => {
-      // Only process final (non-partial) transcripts
-      if (evt.isPartial) return;
-
       const speaker = evt.speaker || 'Unknown';
       const text = evt.text?.trim();
       if (!text) return;
 
-      console.log('%c[Recall]', 'color:#63d2be;font-weight:bold', `${speaker}: ${text.substring(0, 80)}`);
-
       if (stateRef.current.liveStatus === 'idle') {
         dispatch({ type: 'START_LISTENING' });
       }
-
-      dispatch({ type: 'PROCESS_EVENT', payload: makeEvent(speaker, text) });
       setRecallBotStatus('transcribing');
+
+      // Only push final events into the meeting transcript for AI processing
+      if (!evt.isPartial) {
+        console.log('%c[Recall]', 'color:#63d2be;font-weight:bold', `${speaker}: ${text.substring(0, 80)}`);
+        dispatch({ type: 'PROCESS_EVENT', payload: makeEvent(speaker, text) });
+      }
     };
 
     const handleError = (error: Error) => {

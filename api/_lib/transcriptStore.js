@@ -1,8 +1,9 @@
-// Transcript store — uses Upstash Redis in production, in-memory fallback for local dev.
+// Transcript store — Upstash Redis in production, in-memory fallback for local dev.
 // Required Vercel env vars: UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
 //
-// Redis layout: each bot uses a LIST key `transcript:{botId}`.
-// RPUSH appends atomically — no read-modify-write race under concurrent webhook calls.
+// Redis layout:
+//   transcript:{botId}          → LIST of final transcript events (RPUSH, atomic)
+//   transcript:{botId}:partial  → HASH of latest partial per speaker (HSET, atomic)
 
 import { Redis } from '@upstash/redis';
 
@@ -18,6 +19,7 @@ if (useRedis) {
 
 const TRANSCRIPT_TTL_SECONDS = 60 * 60 * 4; // 4 hours
 const listKey = (botId) => `transcript:${botId}`;
+const partialKey = (botId) => `transcript:${botId}:partial`;
 
 // ── In-memory fallback (local dev only) ──
 if (!globalThis.__transcriptStore) {
@@ -25,35 +27,58 @@ if (!globalThis.__transcriptStore) {
 }
 function getLocalBuffer(botId) {
   const store = globalThis.__transcriptStore;
-  if (!store.has(botId)) store.set(botId, []);
+  if (!store.has(botId)) store.set(botId, { finals: [], partials: {} });
   return store.get(botId);
 }
 
 // ── Public API ──
 
-// Returns { events: [...], length: N }
+// Returns { events: [...finals, ...currentPartials], length: N }
+// length only counts finals so cursor stays stable
 export async function getBotBuffer(botId) {
   if (!useRedis) {
-    const events = getLocalBuffer(botId);
-    return { events, length: events.length };
+    const buf = getLocalBuffer(botId);
+    const partialEvents = Object.values(buf.partials);
+    return { events: [...buf.finals, ...partialEvents], length: buf.finals.length };
   }
-  const key = listKey(botId);
-  // LRANGE 0 -1 returns all elements atomically
-  const raw = await redis.lrange(key, 0, -1);
-  const events = raw.map((item) => (typeof item === 'string' ? JSON.parse(item) : item));
-  return { events, length: events.length };
+
+  const [raw, partialHash] = await Promise.all([
+    redis.lrange(listKey(botId), 0, -1),
+    redis.hgetall(partialKey(botId)),
+  ]);
+
+  const finals = raw.map((item) => (typeof item === 'string' ? JSON.parse(item) : item));
+  const partials = partialHash
+    ? Object.values(partialHash).map((v) => (typeof v === 'string' ? JSON.parse(v) : v))
+    : [];
+
+  return { events: [...finals, ...partials], length: finals.length };
 }
 
-// Atomically appends a single event — safe under concurrent webhook calls
 export async function appendTranscriptEvent(botId, event) {
   if (!useRedis) {
-    getLocalBuffer(botId).push(event);
+    const buf = getLocalBuffer(botId);
+    if (event.isPartial) {
+      buf.partials[event.speaker] = event;
+    } else {
+      delete buf.partials[event.speaker];
+      buf.finals.push(event);
+    }
     return;
   }
-  const key = listKey(botId);
-  await redis.rpush(key, JSON.stringify(event));
-  // Reset TTL on every append so active meetings don't expire
-  await redis.expire(key, TRANSCRIPT_TTL_SECONDS);
+
+  if (event.isPartial) {
+    // Overwrite latest partial for this speaker atomically
+    await redis.hset(partialKey(botId), { [event.speaker]: JSON.stringify(event) });
+    await redis.expire(partialKey(botId), TRANSCRIPT_TTL_SECONDS);
+  } else {
+    // Finalized: append to list and clear speaker's partial
+    await Promise.all([
+      redis.rpush(listKey(botId), JSON.stringify(event)),
+      redis.hdel(partialKey(botId), event.speaker),
+    ]);
+    await redis.expire(listKey(botId), TRANSCRIPT_TTL_SECONDS);
+  }
 }
 
 export async function clearBotBuffer(botId) {
@@ -61,5 +86,5 @@ export async function clearBotBuffer(botId) {
     globalThis.__transcriptStore.delete(botId);
     return;
   }
-  await redis.del(listKey(botId));
+  await Promise.all([redis.del(listKey(botId)), redis.del(partialKey(botId))]);
 }
