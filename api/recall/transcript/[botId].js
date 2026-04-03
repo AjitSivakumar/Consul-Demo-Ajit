@@ -9,15 +9,15 @@ export default async function handler(req, res) {
   const { botId } = req.query;
   const cursor = parseInt(req.query.cursor || '0', 10);
 
-  const buf = getBotBuffer(botId);
+  const buf = await getBotBuffer(botId);
 
-  // Serve from in-memory buffer if webhook has populated it
+  // Serve from store if webhook has populated it
   if (buf.events.length > 0) {
     return res.json({ events: buf.events.slice(cursor), cursor: buf.events.length });
   }
 
-  // Fallback: pull transcript directly from Recall.ai API
-  // (handles serverless cold instances where webhook landed on a different instance)
+  // Fallback: pull directly from Recall.ai API
+  // (used when webhook hasn't fired yet, or as a post-call catch-up)
   try {
     const data = await recallFetch(`/bot/${botId}/transcript/`);
     const segments = Array.isArray(data) ? data : (data?.results ?? []);
@@ -37,7 +37,6 @@ export default async function handler(req, res) {
       });
     }
 
-    buf.events = events;
     return res.json({ events: events.slice(cursor), cursor: events.length });
   } catch {
     return res.json({ events: [], cursor: 0 });

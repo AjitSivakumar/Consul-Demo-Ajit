@@ -25,7 +25,7 @@ export default async function handler(req, res) {
   } else if (req.method === 'DELETE') {
     try {
       await recallFetch(`/bot/${id}/leave/`, { method: 'POST' });
-      clearBotBuffer(id);
+      await clearBotBuffer(id);
       console.log(`[Recall] Bot ${id} asked to leave`);
       res.json({ ok: true });
     } catch (err) {

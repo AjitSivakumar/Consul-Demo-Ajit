@@ -1,6 +1,6 @@
-import { getBotBuffer } from '../../_lib/transcriptStore.js';
+import { appendTranscriptEvent } from '../../_lib/transcriptStore.js';
 
-export default function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -11,7 +11,7 @@ export default function handler(req, res) {
 
   if (!botId) {
     console.warn('[Recall Webhook] No botId in payload');
-    return res.sendStatus(200);
+    return res.status(200).json({ ok: true });
   }
 
   if (event === 'transcript.data' || event === 'transcript.partial_data') {
@@ -21,23 +21,20 @@ export default function handler(req, res) {
     const speaker = participant?.name || 'Unknown';
     const isPartial = event === 'transcript.partial_data';
 
-    const transcriptEvent = {
-      speaker,
-      text,
-      isPartial,
-      timestamp: Date.now(),
-      participantId: participant?.id,
-    };
-
     console.log(
       `[Recall Webhook] ${isPartial ? 'partial' : 'final'} | ${speaker}: ${text.substring(0, 80)}`
     );
 
-    // Only store final transcripts
+    // Only persist final (non-partial) transcript events
     if (!isPartial) {
-      const buf = getBotBuffer(botId);
-      buf.events.push(transcriptEvent);
-      buf.cursor += 1;
+      const transcriptEvent = {
+        speaker,
+        text,
+        isPartial: false,
+        timestamp: Date.now(),
+        participantId: participant?.id,
+      };
+      await appendTranscriptEvent(botId, transcriptEvent);
     }
   }
 
