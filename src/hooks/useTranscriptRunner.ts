@@ -4,6 +4,7 @@ import {
   createRecallBot,
   stopRecallBot,
   subscribeToTranscript,
+  getRecallBotStatus,
   RecallTranscriptEvent,
 } from '../services/recallService';
 import { useMeetingStore } from '../state/MeetingStore';
@@ -55,6 +56,7 @@ export function useTranscriptRunner(): {
   const [recallError, setRecallError] = useState<string | null>(null);
   const [recallMeetingUrl, setRecallMeetingUrl] = useState('');
   const recallUnsubRef = useRef<(() => void) | null>(null);
+  const recallStatusPollRef = useRef<number | null>(null);
 
   const speechCtor =
     typeof window !== 'undefined'
@@ -314,6 +316,27 @@ export function useTranscriptRunner(): {
       if (stateRef.current.liveStatus === 'idle') {
         dispatch({ type: 'START_LISTENING' });
       }
+
+      // Poll Recall.ai bot status until it's in_call_recording or fatal
+      if (recallStatusPollRef.current) window.clearInterval(recallStatusPollRef.current);
+      recallStatusPollRef.current = window.setInterval(async () => {
+        try {
+          const s = await getRecallBotStatus(result.botId);
+          if (s.status === 'in_call_recording') {
+            setRecallBotStatus('recording');
+          } else if (s.status === 'in_call_not_recording') {
+            setRecallBotStatus('in_call_waiting');
+          } else if (s.status === 'joining_call') {
+            setRecallBotStatus('joining');
+          } else if (s.status === 'fatal' || s.status === 'done') {
+            setRecallBotStatus(s.status === 'fatal' ? 'error' : 'idle');
+            window.clearInterval(recallStatusPollRef.current!);
+            recallStatusPollRef.current = null;
+          }
+        } catch {
+          // ignore transient errors
+        }
+      }, 4000);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to create bot';
       setRecallError(msg);
@@ -333,6 +356,10 @@ export function useTranscriptRunner(): {
 
     recallUnsubRef.current?.();
     recallUnsubRef.current = null;
+    if (recallStatusPollRef.current) {
+      window.clearInterval(recallStatusPollRef.current);
+      recallStatusPollRef.current = null;
+    }
     setRecallBotId(null);
     setRecallBotStatus('idle');
   };

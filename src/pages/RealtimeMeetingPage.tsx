@@ -280,13 +280,21 @@ export function RealtimeMeetingPage(): React.JSX.Element {
               )}
             </div>
             <div className="recall-status">
-              <span className={`recall-status-dot ${runner.recallBotStatus === 'transcribing' ? 'active' : runner.recallBotStatus === 'error' ? 'error' : ''}`} />
+              <span className={`recall-status-dot ${
+                (runner.recallBotStatus === 'transcribing' || runner.recallBotStatus === 'recording')
+                  ? 'active'
+                  : runner.recallBotStatus === 'error'
+                  ? 'error'
+                  : ''
+              }`} />
               <span>
                 {runner.recallBotStatus === 'idle' && 'Paste a meeting URL to send bot'}
                 {runner.recallBotStatus === 'creating' && 'Creating bot…'}
                 {runner.recallBotStatus === 'joining' && 'Bot joining meeting…'}
+                {runner.recallBotStatus === 'in_call_waiting' && 'In call — waiting for host recording permission'}
+                {runner.recallBotStatus === 'recording' && 'Bot recording — transcript incoming…'}
                 {runner.recallBotStatus === 'transcribing' && 'Transcribing live'}
-                {runner.recallBotStatus === 'error' && 'Error'}
+                {runner.recallBotStatus === 'error' && (runner.recallError ?? 'Bot error')}
               </span>
             </div>
             {runner.recallError && <p className="recall-error">{runner.recallError}</p>}
