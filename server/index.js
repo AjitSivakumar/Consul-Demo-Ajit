@@ -90,7 +90,7 @@ app.post('/api/recall/bot', async (req, res) => {
       bot_name: botName || 'Ambi Notetaker',
       recording_config: {
         transcript: {
-          provider: { recallai_streaming: { mode: 'prioritize_latency' } },
+          provider: { recallai_streaming: { mode: 'prioritize_low_latency', language_code: 'en' } },
         },
         ...(hasPublicWebhook && {
           realtime_endpoints: [
