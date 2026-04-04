@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { InsightsFeed } from '../components/realtime/ConversationFlowPanel';
 import { DeepDivePanel } from '../components/realtime/DeepDivePanel';
+import { BotSettingsModal } from '../components/realtime/BotSettingsModal';
 import { useAmbientMeetingAI } from '../hooks/useAmbientMeetingAI';
+import { useBotSettings } from '../hooks/useBotSettings';
 import { useTranscriptRunner } from '../hooks/useTranscriptRunner';
 import { extractTextFromFile, getAllDocuments, uploadDocument, UploadedDocument } from '../services/documentService';
 import { meetingPresets } from '../mock-data/presets';
@@ -12,16 +14,16 @@ export function RealtimeMeetingPage(): React.JSX.Element {
   const { state, dispatch } = useMeetingStore();
   const runner = useTranscriptRunner();
   const ambientAI = useAmbientMeetingAI();
+  const { settings: botSettings, save: saveBotSettings } = useBotSettings();
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [docs, setDocs] = useState<UploadedDocument[]>(() => getAllDocuments());
-  const [injectText, setInjectText] = useState('');
-  const [injectSpeaker, setInjectSpeaker] = useState('Account Exec');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(state.context.title);
   const [selectedNeedId, setSelectedNeedId] = useState<string | null>(null);
   const [transcriptVisible, setTranscriptVisible] = useState(true);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [showBotSettings, setShowBotSettings] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Timer
@@ -93,11 +95,6 @@ export function RealtimeMeetingPage(): React.JSX.Element {
     setDocs(getAllDocuments());
   };
 
-  const handleAskInject = (): void => {
-    runner.injectLine(injectSpeaker, injectText);
-    setInjectText('');
-  };
-
   const commitTitle = (): void => {
     const nextTitle = titleDraft.trim();
     if (!nextTitle) {
@@ -118,10 +115,7 @@ export function RealtimeMeetingPage(): React.JSX.Element {
       {/* ── Top Navigation ── */}
       <header className="topnav">
         <div className="nav-left">
-          <div className="consul-mark">
-            <div className="mark-ring"><div className="mark-dot" /></div>
-            <span className="wordmark">CONSUL</span>
-          </div>
+          <span className="wordmark">ambi</span>
         </div>
 
         <div className="nav-center">
@@ -285,6 +279,12 @@ export function RealtimeMeetingPage(): React.JSX.Element {
           <div className="recall-panel">
             <div className="col-header" style={{ marginBottom: '8px' }}>
               <span className="col-title">Bot</span>
+              <button
+                type="button"
+                className="bot-settings-gear"
+                onClick={() => setShowBotSettings(true)}
+                title="Bot settings"
+              >⚙</button>
             </div>
             <div className="recall-url-row">
               <input
@@ -367,27 +367,17 @@ export function RealtimeMeetingPage(): React.JSX.Element {
               </div>
             )}
 
-            <div className="inject-bar">
-              <input
-                value={injectSpeaker}
-                onChange={(e) => setInjectSpeaker(e.target.value)}
-                placeholder="Speaker"
-              />
-              <input
-                value={injectText}
-                onChange={(e) => setInjectText(e.target.value)}
-                placeholder="Inject a live line..."
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && injectText.trim()) handleAskInject();
-                }}
-              />
-              <button type="button" onClick={handleAskInject} disabled={!injectText.trim()}>
-                Add
-              </button>
-            </div>
           </div>
         </div>
       </section>
+
+      {showBotSettings && (
+        <BotSettingsModal
+          settings={botSettings}
+          onSave={saveBotSettings}
+          onClose={() => setShowBotSettings(false)}
+        />
+      )}
     </main>
   );
 }

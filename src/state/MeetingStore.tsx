@@ -3,6 +3,7 @@ import {
   Dispatch,
   PropsWithChildren,
   useContext,
+  useEffect,
   useMemo,
   useReducer
 } from 'react';
@@ -13,6 +14,24 @@ import {
   MeetingState
 } from './meetingState';
 
+const STORAGE_KEY = 'ambi_meeting_state';
+
+function loadState(): MeetingState {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return initialMeetingState;
+    const parsed = JSON.parse(raw) as MeetingState;
+    // Reset transient statuses so a refresh doesn't leave a stale "listening" state
+    return {
+      ...parsed,
+      liveStatus: parsed.liveStatus === 'listening' || parsed.liveStatus === 'ending' ? 'paused' : parsed.liveStatus,
+      isGenerating: false,
+    };
+  } catch {
+    return initialMeetingState;
+  }
+}
+
 interface MeetingStoreValue {
   state: MeetingState;
   dispatch: Dispatch<MeetingAction>;
@@ -21,7 +40,16 @@ interface MeetingStoreValue {
 const MeetingStoreContext = createContext<MeetingStoreValue | undefined>(undefined);
 
 export function MeetingStoreProvider({ children }: PropsWithChildren): React.JSX.Element {
-  const [state, dispatch] = useReducer(meetingReducer, initialMeetingState);
+  const [state, dispatch] = useReducer(meetingReducer, undefined, loadState);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch {
+      // ignore quota errors
+    }
+  }, [state]);
+
   const value = useMemo(() => ({ state, dispatch }), [state]);
 
   return <MeetingStoreContext.Provider value={value}>{children}</MeetingStoreContext.Provider>;

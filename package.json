@@ -1,7 +1,7 @@
 {
-  "name": "consul",
+  "name": "ambi",
   "version": "1.0.0",
-  "description": "Consul real-time meeting copilot",
+  "description": "Ambi real-time meeting copilot",
   "scripts": {
     "dev": "vite",
     "dev:recall": "node server/index.js",

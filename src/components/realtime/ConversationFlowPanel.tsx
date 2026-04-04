@@ -19,19 +19,19 @@ export function InsightsFeed({ selectedNeedId, onSelectNeed }: InsightsFeedProps
   const [confirmedPanel, setConfirmedPanel] = useState<ConfirmedPanel>(null);
   const shownCriticalIds = useRef<Set<string>>(new Set());
 
-  // Auto-show caution popup for critical new gaps (p1, not yet shown)
+  // Auto-show caution popup only when a misleading/incorrect claim has been resolved with corrective evidence
   useEffect(() => {
-    const criticalNew = state.needs.find(
-      (n) =>
-        n.priority === 'p1' &&
-        n.status === 'new' &&
-        !shownCriticalIds.current.has(n.id)
-    );
-    if (criticalNew && !confirmedPanel && !tagModal) {
-      shownCriticalIds.current.add(criticalNew.id);
-      setConfirmedPanel({ type: 'caution', need: criticalNew });
+    const misleadingResolved = state.needs.find((n) => {
+      if (shownCriticalIds.current.has(n.id)) return false;
+      if (n.status !== 'resolved') return false;
+      if (n.category !== 'correction') return false;
+      return state.evidence.some((e) => e.needId === n.id);
+    });
+    if (misleadingResolved && !confirmedPanel && !tagModal) {
+      shownCriticalIds.current.add(misleadingResolved.id);
+      setConfirmedPanel({ type: 'caution', need: misleadingResolved });
     }
-  }, [state.needs, confirmedPanel, tagModal]);
+  }, [state.needs, state.evidence, confirmedPanel, tagModal]);
 
   /* ── Derived data ── */
 
@@ -39,6 +39,19 @@ export function InsightsFeed({ selectedNeedId, onSelectNeed }: InsightsFeedProps
     () => state.needs.filter((n) => n.status !== 'dismissed').slice(0, 5),
     [state.needs]
   );
+
+  // Map needs to a short trigger phrase from transcript (fallback if AI didn't return one)
+  const needTriggerMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const need of state.needs) {
+      const event = state.transcript.find((t) => t.segmentId === need.triggeredBySegmentId);
+      if (event) {
+        const words = event.text.trim().split(/\s+/);
+        map.set(need.id, words.slice(0, 4).join(' '));
+      }
+    }
+    return map;
+  }, [state.needs, state.transcript]);
 
   // Map resolved needs to their evidence
   const needEvidenceMap = useMemo(() => {
@@ -146,21 +159,13 @@ export function InsightsFeed({ selectedNeedId, onSelectNeed }: InsightsFeedProps
     return `${Math.floor(diff / 60)} min ago`;
   };
 
-  /* ── Category colors ── */
-  const categoryColor: Record<string, string> = {
-    comparison: '#1D9E75', risk: '#FF0050', pricing: '#e8a948',
-    objection: '#B400FF', claim: '#1D9E75', decision: '#1D9E75',
-    open_question: '#e8a948', topic: '#3B6D11', entity: '#185FA5',
-    metric: '#1D9E75', action_item: '#e8a948',
-  };
-
   /* ── Render insight card ── */
   const renderInsightCard = (need: InformationNeed, idx: number) => {
     const evidence = needEvidenceMap.get(need.id);
     const isSelected = selectedNeedId === need.id;
     const isRetrying = retryingId === need.id;
-    const isCaution = need.category === 'risk' || need.priority === 'p1';
-    const sourceColor = categoryColor[need.category] ?? '#3B6D11';
+    const isCaution = need.category === 'correction';
+    const triggerPhrase = need.triggerPhrase ?? needTriggerMap.get(need.id);
 
     return (
       <div
@@ -175,6 +180,14 @@ export function InsightsFeed({ selectedNeedId, onSelectNeed }: InsightsFeedProps
           onClick={(e) => { e.stopPropagation(); handleDismiss(need.id); }}
           title="Dismiss"
         >✕</button>
+
+        {/* Trigger row */}
+        {triggerPhrase && (
+          <div className="irow-trigger-row">
+            <span className="irow-trigger-label">TRIGGERED</span>
+            <span className="irow-trigger-pill">"{triggerPhrase}"</span>
+          </div>
+        )}
 
         {/* Tags row */}
         <div className="irow-tags">
@@ -205,11 +218,8 @@ export function InsightsFeed({ selectedNeedId, onSelectNeed }: InsightsFeedProps
           <div className="irow-snippet irow-snippet-loading">Researching…</div>
         )}
 
-        {/* Footer: category dot + resolved indicator */}
+        {/* Footer: retry button */}
         <div className="irow-foot">
-          <div className="irow-src">
-            <div className="sdot" style={{ background: evidence ? '#1D9E75' : sourceColor }} />
-          </div>
           {(need.status === 'failed' || need.status === 'unresolved') && (
             <button
               type="button"
@@ -296,7 +306,7 @@ export function InsightsFeed({ selectedNeedId, onSelectNeed }: InsightsFeedProps
                   {tagModal.need.rationale && (
                     <div className="tag-modal-detail">{tagModal.need.rationale}</div>
                   )}
-                  <div className="tag-modal-hint">This is a critical missing piece of information that could affect the outcome of this conversation.</div>
+                  <div className="tag-modal-hint">Ambi detected potentially incorrect or misleading information in the conversation and found evidence that addresses it.</div>
                 </div>
               </>
             ) : (
@@ -343,9 +353,10 @@ export function InsightsFeed({ selectedNeedId, onSelectNeed }: InsightsFeedProps
       {/* ── Confirmed Center Panel ── */}
       {confirmedPanel && (() => {
         const evidence = state.evidence.find((e) => e.needId === confirmedPanel.need.id);
+        const triggerEvent = state.transcript.find((t) => t.segmentId === confirmedPanel.need.triggeredBySegmentId);
         return (
-          <div className="confirmed-overlay" onClick={() => setConfirmedPanel(null)}>
-            <div className={`confirmed-panel confirmed-panel-${confirmedPanel.type}`} onClick={(e) => e.stopPropagation()}>
+          <div className="confirmed-overlay">
+            <div className={`confirmed-panel confirmed-panel-${confirmedPanel.type}`}>
               <button type="button" className="confirmed-close" onClick={() => setConfirmedPanel(null)}>✕</button>
               <div className={`confirmed-header ${confirmedPanel.type}`}>
                 {confirmedPanel.type === 'caution'
@@ -353,6 +364,12 @@ export function InsightsFeed({ selectedNeedId, onSelectNeed }: InsightsFeedProps
                   : <><div className="diagram-dot" /> Diagram Suggested</>
                 }
               </div>
+              {triggerEvent && (
+                <div className="confirmed-trigger">
+                  <span className="confirmed-trigger-label">Triggered by</span>
+                  <span className="confirmed-trigger-quote">"{triggerEvent.speaker}: {triggerEvent.text}"</span>
+                </div>
+              )}
               <div className="confirmed-question">{confirmedPanel.need.prompt}</div>
               {confirmedPanel.need.rationale && (
                 <div className="confirmed-rationale">{confirmedPanel.need.rationale}</div>

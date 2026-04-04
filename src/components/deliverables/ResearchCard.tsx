@@ -20,7 +20,7 @@ export function ResearchCard({ data }: { data: ResearchElement }): React.JSX.Ele
         </div>
 
         <div className="dl-info-block">
-          <div className="dl-info-label">Consul&apos;s answer (full form)</div>
+          <div className="dl-info-label">Ambi&apos;s answer (full form)</div>
           <div className="dl-info-text">{renderBold(data.answer)}</div>
         </div>
 

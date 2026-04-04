@@ -75,7 +75,7 @@ app.post('/api/recall/bot', async (req, res) => {
       return res.status(500).json({ error: 'RECALL_API_KEY not configured on server' });
     }
 
-    const { meetingUrl, botName } = req.body;
+    const { meetingUrl, botName, languageCode, transcriptionMode } = req.body;
     if (!meetingUrl) {
       return res.status(400).json({ error: 'meetingUrl is required' });
     }
@@ -90,7 +90,12 @@ app.post('/api/recall/bot', async (req, res) => {
       bot_name: botName || 'Ambi Notetaker',
       recording_config: {
         transcript: {
-          provider: { recallai_streaming: { mode: 'prioritize_low_latency', language_code: 'en' } },
+          provider: {
+            recallai_streaming: {
+              mode: transcriptionMode || 'prioritize_low_latency',
+              language_code: languageCode || 'en',
+            },
+          },
         },
         ...(hasPublicWebhook && {
           realtime_endpoints: [

@@ -25,7 +25,7 @@ export async function inferNeedsWithAI(
       messages: [
         {
           role: 'user',
-          content: `You are a highly selective meeting intelligence assistant for tech sales. Only surface critical information gaps — specific unknowns that, if unanswered, could directly lose the deal.
+          content: `You are a highly selective meeting intelligence assistant for tech sales. Only surface critical information gaps or factual errors.
 
 Meeting context so far:
 ${previousContext}
@@ -34,21 +34,23 @@ Latest transcript segment:
 ${transcript}
 
 Identify 0-1 CRITICAL information needs from this segment. Apply very strict criteria:
-- Only flag if missing this information could directly lose the deal or cause a serious objection
+- Only flag if missing this information could directly lose the deal, or if a factually incorrect statement was just made
+- Use category "correction" ONLY when someone stated something that is demonstrably factually wrong or misleading — not just uncertain or incomplete
 - Must be a specific, answerable question — not a theme or observation
 - Skip anything already covered, small talk, generic industry topics, or low-stakes details
 - Only p1 (deal-critical) items — no p2 or p3
-- Confidence must be >= 0.80 — if you have any doubt it's a real gap, return empty
+- Confidence must be >= 0.80 — if you have any doubt it's a real gap or error, return empty
 
 Return as JSON:
 {
   "needs": [
     {
-      "category": "comparison|risk|pricing|objection|claim|decision",
+      "category": "comparison|risk|pricing|objection|decision|correction",
       "prompt": "What specific information should be researched?",
       "priority": "p1|p2",
       "confidence": 0.6-1.0,
-      "rationale": "Why this matters for the deal"
+      "rationale": "Why this matters for the deal",
+      "triggerPhrase": "the exact 1-4 word phrase from the transcript that triggered this"
     }
   ]
 }
@@ -70,6 +72,7 @@ If nothing critical, return {"needs": []}.`,
           category: need.category || 'claim',
           prompt: need.prompt || '',
           rationale: need.rationale || '',
+          triggerPhrase: need.triggerPhrase || undefined,
           triggeredBySegmentId: `segment-${Date.now()}`,
           confidence: need.confidence ?? 0.7,
           priority: need.priority || 'p2',

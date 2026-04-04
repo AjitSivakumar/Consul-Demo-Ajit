@@ -10,7 +10,8 @@ export type NeedCategory =
   | 'objection'
   | 'decision'
   | 'action_item'
-  | 'metric';
+  | 'metric'
+  | 'correction';
 
 export type SourceType = 'internal_structured' | 'internal_document' | 'product_doc' | 'prior_notes' | 'web';
 
@@ -40,6 +41,7 @@ export interface InformationNeed {
   category: NeedCategory;
   prompt: string;
   rationale: string;
+  triggerPhrase?: string;
   triggeredBySegmentId: string;
   confidence: number;
   priority: 'p1' | 'p2' | 'p3';

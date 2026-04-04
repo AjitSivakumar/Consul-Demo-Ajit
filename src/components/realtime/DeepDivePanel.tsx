@@ -15,18 +15,17 @@ interface QueryEntry {
 }
 
 export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX.Element {
-  const { state } = useMeetingStore();
+  const { state, dispatch } = useMeetingStore();
   const [queryText, setQueryText] = useState('');
   const [isQuerying, setIsQuerying] = useState(false);
   const [queryHistory, setQueryHistory] = useState<QueryEntry[]>([]);
-  const [notesMap, setNotesMap] = useState<Record<string, string>>({});
   const bodyRef = useRef<HTMLDivElement | null>(null);
 
-  const currentNote = (selectedNeedId ? notesMap[selectedNeedId] : notesMap['__general__']) ?? '';
   const noteKey = selectedNeedId ?? '__general__';
+  const currentNote = state.notes[noteKey] ?? '';
 
   const handleNoteChange = (value: string): void => {
-    setNotesMap((prev) => ({ ...prev, [noteKey]: value }));
+    dispatch({ type: 'SET_NOTE', payload: { key: noteKey, text: value } });
   };
 
   const selectedNeed = useMemo(
@@ -45,7 +44,7 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
     return event ? `${event.speaker}: "${event.text}"` : null;
   }, [selectedNeed, state.transcript]);
 
-  const isCaution = selectedNeed?.category === 'risk' || selectedNeed?.priority === 'p1';
+  const isCaution = selectedNeed?.category === 'correction';
   const isDiagram = selectedNeed?.category === 'comparison';
 
   const keyNumbers = useMemo(() => {
@@ -137,7 +136,7 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
         <span style={{ fontSize: 16, color: 'var(--text-tertiary)', flexShrink: 0 }}>◎</span>
         <input
           className="qinput"
-          placeholder="Ask Consul anything about this meeting…"
+          placeholder="Ask Ambi anything about this meeting…"
           value={queryText}
           onChange={(e) => setQueryText(e.target.value)}
           onKeyDown={(e) => {
@@ -179,7 +178,7 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
             <div className="deep-dive-empty">
               <div className="deep-dive-empty-icon">◎</div>
               <div className="deep-dive-empty-text">
-                Click any insight card in the feed<br />to see a detailed breakdown here,<br />or ask Consul anything below.
+                Click any insight card in the feed<br />to see a detailed breakdown here,<br />or ask Ambi anything below.
               </div>
             </div>
           )}
@@ -248,7 +247,7 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
               <div className="diagram-title">Diagram Suggested</div>
             </div>
             <div className="diagram-body-text">
-              Consul identified a comparison flow in this data that may be clearer as a diagram.
+              Ambi identified a comparison flow in this data that may be clearer as a diagram.
             </div>
             <div className="diagram-nodes">
               {topicNodes.map((node, i) => (

@@ -24,6 +24,8 @@ export interface MeetingState {
   // Deliverable generation
   generatedContent: GeneratedDeliverables;
   isGenerating: boolean;
+  // Per-insight notes (keyed by needId or '__general__')
+  notes: Record<string, string>;
 }
 
 export type MeetingAction =
@@ -42,6 +44,7 @@ export type MeetingAction =
   | { type: 'SET_GENERATING'; payload: boolean }
   | { type: 'SET_GENERATED_CONTENT'; payload: GeneratedDeliverables }
   | { type: 'LOAD_PRESET'; payload: { context: MeetingContext; transcript: TranscriptEvent[] } }
+  | { type: 'SET_NOTE'; payload: { key: string; text: string } }
   | { type: 'RESET' };
 
 export const initialMeetingState: MeetingState = {
@@ -64,7 +67,8 @@ export const initialMeetingState: MeetingState = {
   ambientSuggestions: [],
   lastSuggestionTime: 0,
   generatedContent: {},
-  isGenerating: false
+  isGenerating: false,
+  notes: {}
 };
 
 export function meetingReducer(state: MeetingState, action: MeetingAction): MeetingState {
@@ -148,6 +152,8 @@ export function meetingReducer(state: MeetingState, action: MeetingAction): Meet
         liveStatus: 'listening'
       };
     }
+    case 'SET_NOTE':
+      return { ...state, notes: { ...state.notes, [action.payload.key]: action.payload.text } };
     case 'RESET':
       return initialMeetingState;
     default:

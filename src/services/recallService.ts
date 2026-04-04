@@ -26,14 +26,20 @@ export interface RecallTranscriptEvent {
 
 // ── API calls ──
 
+export interface CreateBotOptions {
+  botName?: string;
+  languageCode?: string;
+  transcriptionMode?: 'prioritize_low_latency' | 'prioritize_quality';
+}
+
 export async function createRecallBot(
   meetingUrl: string,
-  botName?: string
+  options?: CreateBotOptions
 ): Promise<RecallBotInfo> {
   const res = await fetch(`${RECALL_SERVER}/api/recall/bot`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ meetingUrl, botName }),
+    body: JSON.stringify({ meetingUrl, ...options }),
   });
 
   if (!res.ok) {

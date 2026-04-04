@@ -7,6 +7,7 @@ import {
   getRecallBotStatus,
   RecallTranscriptEvent,
 } from '../services/recallService';
+import { readBotSettings } from './useBotSettings';
 import { useMeetingStore } from '../state/MeetingStore';
 import { TranscriptEvent } from '../types/domain';
 
@@ -60,7 +61,7 @@ export function useTranscriptRunner(): {
   const recallStatusPollRef = useRef<number | null>(null);
   const [recallPartials, setRecallPartials] = useState<Record<string, string>>({});
 
-  const RECALL_STORAGE_KEY = 'consul_recall_bot';
+  const RECALL_STORAGE_KEY = 'ambi_recall_bot';
 
   const speechCtor =
     typeof window !== 'undefined'
@@ -96,14 +97,14 @@ export function useTranscriptRunner(): {
   // Listen for captions from the Ambi Chrome extension (Google Meet connector)
   useEffect(() => {
     const handler = (event: MessageEvent) => {
-      if (event.data?.type === 'CONSUL_CAPTION_FROM_EXTENSION') {
+      if (event.data?.type === 'AMBI_CAPTION_FROM_EXTENSION') {
         const { speaker, text } = event.data;
-        console.log('%c[Consul App]', 'color:#63d2be;font-weight:bold',
+        console.log('%c[Ambi App]', 'color:#63d2be;font-weight:bold',
           `Received from extension: ${speaker}: ${text?.substring(0, 60)}`);
         if (speaker && text) {
           // Auto-start listening if idle when captions arrive
           if (stateRef.current.liveStatus === 'idle') {
-            console.log('%c[Consul App]', 'color:#63d2be;font-weight:bold', 'Auto-starting from idle');
+            console.log('%c[Ambi App]', 'color:#63d2be;font-weight:bold', 'Auto-starting from idle');
             dispatch({ type: 'START_LISTENING' });
           }
           dispatch({ type: 'PROCESS_EVENT', payload: makeEvent(speaker, text) });
@@ -112,7 +113,7 @@ export function useTranscriptRunner(): {
     };
 
     window.addEventListener('message', handler);
-    console.log('%c[Consul App]', 'color:#63d2be;font-weight:bold', 'postMessage listener registered');
+    console.log('%c[Ambi App]', 'color:#63d2be;font-weight:bold', 'postMessage listener registered');
     return () => window.removeEventListener('message', handler);
   }, [dispatch]);
 
@@ -345,7 +346,7 @@ export function useTranscriptRunner(): {
       setRecallBotStatus('joining');
       setMode('recall-bot');
       startStatusPoll(botId);
-      if (stateRef.current.liveStatus === 'idle') {
+      if (readBotSettings().autoStartListening && stateRef.current.liveStatus === 'idle') {
         dispatch({ type: 'START_LISTENING' });
       }
     } catch {
@@ -365,12 +366,17 @@ export function useTranscriptRunner(): {
     setRecallBotStatus('creating');
 
     try {
-      const result = await createRecallBot(recallMeetingUrl.trim());
+      const botSettings = readBotSettings();
+      const result = await createRecallBot(recallMeetingUrl.trim(), {
+        botName: botSettings.botName,
+        languageCode: botSettings.languageCode,
+        transcriptionMode: botSettings.transcriptionMode,
+      });
       setRecallBotId(result.botId);
       setRecallBotStatus('joining');
       console.log('%c[Recall]', 'color:#63d2be;font-weight:bold', `Bot created: ${result.botId}`);
 
-      if (stateRef.current.liveStatus === 'idle') {
+      if (botSettings.autoStartListening && stateRef.current.liveStatus === 'idle') {
         dispatch({ type: 'START_LISTENING' });
       }
 

@@ -39,7 +39,7 @@ function buildEvidenceFromResult(
       },
     ],
     triggeredBySegmentId: need.triggeredBySegmentId,
-    explainWhyNow: 'Auto-resolved by Consul during meeting',
+    explainWhyNow: 'Auto-resolved by Ambi during meeting',
     verification: sourceType === 'web' ? 'inferred' : 'verified',
   };
 }
