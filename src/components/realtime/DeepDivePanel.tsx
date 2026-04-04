@@ -19,6 +19,7 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
   const [queryText, setQueryText] = useState('');
   const [isQuerying, setIsQuerying] = useState(false);
   const [queryHistory, setQueryHistory] = useState<QueryEntry[]>([]);
+  const [savedConfirm, setSavedConfirm] = useState(false);
   const bodyRef = useRef<HTMLDivElement | null>(null);
 
   const noteKey = selectedNeedId ?? '__general__';
@@ -71,8 +72,8 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
     }
   }, [queryHistory]);
 
-  const handleQuery = async (): Promise<void> => {
-    const q = queryText.trim();
+  const handleQuery = async (overrideQ?: string): Promise<void> => {
+    const q = (overrideQ ?? queryText).trim();
     if (!q || isQuerying) return;
 
     setQueryText('');
@@ -140,7 +141,7 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
           value={queryText}
           onChange={(e) => setQueryText(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && queryText.trim()) void handleQuery();
+            if (e.key === 'Enter' && queryText.trim()) void handleQuery(undefined);
           }}
           disabled={isQuerying}
         />
@@ -298,8 +299,36 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
 
         {evidence && (
           <div className="dig-row">
-            <button type="button" className="dig-btn primary">Dig deeper into this insight</button>
-            <button type="button" className="dig-btn">Save to deliverables</button>
+            <button
+              type="button"
+              className="dig-btn primary"
+              onClick={() => {
+                const followUp = `What are the key implications and details of: "${selectedNeed.prompt}"?`;
+                void handleQuery(followUp);
+                if (bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
+              }}
+            >
+              Dig deeper
+            </button>
+            <button
+              type="button"
+              className={`dig-btn ${savedConfirm ? 'saved' : ''}`}
+              disabled={savedConfirm}
+              onClick={() => {
+                dispatch({
+                  type: 'SAVE_INSIGHT',
+                  payload: {
+                    question: selectedNeed.prompt,
+                    answer: evidence.summary,
+                    source: evidence.attributions.map((a) => a.title).join(', ') || 'AI research',
+                  },
+                });
+                setSavedConfirm(true);
+                setTimeout(() => setSavedConfirm(false), 2500);
+              }}
+            >
+              {savedConfirm ? '✓ Saved' : 'Save to deliverables'}
+            </button>
           </div>
         )}
 

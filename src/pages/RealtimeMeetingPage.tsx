@@ -18,6 +18,7 @@ export function RealtimeMeetingPage(): React.JSX.Element {
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [docs, setDocs] = useState<UploadedDocument[]>(() => getAllDocuments());
+  const [newDocId, setNewDocId] = useState<string | null>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(state.context.title);
   const [selectedNeedId, setSelectedNeedId] = useState<string | null>(null);
@@ -91,8 +92,10 @@ export function RealtimeMeetingPage(): React.JSX.Element {
 
   const onUploadFile = async (file: File): Promise<void> => {
     const content = await extractTextFromFile(file);
-    await uploadDocument(file.name, content, file.name.endsWith('.pdf') ? 'pdf' : 'text');
+    const doc = await uploadDocument(file.name, content, file.name.endsWith('.pdf') ? 'pdf' : 'text');
     setDocs(getAllDocuments());
+    setNewDocId(doc.id);
+    setTimeout(() => setNewDocId(null), 2000);
   };
 
   const commitTitle = (): void => {
@@ -105,10 +108,6 @@ export function RealtimeMeetingPage(): React.JSX.Element {
     dispatch({ type: 'SET_MEETING_TITLE', payload: nextTitle });
     setIsEditingTitle(false);
   };
-
-  const activeNeeds = state.needs.filter((n) => n.status !== 'dismissed');
-  const pendingCount = activeNeeds.filter((n) => n.status === 'new' || n.status === 'retrieving').length;
-  const resolvedCount = activeNeeds.filter((n) => n.status === 'resolved' || n.status === 'kept').length;
 
   return (
     <main className="db-wrap">
@@ -189,13 +188,6 @@ export function RealtimeMeetingPage(): React.JSX.Element {
         <button type="button" className="ctrl-btn" onClick={runner.start}>Start</button>
         <button type="button" className="ctrl-btn" onClick={runner.reset}>Reset</button>
 
-        <div className="ctrl-divider" />
-        <span className="ctrl-label">Gaps</span>
-        <span className="ctrl-stat">{pendingCount + resolvedCount}</span>
-
-        <div className="ctrl-divider" />
-        <span className="ctrl-label">Docs</span>
-        <span className="ctrl-stat">{docs.length}</span>
       </div>
 
       {/* ── 3‑Column Body ── */}
@@ -232,6 +224,7 @@ export function RealtimeMeetingPage(): React.JSX.Element {
             />
           </div>
 
+          <div className="source-list-wrap">
           <div className="source-list">
             {docs.length === 0 && webSources.length === 0 && (
               <div className="feed-empty">No documents uploaded yet.</div>
@@ -239,7 +232,7 @@ export function RealtimeMeetingPage(): React.JSX.Element {
             {docs.map((doc) => {
               const referenced = referencedTitles.has(doc.name.toLowerCase());
               return (
-                <div key={doc.id} className={`src-item ${referenced ? 'referenced' : ''}`}>
+                <div key={doc.id} className={`src-item ${referenced ? 'referenced' : ''} ${doc.id === newDocId ? 'src-item--new' : ''}`}>
                   <div className="src-header">
                     <div className="src-type-dot" style={{ background: doc.type === 'pdf' ? '#185FA5' : '#3B6D11' }} />
                     <span className="src-title">{doc.name}</span>
@@ -273,6 +266,7 @@ export function RealtimeMeetingPage(): React.JSX.Element {
                 </div>
               </div>
             ))}
+          </div>
           </div>
 
           {/* Recall.ai Panel — always visible */}

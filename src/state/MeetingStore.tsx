@@ -26,6 +26,7 @@ function loadState(): MeetingState {
       ...parsed,
       liveStatus: parsed.liveStatus === 'listening' || parsed.liveStatus === 'ending' ? 'paused' : parsed.liveStatus,
       isGenerating: false,
+      notes: parsed.notes ?? {},
     };
   } catch {
     return initialMeetingState;

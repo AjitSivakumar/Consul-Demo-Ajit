@@ -45,6 +45,7 @@ export type MeetingAction =
   | { type: 'SET_GENERATED_CONTENT'; payload: GeneratedDeliverables }
   | { type: 'LOAD_PRESET'; payload: { context: MeetingContext; transcript: TranscriptEvent[] } }
   | { type: 'SET_NOTE'; payload: { key: string; text: string } }
+  | { type: 'SAVE_INSIGHT'; payload: { question: string; answer: string; source: string } }
   | { type: 'RESET' };
 
 export const initialMeetingState: MeetingState = {
@@ -154,6 +155,22 @@ export function meetingReducer(state: MeetingState, action: MeetingAction): Meet
     }
     case 'SET_NOTE':
       return { ...state, notes: { ...state.notes, [action.payload.key]: action.payload.text } };
+    case 'SAVE_INSIGHT': {
+      const existingQA = state.generatedContent.qa;
+      const newItem = { tag: 'INSIGHT', question: action.payload.question, answer: action.payload.answer, source: action.payload.source };
+      let updatedQA: GeneratedDeliverables['qa'];
+      if (!existingQA) {
+        updatedQA = { categories: [{ label: 'Saved Insights', items: [newItem] }] };
+      } else {
+        const savedCat = existingQA.categories.find((c) => c.label === 'Saved Insights');
+        if (savedCat) {
+          updatedQA = { categories: existingQA.categories.map((c) => c.label === 'Saved Insights' ? { ...c, items: [...c.items, newItem] } : c) };
+        } else {
+          updatedQA = { categories: [...existingQA.categories, { label: 'Saved Insights', items: [newItem] }] };
+        }
+      }
+      return { ...state, generatedContent: { ...state.generatedContent, qa: updatedQA } };
+    }
     case 'RESET':
       return initialMeetingState;
     default:
