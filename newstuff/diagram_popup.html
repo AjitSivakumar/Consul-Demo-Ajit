@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consul — Diagram Suggested Popup</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #fafaf8;
+    --bg-card: #ffffff;
+    --bg-subtle: #f5f4f0;
+    --border: #e8e6e0;
+    --text-primary: #1a1a18;
+    --text-secondary: #6b6a66;
+    --text-tertiary: #a8a7a2;
+    --accent-blue: #185FA5;
+    --bg-blue: #EEF5FD;
+    --border-blue: #b5d4f4;
+    --accent-amber: #7a5c00;
+    --bg-amber: #fdf8ee;
+    --border-amber: #e0cc7a;
+    --success: #1a7a45;
+    --bg-green: #edf7f1;
+    --border-green: #b8e0c8;
+    --danger: #c0392b;
+    --bg-red: #fdf2f1;
+    --border-red: #f0bcb8;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #e8e5de;
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 2rem;
+  }
+
+  .scene {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+    max-width: 580px;
+  }
+
+  .scene-label {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    color: #7a7870;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    text-align: center;
+  }
+
+  .transcript-bubble {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.1rem 1.25rem;
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    font-style: italic;
+  }
+
+  .transcript-bubble strong { color: var(--text-primary); font-style: normal; font-weight: 500; }
+
+  /* Diagram card */
+  .diagram-card {
+    background: var(--bg-card);
+    border: 1.5px solid var(--border-amber);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(122, 92, 0, 0.08), 0 1px 4px rgba(0,0,0,0.04);
+    animation: slideIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(12px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px 12px;
+    border-bottom: 1px solid var(--border-amber);
+    background: var(--bg-amber);
+  }
+
+  .card-header-left {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+  }
+
+  .header-icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    background: var(--accent-amber);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 13px;
+  }
+
+  .card-header-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent-amber);
+  }
+
+  .close-btn {
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: white;
+    letter-spacing: 0.03em;
+  }
+
+  .card-body { padding: 1.25rem 1.4rem; }
+
+  .diagram-label {
+    font-size: 9px;
+    font-family: 'DM Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent-amber);
+    background: var(--bg-amber);
+    border: 1px solid var(--border-amber);
+    border-radius: 4px;
+    padding: 2px 8px;
+    display: inline-block;
+    margin-bottom: 12px;
+  }
+
+  .diagram-headline {
+    font-family: 'Instrument Serif', serif;
+    font-size: 17px;
+    color: var(--text-primary);
+    line-height: 1.4;
+    margin-bottom: 10px;
+    letter-spacing: -0.2px;
+  }
+
+  .diagram-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    font-weight: 300;
+    margin-bottom: 16px;
+  }
+
+  /* Mini flow preview */
+  .flow-preview {
+    background: var(--bg-amber);
+    border: 1px solid var(--border-amber);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+  }
+
+  .flow-preview-label {
+    font-size: 9px;
+    font-family: 'DM Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent-amber);
+    margin-bottom: 10px;
+  }
+
+  .flow-chips {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  .flow-chip {
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: white;
+    border: 1px solid var(--border-amber);
+    color: var(--accent-amber);
+    white-space: nowrap;
+  }
+
+  .flow-chip.active {
+    background: var(--accent-amber);
+    color: white;
+    border-color: var(--accent-amber);
+  }
+
+  .flow-chip.sos {
+    background: var(--bg-red);
+    border-color: var(--border-red);
+    color: var(--danger);
+  }
+
+  .flow-arrow {
+    font-size: 12px;
+    color: var(--accent-amber);
+    opacity: 0.5;
+    flex-shrink: 0;
+  }
+
+  .action-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .btn-expand {
+    flex: 1;
+    background: var(--accent-amber);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 9px 16px;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    letter-spacing: 0.01em;
+  }
+
+  .btn-remove {
+    background: var(--bg-subtle);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 16px;
+    font-size: 12px;
+    font-weight: 400;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+  }
+
+  /* Expanded diagram */
+  .expanded-card {
+    background: var(--bg-card);
+    border: 1.5px solid var(--border-amber);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(122, 92, 0, 0.08), 0 1px 4px rgba(0,0,0,0.04);
+    animation: slideIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: 0.05s;
+  }
+
+  .expanded-body { padding: 1.4rem; }
+
+  .diagram-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+  }
+
+  .diagram-title {
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  /* Flowchart */
+  .flowchart {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    align-items: center;
+  }
+
+  .flow-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .flow-row.centered { justify-content: center; }
+  .flow-row.split { justify-content: space-around; }
+
+  .flow-node {
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 12px;
+    text-align: center;
+    min-width: 120px;
+    line-height: 1.4;
+    flex-shrink: 0;
+  }
+
+  .flow-node .node-title {
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+  }
+
+  .flow-node .node-sub {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-secondary);
+  }
+
+  .node-blue {
+    background: var(--bg-blue);
+    border: 1.5px solid var(--border-blue);
+  }
+  .node-blue .node-title { color: var(--accent-blue); }
+
+  .node-amber {
+    background: var(--bg-amber);
+    border: 1.5px solid var(--border-amber);
+  }
+  .node-amber .node-title { color: var(--accent-amber); }
+
+  .node-green {
+    background: var(--bg-green);
+    border: 1.5px solid var(--border-green);
+  }
+  .node-green .node-title { color: var(--success); }
+
+  .node-red {
+    background: var(--bg-red);
+    border: 1.5px solid var(--border-red);
+  }
+  .node-red .node-title { color: var(--danger); }
+
+  .node-gray {
+    background: var(--bg-subtle);
+    border: 1.5px solid var(--border);
+  }
+
+  .node-diamond {
+    background: #fdf8ee;
+    border: 1.5px solid var(--border-amber);
+    border-radius: 6px;
+    transform: rotate(0deg);
+    padding: 8px 12px;
+    text-align: center;
+    min-width: 160px;
+  }
+
+  .v-connector {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    width: 100%;
+  }
+
+  .v-line {
+    width: 1.5px;
+    height: 18px;
+    background: var(--border-amber);
+    flex-shrink: 0;
+  }
+
+  .v-arrow {
+    font-size: 12px;
+    color: var(--border-amber);
+    line-height: 1;
+    margin-top: -4px;
+  }
+
+  .h-line {
+    flex: 1;
+    height: 1.5px;
+    background: var(--border-amber);
+  }
+
+  .split-connectors {
+    display: flex;
+    width: 100%;
+    position: relative;
+    height: 30px;
+    margin: 0;
+  }
+
+  /* Branch lines via SVG */
+  .branch-svg {
+    width: 100%;
+    height: 30px;
+    overflow: visible;
+  }
+
+  .flow-branch-row {
+    display: flex;
+    justify-content: space-around;
+    width: 100%;
+    gap: 10px;
+  }
+
+  .flow-node.wide {
+    min-width: 160px;
+    flex: 1;
+  }
+
+  .flow-label-row {
+    display: flex;
+    justify-content: space-around;
+    width: 100%;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+
+  .branch-label {
+    font-size: 9px;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-tertiary);
+    text-align: center;
+    flex: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .merge-connector {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 24px;
+    position: relative;
+  }
+
+  .diagram-note {
+    margin-top: 18px;
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-tertiary);
+    line-height: 1.6;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  .scene-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .scene-divider::before, .scene-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #ccc;
+  }
+  .scene-divider span {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+  }
+
+  .badge-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+
+  .badge {
+    font-size: 9px;
+    font-family: 'DM Mono', monospace;
+    padding: 2px 8px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .badge-blue { background: var(--bg-blue); color: var(--accent-blue); border: 1px solid var(--border-blue); }
+  .badge-green { background: var(--bg-green); color: var(--success); border: 1px solid var(--border-green); }
+  .badge-red { background: var(--bg-red); color: var(--danger); border: 1px solid var(--border-red); }
+</style>
+</head>
+<body>
+<div class="scene">
+
+  <div class="scene-label">Consul · Diagram suggested popup — collapsed state</div>
+
+  <!-- Transcript context -->
+  <div class="transcript-bubble">
+    <strong>Person 2:</strong> "…the GO! being passive is huge. <strong>We're not asking Preet to manage two devices</strong> — the GO! is configured once, runs quietly, and the Extreme handles everything else. If something goes wrong, she's got SOS on the Extreme. If that fails, the GO! could serve as a secondary voice path."
+  </div>
+
+  <!-- Diagram card — collapsed -->
+  <div class="diagram-card">
+    <div class="card-header">
+      <div class="card-header-left">
+        <div class="header-icon">↗</div>
+        <span class="card-header-title">Diagram Suggested</span>
+      </div>
+      <button class="close-btn">✕</button>
+    </div>
+    <div class="card-body">
+      <div class="diagram-label">↗ Consul identified a flow</div>
+      <div class="diagram-headline">The device decision logic you described maps to a clear decision flowchart</div>
+      <div class="diagram-desc">
+        Consul identified a branching decision structure in what was just said — when does Preet use the Extreme vs. rely on the GO!? This maps cleanly to a flowchart that could anchor the GTC slide.
+      </div>
+      <div class="flow-preview">
+        <div class="flow-preview-label">Suggested flow</div>
+        <div class="flow-chips">
+          <span class="flow-chip active">Need to communicate</span>
+          <span class="flow-arrow">→</span>
+          <span class="flow-chip">Voice or data?</span>
+          <span class="flow-arrow">→</span>
+          <span class="flow-chip">Emergency?</span>
+          <span class="flow-arrow">→</span>
+          <span class="flow-chip sos">SOS</span>
+        </div>
+      </div>
+      <div class="action-row">
+        <button class="btn-expand">Expand ↗—</button>
+        <button class="btn-remove">Remove</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="scene-divider"><span>expanded state</span></div>
+  <div class="scene-label">Consul · Diagram suggested — expanded with full flowchart</div>
+
+  <!-- Expanded diagram -->
+  <div class="expanded-card">
+    <div class="card-header">
+      <div class="card-header-left">
+        <div class="header-icon">↗</div>
+        <span class="card-header-title">Device Decision Flow — Iridium Extreme × GO!</span>
+      </div>
+      <button class="close-btn">✕</button>
+    </div>
+    <div class="expanded-body">
+      <div class="badge-row">
+        <span class="badge badge-blue">● Extreme</span>
+        <span class="badge badge-green">● GO! passive</span>
+        <span class="badge badge-red">● Emergency</span>
+      </div>
+      <div class="diagram-title-row">
+        <div class="diagram-title">Preet's communication decision tree — on the ice</div>
+      </div>
+
+      <!-- Flowchart -->
+      <div class="flowchart">
+
+        <!-- Start -->
+        <div class="flow-row centered">
+          <div class="flow-node node-gray">
+            <div class="node-title">Preet needs to communicate</div>
+            <div class="node-sub">trigger event</div>
+          </div>
+        </div>
+
+        <div class="v-connector"><div class="v-line"></div><div class="v-arrow">▼</div></div>
+
+        <!-- Decision 1 -->
+        <div class="flow-row centered">
+          <div class="flow-node node-diamond">
+            <div class="node-title">Is this an emergency?</div>
+            <div class="node-sub">lost, injured, critical failure</div>
+          </div>
+        </div>
+
+        <div style="display:flex; width:100%; gap:10px; margin-top:0;">
+          <svg width="100%" height="34" viewBox="0 0 100 34" preserveAspectRatio="none" style="display:block;">
+            <line x1="50" y1="0" x2="20" y2="34" stroke="#e0cc7a" stroke-width="1.5"/>
+            <line x1="50" y1="0" x2="80" y2="34" stroke="#e0cc7a" stroke-width="1.5"/>
+          </svg>
+        </div>
+
+        <div class="flow-label-row">
+          <span class="branch-label">Yes →</span>
+          <span class="branch-label">← No</span>
+        </div>
+
+        <div class="flow-branch-row">
+          <div class="flow-node node-red wide">
+            <div class="node-title">SOS — Iridium Extreme</div>
+            <div class="node-sub">one-touch · no decision needed</div>
+          </div>
+          <div class="flow-node node-diamond wide">
+            <div class="node-title">Voice or data?</div>
+            <div class="node-sub">what type of comms</div>
+          </div>
+        </div>
+
+        <!-- Left branch end + right branch continues -->
+        <div style="display:flex; width:100%; gap:10px; align-items:flex-start; margin-top: 0;">
+          <!-- Left: SOS terminus -->
+          <div style="flex:1; display:flex; flex-direction:column; align-items:center;">
+            <div class="v-connector"><div class="v-line"></div><div class="v-arrow">▼</div></div>
+            <div class="flow-node node-red" style="width:100%; max-width:200px; font-size:11px;">
+              <div class="node-title">Alert dispatched</div>
+              <div class="node-sub">coordinates + SBD signal</div>
+            </div>
+          </div>
+          <!-- Right: voice vs data split -->
+          <div style="flex:1; display:flex; flex-direction:column; align-items:center;">
+            <svg width="100%" height="34" viewBox="0 0 100 34" preserveAspectRatio="none" style="display:block;">
+              <line x1="50" y1="0" x2="20" y2="34" stroke="#e0cc7a" stroke-width="1.5"/>
+              <line x1="50" y1="0" x2="80" y2="34" stroke="#e0cc7a" stroke-width="1.5"/>
+            </svg>
+            <div style="display:flex; gap:6px; width:100%;">
+              <div style="font-size:9px; font-family:'DM Mono',monospace; color:#a8a7a2; text-align:center; flex:1; text-transform:uppercase; letter-spacing:0.08em;">Voice →</div>
+              <div style="font-size:9px; font-family:'DM Mono',monospace; color:#a8a7a2; text-align:center; flex:1; text-transform:uppercase; letter-spacing:0.08em;">← Data / photo</div>
+            </div>
+            <div style="display:flex; gap:6px; width:100%; margin-top:4px;">
+              <div class="flow-node node-blue" style="flex:1; font-size:11px;">
+                <div class="node-title">Iridium Extreme</div>
+                <div class="node-sub">call · voice blog</div>
+              </div>
+              <div class="flow-node node-green" style="flex:1; font-size:11px;">
+                <div class="node-title">GO! passive</div>
+                <div class="node-sub">photo · SBD data · no touch</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- end flowchart -->
+
+      <div class="diagram-note">
+        Consul generated from conversation context · Device decision logic based on Iridium Extreme spec + GO! architecture docs · For use in GTC Thursday prep deck
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

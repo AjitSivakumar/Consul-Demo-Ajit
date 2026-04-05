@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consul — Revised Sample Script</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #fafaf8;
+    --bg-card: #ffffff;
+    --bg-subtle: #f5f4f0;
+    --bg-blue: #EEF5FD;
+    --border: #e8e6e0;
+    --border-blue: #b5d4f4;
+    --text-primary: #1a1a18;
+    --text-secondary: #6b6a66;
+    --text-tertiary: #a8a7a2;
+    --accent-blue: #185FA5;
+    --accent-blue-mid: #378ADD;
+    --accent-green: #1a7a45;
+    --bg-green: #edf7f1;
+    --border-green: #b8e0c8;
+    --accent-red: #c0392b;
+    --bg-red: #fdf2f1;
+    --border-red: #f0bcb8;
+    --accent-amber: #7a5c00;
+    --bg-amber: #fdf8ee;
+    --border-amber: #e0cc7a;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    padding: 3rem 1.5rem;
+  }
+
+  .container { max-width: 700px; margin: 0 auto; }
+
+  /* Header */
+  .header { margin-bottom: 2.5rem; }
+
+  .header-eyebrow {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+  }
+
+  .header h1 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 28px;
+    font-weight: 400;
+    letter-spacing: -0.4px;
+    color: var(--text-primary);
+    line-height: 1.2;
+    margin-bottom: 6px;
+  }
+
+  .header-sub {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 300;
+  }
+
+  /* Script lines */
+  .script-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-bottom: 2.5rem;
+  }
+
+  .line {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 20px;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--border);
+    align-items: flex-start;
+  }
+
+  .line:last-child { border-bottom: none; }
+
+  .speaker {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding-top: 2px;
+    line-height: 1.6;
+  }
+
+  .speaker.p1 { color: var(--accent-blue); }
+  .speaker.p2 { color: var(--accent-green); }
+  .speaker.consul { color: var(--text-tertiary); }
+
+  .dialogue {
+    font-size: 14px;
+    color: var(--text-primary);
+    line-height: 1.8;
+    font-weight: 300;
+  }
+
+  .dialogue.stage-dir {
+    color: var(--text-tertiary);
+    font-style: italic;
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* Consul annotation */
+  .consul-annotation {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--bg-blue);
+    border: 1px solid var(--border-blue);
+    border-radius: 8px;
+    margin-top: 10px;
+  }
+
+  .consul-annotation-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent-blue-mid);
+    flex-shrink: 0;
+    margin-top: 5px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .consul-annotation-text {
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    color: var(--accent-blue);
+    line-height: 1.65;
+  }
+
+  /* Popup triggers inline */
+  .trigger-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .trigger-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    width: fit-content;
+    letter-spacing: 0.03em;
+    animation: fadeIn 0.3s ease both;
+  }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateX(-4px); } to { opacity: 1; transform: translateX(0); } }
+
+  .trigger-pill.proactive {
+    background: var(--bg-green);
+    border: 1px solid var(--border-green);
+    color: var(--accent-green);
+  }
+
+  .trigger-pill.caution {
+    background: var(--bg-red);
+    border: 1px solid var(--border-red);
+    color: var(--accent-red);
+  }
+
+  .trigger-pill.diagram {
+    background: var(--bg-amber);
+    border: 1px solid var(--border-amber);
+    color: var(--accent-amber);
+  }
+
+  .trigger-pill .trigger-icon {
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+
+  /* Highlight phrases in dialogue */
+  mark.proactive { background: #d4f0e0; border-radius: 3px; padding: 0 2px; color: #0f5a30; font-weight: 400; }
+  mark.caution   { background: #fcddd9; border-radius: 3px; padding: 0 2px; color: #7a1a10; font-weight: 400; }
+  mark.diagram   { background: #f5ecc8; border-radius: 3px; padding: 0 2px; color: #5a4000; font-weight: 400; }
+
+  /* Section divider */
+  .section-note {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    text-align: center;
+    padding: 1rem 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    margin: 2rem 0;
+  }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 12px 16px;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 2rem;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-secondary);
+  }
+
+  .legend-swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="header-eyebrow">Consul · Annotated script · Iridium × GTC</div>
+    <h1>Pre-client prep — revised script<br><em style="color:var(--text-secondary); font-size:22px;">with Consul popup triggers annotated</em></h1>
+    <div class="header-sub">Person 2's second quote updated to surface three Consul interactions</div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-swatch" style="background:#d4f0e0;border:1px solid #b8e0c8;"></div>Proactive insight trigger</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#fcddd9;border:1px solid #f0bcb8;"></div>Caution trigger</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#f5ecc8;border:1px solid #e0cc7a;"></div>Diagram trigger</div>
+  </div>
+
+  <div class="script-block">
+
+    <!-- PERSON 1 — first quote -->
+    <div class="line">
+      <div class="speaker p1">Person 1</div>
+      <div class="dialogue">
+        GTC is going to ask us point blank Thursday — why does Preet need both the Extreme and the GO!? They're going to see two devices and call it overkill. If we walk in with the wrong answer GTC is going to question whether we actually understand what this expedition demands at a technical level.
+      </div>
+    </div>
+
+    <!-- PERSON 2 — first quote -->
+    <div class="line">
+      <div class="speaker p2">Person 2</div>
+      <div class="dialogue">
+        My instinct is they're complementary not redundant — the Extreme handles voice and the GO! handles photos and data. But GTC might push back and say two devices complicates the story from a marketing standpoint and is too much for one person to manage on the ice. Their team is technical enough to poke holes if we're vague.
+      </div>
+    </div>
+
+    <!-- CONSUL REACTIVE -->
+    <div class="line">
+      <div class="speaker consul">Consul</div>
+      <div class="dialogue stage-dir">
+        [Consul surfaces two reactive insights — product capability comparison (section 01) and the passive device architecture insight (section 02)]
+      </div>
+    </div>
+
+    <!-- PERSON 1 — second quote -->
+    <div class="line">
+      <div class="speaker p1">Person 1</div>
+      <div class="dialogue">
+        That chart is the answer. We're not walking into Thursday asking GTC to trust our instinct — we're showing them the data. Ninety-four versus seventy-one percent is not a marginal difference. And the capability gap is black and white — you literally cannot do voice blogs on the GO! alone and you cannot send photos on the Extreme alone. And if they raise the complexity concern, we have that answer too. We're not asking Preet to manage two devices. The GO! is configured once before she leaves and runs passively the entire expedition. She never touches it on the ice.
+      </div>
+    </div>
+
+    <!-- PERSON 2 — second quote — REVISED -->
+    <div class="line">
+      <div class="speaker p2">Person 2</div>
+      <div class="dialogue">
+        Exactly. <mark class="proactive">And honestly — the passive setup is the biggest differentiator for solo expeditions specifically. The content delivery number is where it really shows. The GO! keeping that data pipeline open without Preet ever touching it — that's not just a convenience, it's why the content numbers are so much higher with the dual-device setup.</mark> <mark class="caution">I think we should actually lead with the GO! as the primary device in our pitch — it handles the photos and data that audiences actually engage with, and the Extreme is kind of backup voice.</mark> <mark class="diagram">Either way, we're not asking Preet to make a decision on the ice — it's simple: she picks up the Extreme for voice and the GO! runs passively for everything else. And if something goes wrong she hits SOS on the Extreme, or falls back to the GO! for secondary voice if needed.</mark>
+      </div>
+
+      <!-- Popup triggers -->
+      <div class="trigger-row">
+        <div class="trigger-pill proactive">
+          <span class="trigger-icon">↑</span>
+          Consul → Proactive insight: Content delivery gap is the largest performance delta (+48pp) — passive architecture is the mechanism, not just a convenience feature
+        </div>
+        <div class="trigger-pill caution">
+          <span class="trigger-icon">⚠</span>
+          Consul → Caution: Leading with GO! as primary inverts the device hierarchy and removes SOS from the primary narrative — positioning risk for GTC pitch
+        </div>
+        <div class="trigger-pill diagram">
+          <span class="trigger-icon">↗</span>
+          Consul → Diagram suggested: Decision flow identified — when does Preet use Extreme vs. rely on GO!? Maps to a branching flowchart for GTC slide
+        </div>
+      </div>
+    </div>
+
+    <!-- PERSON 1 — final -->
+    <div class="line">
+      <div class="speaker p1">Person 1</div>
+      <div class="dialogue">
+        Let's build the slide around this.
+      </div>
+    </div>
+
+    <!-- CONSUL END NOTE -->
+    <div class="line">
+      <div class="speaker consul">Consul</div>
+      <div class="dialogue stage-dir">
+        [Consul doesn't need to source anything additional → script ends]
+      </div>
+    </div>
+
+  </div>
+
+  <div class="section-note">End of annotated script · Consul popup deliverables attached separately</div>
+
+</div>
+</body>
+</html>

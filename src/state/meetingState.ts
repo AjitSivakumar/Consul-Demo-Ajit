@@ -1,4 +1,4 @@
-import { inferInformationNeeds, updateMeetingContext } from '../lib/inferenceEngine';
+import { inferInformationNeeds, resetDemoTriggers, updateMeetingContext } from '../lib/inferenceEngine';
 import { initialDeliverables } from '../mock-data/deliverables';
 import {
   Deliverable,
@@ -141,15 +141,14 @@ export function meetingReducer(state: MeetingState, action: MeetingAction): Meet
         liveStatus: 'ended'
       };
     case 'LOAD_PRESET': {
-      const base = { ...initialMeetingState };
-      let ctx = action.payload.context;
+      resetDemoTriggers();
+      let s = { ...initialMeetingState };
       for (const evt of action.payload.transcript) {
-        ctx = updateMeetingContext(ctx, evt);
+        s = applyTranscriptEvent(s, evt);
       }
       return {
-        ...base,
-        context: ctx,
-        transcript: action.payload.transcript,
+        ...s,
+        context: { ...s.context, ...action.payload.context, discussedThemes: s.context.discussedThemes, unresolvedQuestions: s.context.unresolvedQuestions, confidenceByTheme: s.context.confidenceByTheme },
         liveStatus: 'listening'
       };
     }

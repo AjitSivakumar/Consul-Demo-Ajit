@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consul — Caution Popup</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #fafaf8;
+    --bg-card: #ffffff;
+    --bg-subtle: #f5f4f0;
+    --border: #e8e6e0;
+    --text-primary: #1a1a18;
+    --text-secondary: #6b6a66;
+    --text-tertiary: #a8a7a2;
+    --accent-red: #c0392b;
+    --bg-red: #fdf2f1;
+    --border-red: #f0bcb8;
+    --accent-blue: #185FA5;
+    --bg-blue: #EEF5FD;
+    --border-blue: #b5d4f4;
+    --accent-green: #1a7a45;
+    --bg-green: #edf7f1;
+    --border-green: #b8e0c8;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #e8e5de;
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+  }
+
+  .scene {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+    max-width: 540px;
+  }
+
+  .scene-label {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    color: #7a7870;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    text-align: center;
+  }
+
+  .transcript-bubble {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.1rem 1.25rem;
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    font-style: italic;
+  }
+
+  .transcript-bubble strong {
+    color: var(--text-primary);
+    font-style: normal;
+    font-weight: 500;
+  }
+
+  .flag {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-style: normal;
+    font-weight: 500;
+    font-family: 'DM Mono', monospace;
+    vertical-align: middle;
+    margin: 0 2px;
+  }
+
+  .flag-caution { background: #fde8e6; color: var(--accent-red); border: 1px solid var(--border-red); }
+
+  /* Caution card */
+  .caution-card {
+    background: var(--bg-card);
+    border: 1.5px solid var(--border-red);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(192, 57, 43, 0.09), 0 1px 4px rgba(0,0,0,0.04);
+    animation: slideIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(12px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px 12px;
+    border-bottom: 1px solid var(--border-red);
+    background: var(--bg-red);
+  }
+
+  .card-header-left {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+  }
+
+  .header-icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    background: var(--accent-red);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 13px;
+  }
+
+  .card-header-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent-red);
+  }
+
+  .close-btn {
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: white;
+    letter-spacing: 0.03em;
+  }
+
+  .card-body {
+    padding: 1.25rem 1.4rem;
+  }
+
+  .caution-label {
+    font-size: 9px;
+    font-family: 'DM Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent-red);
+    background: var(--bg-red);
+    border: 1px solid var(--border-red);
+    border-radius: 4px;
+    padding: 2px 8px;
+    display: inline-block;
+    margin-bottom: 12px;
+  }
+
+  .caution-headline {
+    font-family: 'Instrument Serif', serif;
+    font-size: 17px;
+    color: var(--text-primary);
+    line-height: 1.4;
+    margin-bottom: 10px;
+    letter-spacing: -0.2px;
+  }
+
+  .caution-body {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.75;
+    margin-bottom: 16px;
+    font-weight: 300;
+  }
+
+  .caution-body strong {
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  /* Correction block */
+  .correction-block {
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 16px;
+    border: 1px solid var(--border-red);
+  }
+
+  .correction-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .correction-col {
+    padding: 12px 14px;
+  }
+
+  .correction-col.wrong {
+    background: #fde8e6;
+    border-right: 1px solid var(--border-red);
+  }
+
+  .correction-col.right {
+    background: var(--bg-green);
+  }
+
+  .correction-col-label {
+    font-size: 9px;
+    font-family: 'DM Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 6px;
+  }
+
+  .wrong .correction-col-label { color: var(--accent-red); }
+  .right .correction-col-label { color: var(--accent-green); }
+
+  .correction-col-text {
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text-primary);
+  }
+
+  .wrong .correction-col-text { color: #7a2010; }
+  .right .correction-col-text { color: #0f4a28; }
+
+  .source-tag {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    color: var(--accent-red);
+    background: var(--bg-red);
+    border: 1px solid var(--border-red);
+    border-radius: 4px;
+    padding: 2px 8px;
+    display: inline-block;
+    margin-bottom: 16px;
+  }
+
+  .action-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .btn-expand {
+    flex: 1;
+    background: var(--accent-red);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 9px 16px;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    letter-spacing: 0.01em;
+  }
+
+  .btn-remove {
+    background: var(--bg-subtle);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 16px;
+    font-size: 12px;
+    font-weight: 400;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+  }
+
+  /* Expanded */
+  .expanded-card {
+    background: var(--bg-card);
+    border: 1.5px solid var(--border-red);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(192, 57, 43, 0.09), 0 1px 4px rgba(0,0,0,0.04);
+    animation: slideIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: 0.05s;
+  }
+
+  .expanded-body {
+    padding: 1.4rem;
+  }
+
+  .risk-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .risk-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    background: var(--bg-red);
+    border: 1px solid var(--border-red);
+    border-radius: 10px;
+  }
+
+  .risk-num {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    color: var(--accent-red);
+    background: white;
+    border: 1px solid var(--border-red);
+    border-radius: 4px;
+    padding: 2px 7px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .risk-text {
+    font-size: 12px;
+    color: #5a1a10;
+    line-height: 1.65;
+  }
+
+  .risk-text strong {
+    color: #3a0a05;
+    display: block;
+    font-size: 12px;
+    margin-bottom: 2px;
+  }
+
+  .reframe-box {
+    background: var(--bg-green);
+    border: 1px solid var(--border-green);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 13px;
+    color: #0f4a28;
+    line-height: 1.7;
+  }
+
+  .reframe-box .reframe-label {
+    font-size: 9px;
+    font-family: 'DM Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent-green);
+    margin-bottom: 6px;
+  }
+
+  .scene-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .scene-divider::before, .scene-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #ccc;
+  }
+
+  .scene-divider span {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+<div class="scene">
+
+  <div class="scene-label">Consul · Caution popup — collapsed state</div>
+
+  <!-- Transcript context -->
+  <div class="transcript-bubble">
+    <strong>Person 2:</strong> "…the GO! being passive is huge for solo expeditions. <strong>We should probably lead with the GO! as the primary device</strong> since it handles photos and data — that's what audiences actually engage with on social. The Extreme is kind of just backup voice."
+  </div>
+
+  <!-- Caution card — collapsed -->
+  <div class="caution-card">
+    <div class="card-header">
+      <div class="card-header-left">
+        <div class="header-icon">⚠</div>
+        <span class="card-header-title">Caution</span>
+      </div>
+      <button class="close-btn">✕</button>
+    </div>
+    <div class="card-body">
+      <div class="caution-label">⚠ Positioning risk flagged</div>
+      <div class="caution-headline">Leading with the GO! as primary inverts the device hierarchy — and misrepresents the safety story</div>
+      <div class="caution-body">
+        Framing the GO! as the primary device is a <strong>critical positioning error for this client</strong>. The GO! has no standalone SOS capability and cannot make voice calls without a paired device. In an expedition context, leading with it as primary exposes GTC to liability questions and undermines Iridium's safety narrative. The Extreme is the primary device — not because of voice, but because it carries the SOS button.
+      </div>
+      <div class="correction-block">
+        <div class="correction-row">
+          <div class="correction-col wrong">
+            <div class="correction-col-label">❌ Avoid framing</div>
+            <div class="correction-col-text">"GO! primary, Extreme backup" — implies SOS is non-essential</div>
+          </div>
+          <div class="correction-col right">
+            <div class="correction-col-label">✓ Correct framing</div>
+            <div class="correction-col-text">"Extreme primary, GO! passive layer" — safety-first narrative</div>
+          </div>
+        </div>
+      </div>
+      <div class="source-tag">product → Extreme spec · GO! architecture docs</div>
+      <div class="action-row">
+        <button class="btn-expand">Expand ↑—</button>
+        <button class="btn-remove">Remove</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="scene-divider"><span>expanded state</span></div>
+  <div class="scene-label">Consul · Caution popup — expanded state</div>
+
+  <!-- Caution — expanded -->
+  <div class="expanded-card">
+    <div class="card-header">
+      <div class="card-header-left">
+        <div class="header-icon">⚠</div>
+        <span class="card-header-title">Caution — Full Analysis</span>
+      </div>
+      <button class="close-btn">✕</button>
+    </div>
+    <div class="expanded-body">
+      <div class="risk-list">
+        <div class="risk-item">
+          <span class="risk-num">01</span>
+          <div class="risk-text">
+            <strong>No standalone SOS on the GO!</strong>
+            The GO! has no physical SOS button. In an emergency, if the Extreme is lost or damaged, a solo athlete has no distress signaling capability. Leading with GO! as primary erases this from the client's mental model.
+          </div>
+        </div>
+        <div class="risk-item">
+          <span class="risk-num">02</span>
+          <div class="risk-text">
+            <strong>Voice requires the Extreme — GO! cannot call independently</strong>
+            The GO! routes voice through a paired smartphone app, which requires a charged phone and local Wi-Fi to the GO!. In polar conditions, this dependency is a failure point. Calling GO! "primary" for communications is technically inaccurate.
+          </div>
+        </div>
+        <div class="risk-item">
+          <span class="risk-num">03</span>
+          <div class="risk-text">
+            <strong>GTC's technical team will catch this</strong>
+            GTC knows the hardware. Entering Thursday with an inverted hierarchy will signal to their team that Iridium's sales counterpart doesn't understand the product stack — damaging credibility on the most important technical sale point.
+          </div>
+        </div>
+      </div>
+      <div class="reframe-box">
+        <div class="reframe-label">✓ Recommended reframe for Thursday</div>
+        Lead with safety first: "One device handles every emergency scenario — SOS, voice, GPS. The GO! runs silently alongside it to add a content layer without asking Preet to do anything extra." This keeps the Extreme as the anchor and positions the GO! as an additive benefit, not a replacement.
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

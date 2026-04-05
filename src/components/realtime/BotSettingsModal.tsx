@@ -30,21 +30,21 @@ export function BotSettingsModal({ settings, onSave, onClose }: BotSettingsModal
     <div className="bot-settings-overlay" onClick={onClose}>
       <div className="bot-settings-modal" onClick={(e) => e.stopPropagation()}>
         <div className="bot-settings-header">
-          <span className="bot-settings-title">Bot Settings</span>
+          <span className="bot-settings-title">Ambi Agent Settings</span>
           <button type="button" className="bot-settings-close" onClick={onClose}>✕</button>
         </div>
 
         <div className="bot-settings-body">
           {/* Bot name */}
           <div className="bot-settings-field">
-            <label className="bot-settings-label">Bot display name</label>
+            <label className="bot-settings-label">Ambi Agent display name</label>
             <input
               className="bot-settings-input"
               value={draft.botName}
               onChange={(e) => setDraft((d) => ({ ...d, botName: e.target.value }))}
               placeholder="Ambi Notetaker"
             />
-            <span className="bot-settings-hint">How the bot appears in the meeting participants list</span>
+            <span className="bot-settings-hint">How Ambi Agent appears in the meeting participants list</span>
           </div>
 
           {/* Language */}
@@ -105,7 +105,7 @@ export function BotSettingsModal({ settings, onSave, onClose }: BotSettingsModal
                 onChange={(e) => setDraft((d) => ({ ...d, autoStartListening: e.target.checked }))}
               />
             </label>
-            <span className="bot-settings-hint">Automatically begin AI processing when the bot joins the call</span>
+            <span className="bot-settings-hint">Automatically begin AI processing when Ambi Agent joins the call</span>
           </div>
         </div>
 

@@ -27,6 +27,7 @@ export function DeliverablesPage(): React.JSX.Element {
       {/* ── Top Navigation ── */}
       <header className="topnav">
         <div className="nav-left">
+          <img src="/logo.svg" alt="Ambi" className="nav-logo" />
           <span className="wordmark">ambi</span>
         </div>
 

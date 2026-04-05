@@ -33,6 +33,20 @@ export function InsightsFeed({ selectedNeedId, onSelectNeed }: InsightsFeedProps
     }
   }, [state.needs, state.evidence, confirmedPanel, tagModal]);
 
+  // Auto-show diagram popup when a comparison need with evidence appears
+  useEffect(() => {
+    const diagramResolved = state.needs.find((n) => {
+      if (shownCriticalIds.current.has(n.id)) return false;
+      if (n.status !== 'resolved') return false;
+      if (n.category !== 'comparison') return false;
+      return state.evidence.some((e) => e.needId === n.id);
+    });
+    if (diagramResolved && !confirmedPanel && !tagModal) {
+      shownCriticalIds.current.add(diagramResolved.id);
+      setTagModal({ type: 'diagram', need: diagramResolved });
+    }
+  }, [state.needs, state.evidence, confirmedPanel, tagModal]);
+
   /* ── Derived data ── */
 
   const visibleNeeds = useMemo(
@@ -244,9 +258,10 @@ export function InsightsFeed({ selectedNeedId, onSelectNeed }: InsightsFeedProps
       <div className="feed-body">
         {visibleNeeds.length === 0 && (
           <div className="feed-empty">
-            {state.needs.length === 0
+            <img src="/logo-grey.svg" alt="" className="feed-empty-logo" />
+            <div>{state.needs.length === 0
               ? 'Insights will appear as the conversation unfolds…'
-              : 'All insights reviewed ✓'}
+              : 'All insights reviewed ✓'}</div>
           </div>
         )}
 
@@ -293,8 +308,8 @@ export function InsightsFeed({ selectedNeedId, onSelectNeed }: InsightsFeedProps
 
       {/* ── Tag Modals ── */}
       {tagModal && (
-        <div className="tag-modal-overlay" onClick={() => setTagModal(null)}>
-          <div className="tag-modal-box" onClick={(e) => e.stopPropagation()}>
+        <div className="tag-modal-overlay">
+          <div className={`tag-modal-box tag-modal-box-${tagModal.type}`}>
             {tagModal.type === 'caution' ? (
               <>
                 <div className="tag-modal-header caution">
@@ -303,10 +318,25 @@ export function InsightsFeed({ selectedNeedId, onSelectNeed }: InsightsFeedProps
                 </div>
                 <div className="tag-modal-body">
                   <div className="tag-modal-question">{tagModal.need.prompt}</div>
-                  {tagModal.need.rationale && (
-                    <div className="tag-modal-detail">{tagModal.need.rationale}</div>
+                  {tagModal.need.demoEvidence?.richCorrectionBlock ? (
+                    <div className="popup-correction-block">
+                      <div className="popup-correction-row">
+                        <div className="popup-correction-col popup-correction-wrong">
+                          <div className="popup-correction-label">{tagModal.need.demoEvidence.richCorrectionBlock.wrong.label}</div>
+                          <div className="popup-correction-text">{tagModal.need.demoEvidence.richCorrectionBlock.wrong.text}</div>
+                        </div>
+                        <div className="popup-correction-col popup-correction-right">
+                          <div className="popup-correction-label">{tagModal.need.demoEvidence.richCorrectionBlock.right.label}</div>
+                          <div className="popup-correction-text">{tagModal.need.demoEvidence.richCorrectionBlock.right.text}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    tagModal.need.rationale && <div className="tag-modal-detail">{tagModal.need.rationale}</div>
                   )}
-                  <div className="tag-modal-hint">Ambi detected potentially incorrect or misleading information in the conversation and found evidence that addresses it.</div>
+                  {!tagModal.need.demoEvidence?.richCorrectionBlock && (
+                    <div className="tag-modal-hint">Ambi detected potentially incorrect or misleading information in the conversation and found evidence that addresses it.</div>
+                  )}
                 </div>
               </>
             ) : (
@@ -317,10 +347,24 @@ export function InsightsFeed({ selectedNeedId, onSelectNeed }: InsightsFeedProps
                 </div>
                 <div className="tag-modal-body">
                   <div className="tag-modal-question">{tagModal.need.prompt}</div>
-                  {tagModal.need.rationale && (
-                    <div className="tag-modal-detail">{tagModal.need.rationale}</div>
+                  {tagModal.need.demoEvidence?.richFlowDiagram ? (
+                    <div className="popup-flow-preview">
+                      <div className="popup-flow-preview-label">Suggested flow</div>
+                      <div className="popup-flow-chips">
+                        {tagModal.need.demoEvidence.richFlowDiagram.chips.map((chip, i) => (
+                          <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            {i > 0 && <span className="popup-flow-arrow">→</span>}
+                            <span className={`popup-flow-chip popup-flow-chip-${chip.kind ?? 'default'}`}>{chip.label}</span>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {tagModal.need.rationale && <div className="tag-modal-detail">{tagModal.need.rationale}</div>}
+                      <div className="tag-modal-hint">A visual comparison or diagram would help clarify this topic. Confirm to expand it.</div>
+                    </>
                   )}
-                  <div className="tag-modal-hint">A visual comparison or diagram would help clarify this topic. Confirm to expand it.</div>
                 </div>
               </>
             )}
@@ -329,11 +373,16 @@ export function InsightsFeed({ selectedNeedId, onSelectNeed }: InsightsFeedProps
                 type="button"
                 className="tag-modal-btn confirm"
                 onClick={() => {
-                  setConfirmedPanel({ type: tagModal.type, need: tagModal.need });
-                  setTagModal(null);
+                  if (tagModal.type === 'diagram') {
+                    onSelectNeed(tagModal.need.id);
+                    setTagModal(null);
+                  } else {
+                    setConfirmedPanel({ type: tagModal.type, need: tagModal.need });
+                    setTagModal(null);
+                  }
                 }}
               >
-                Confirm
+                {tagModal.type === 'diagram' ? 'Open in Deep Dive →' : 'Confirm'}
               </button>
               <button
                 type="button"

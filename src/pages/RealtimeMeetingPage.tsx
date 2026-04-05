@@ -114,6 +114,7 @@ export function RealtimeMeetingPage(): React.JSX.Element {
       {/* ── Top Navigation ── */}
       <header className="topnav">
         <div className="nav-left">
+          <img src="/logo.svg" alt="Ambi" className="nav-logo" />
           <span className="wordmark">ambi</span>
         </div>
 
@@ -168,7 +169,7 @@ export function RealtimeMeetingPage(): React.JSX.Element {
           <option value="ai-live">AI Live</option>
           <option value="microphone">Microphone</option>
           <option value="google-meet">Google Meet</option>
-          <option value="recall-bot">Recall.ai Bot</option>
+          <option value="recall-bot">Ambi Agent</option>
         </select>
 
         <div className="ctrl-divider" />
@@ -215,7 +216,7 @@ export function RealtimeMeetingPage(): React.JSX.Element {
             <input
               ref={fileRef}
               type="file"
-              accept=".txt,.md,.pdf"
+              accept=".txt,.md,.pdf,.json"
               hidden
               onChange={(e) => {
                 const file = e.target.files?.[0];
@@ -234,7 +235,6 @@ export function RealtimeMeetingPage(): React.JSX.Element {
               return (
                 <div key={doc.id} className={`src-item ${referenced ? 'referenced' : ''} ${doc.id === newDocId ? 'src-item--new' : ''}`}>
                   <div className="src-header">
-                    <div className="src-type-dot" style={{ background: doc.type === 'pdf' ? '#185FA5' : '#3B6D11' }} />
                     <span className="src-title">{doc.name}</span>
                   </div>
                   <div className="src-meta">
@@ -257,7 +257,6 @@ export function RealtimeMeetingPage(): React.JSX.Element {
                 style={{ cursor: src.url ? 'pointer' : 'default' }}
               >
                 <div className="src-header">
-                  <div className="src-type-dot" style={{ background: '#185FA5' }} />
                   <span className="src-title">{src.title}</span>
                   {src.url && <span className="src-ext-icon">↗</span>}
                 </div>
@@ -269,23 +268,23 @@ export function RealtimeMeetingPage(): React.JSX.Element {
           </div>
           </div>
 
-          {/* Recall.ai Panel — always visible */}
-          <div className="recall-panel">
-            <div className="col-header" style={{ marginBottom: '8px' }}>
-              <span className="col-title">Bot</span>
+          {/* Ambi Agent Panel */}
+          <div className="agent-panel">
+            <div className="agent-panel-header">
+              <span className="col-title">Ambi Agent</span>
               <button
                 type="button"
                 className="bot-settings-gear"
                 onClick={() => setShowBotSettings(true)}
-                title="Bot settings"
+                title="Agent settings"
               >⚙</button>
             </div>
-            <div className="recall-url-row">
+            <div className="agent-panel-body">
               <input
                 className="recall-url-input"
                 value={runner.recallMeetingUrl}
                 onChange={(e) => runner.setRecallMeetingUrl(e.target.value)}
-                placeholder="Paste meeting URL (Meet, Zoom, Teams…)"
+                placeholder="Paste Zoom link"
                 disabled={runner.recallBotId !== null}
               />
               {!runner.recallBotId ? (
@@ -295,31 +294,13 @@ export function RealtimeMeetingPage(): React.JSX.Element {
                   onClick={() => { runner.setMode('recall-bot'); void runner.sendRecallBot(); }}
                   disabled={!runner.recallMeetingUrl.trim() || runner.recallBotStatus === 'creating'}
                 >
-                  {runner.recallBotStatus === 'creating' ? 'Sending…' : 'Send Bot'}
+                  {runner.recallBotStatus === 'creating' ? 'Sending…' : 'Send Agent'}
                 </button>
               ) : (
                 <button type="button" className="recall-stop-btn" onClick={() => void runner.removeRecallBot()}>
-                  Remove Bot
+                  Remove Agent
                 </button>
               )}
-            </div>
-            <div className="recall-status">
-              <span className={`recall-status-dot ${
-                (runner.recallBotStatus === 'transcribing' || runner.recallBotStatus === 'recording')
-                  ? 'active'
-                  : runner.recallBotStatus === 'error'
-                  ? 'error'
-                  : ''
-              }`} />
-              <span>
-                {runner.recallBotStatus === 'idle' && 'Paste a meeting URL to send bot'}
-                {runner.recallBotStatus === 'creating' && 'Creating bot…'}
-                {runner.recallBotStatus === 'joining' && 'Bot joining meeting…'}
-                {runner.recallBotStatus === 'in_call_waiting' && 'In call — waiting for host recording permission'}
-                {runner.recallBotStatus === 'recording' && 'Bot recording — transcript incoming…'}
-                {runner.recallBotStatus === 'transcribing' && 'Transcribing live'}
-                {runner.recallBotStatus === 'error' && (runner.recallError ?? 'Bot error')}
-              </span>
             </div>
             {runner.recallError && <p className="recall-error">{runner.recallError}</p>}
           </div>

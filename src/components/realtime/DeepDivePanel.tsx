@@ -1,4 +1,5 @@
 import { useMemo, useRef, useEffect, useState } from 'react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { resolveGapFromDocuments, resolveGapFromInternet } from '../../services/aiService';
 import { extractRelevantChunks, getAllDocuments } from '../../services/documentService';
 import { useMeetingStore } from '../../state/MeetingStore';
@@ -134,7 +135,7 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
   const queryBar = (
     <div className="qbar">
       <div className="qwrap">
-        <span style={{ fontSize: 16, color: 'var(--text-tertiary)', flexShrink: 0 }}>◎</span>
+        <img src="/logo-grey.svg" alt="" style={{ width: 18, height: 'auto', opacity: 0.45, flexShrink: 0 }} />
         <input
           className="qinput"
           placeholder="Ask Ambi anything about this meeting…"
@@ -177,7 +178,7 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
           </div>
           {queryHistory.length === 0 && (
             <div className="deep-dive-empty">
-              <div className="deep-dive-empty-icon">◎</div>
+              <img src="/logo-grey.svg" alt="" className="deep-dive-empty-icon" />
               <div className="deep-dive-empty-text">
                 Click any insight card in the feed<br />to see a detailed breakdown here,<br />or ask Ambi anything below.
               </div>
@@ -202,7 +203,9 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
           <div className="ev-question">{selectedNeed.prompt}</div>
           {evidence && (
             <>
-              <div className="ev-answer">{evidence.summary}</div>
+              {!evidence.richTable && !evidence.richChart && !evidence.richMetricGrid && !evidence.richCorrectionBlock && !evidence.richFlowDiagram && (
+                <div className="ev-answer">{evidence.summary}</div>
+              )}
               <div className="ev-src-row">
                 {evidence.attributions.map((attr) => (
                   <div key={attr.sourceId} className="ev-src-badge">
@@ -247,9 +250,6 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
               <div className="diagram-icon">→</div>
               <div className="diagram-title">Diagram Suggested</div>
             </div>
-            <div className="diagram-body-text">
-              Ambi identified a comparison flow in this data that may be clearer as a diagram.
-            </div>
             <div className="diagram-nodes">
               {topicNodes.map((node, i) => (
                 <span key={node}>
@@ -274,7 +274,7 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
           </div>
         )}
 
-        {keyNumbers.length > 0 && (
+        {keyNumbers.length > 0 && !evidence?.richTable && !evidence?.richChart && (
           <div>
             <div className="ev-section-label">Key numbers</div>
             <div className="stat-row">
@@ -288,7 +288,13 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
           </div>
         )}
 
-        {evidence && (
+        {evidence?.richTable && <RichTable table={evidence.richTable} />}
+        {evidence?.richChart && <RichChart chart={evidence.richChart} />}
+        {evidence?.richMetricGrid && <MetricGrid grid={evidence.richMetricGrid} />}
+        {evidence?.richCorrectionBlock && <CorrectionBlock block={evidence.richCorrectionBlock} />}
+        {evidence?.richFlowDiagram && <FlowDiagram flow={evidence.richFlowDiagram} />}
+
+        {evidence && !evidence.richTable && !evidence.richChart && !evidence.richMetricGrid && !evidence.richCorrectionBlock && !evidence.richFlowDiagram && (
           <div>
             <div className="ev-section-label">Full analysis</div>
             <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
@@ -407,6 +413,134 @@ function QueryThread({ entry }: { entry: QueryEntry }): React.JSX.Element {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function MetricGrid({ grid }: { grid: NonNullable<EvidenceCard['richMetricGrid']> }): React.JSX.Element {
+  return (
+    <div className="metric-grid-wrap">
+      <div className="metric-grid">
+        {grid.metrics.map((m, i) => (
+          <div key={i} className="metric-grid-item">
+            <div className="metric-grid-label">{m.label}</div>
+            <div className="metric-grid-value">{m.value}</div>
+            <div className="metric-grid-sub">{m.sub}</div>
+          </div>
+        ))}
+      </div>
+      {grid.insightText && (
+        <div className="metric-grid-insight">{grid.insightText}</div>
+      )}
+    </div>
+  );
+}
+
+function CorrectionBlock({ block }: { block: NonNullable<EvidenceCard['richCorrectionBlock']> }): React.JSX.Element {
+  return (
+    <div className="correction-wrap">
+      <div className="correction-cols">
+        <div className="correction-col correction-wrong">
+          <div className="correction-col-label">{block.wrong.label}</div>
+          <div className="correction-col-text">{block.wrong.text}</div>
+        </div>
+        <div className="correction-col correction-right">
+          <div className="correction-col-label">{block.right.label}</div>
+          <div className="correction-col-text">{block.right.text}</div>
+        </div>
+      </div>
+      {block.riskItems && block.riskItems.length > 0 && (
+        <div className="risk-list">
+          {block.riskItems.map((item) => (
+            <div key={item.num} className="risk-item">
+              <span className="risk-num">{item.num}</span>
+              <div className="risk-text">
+                <strong>{item.title}</strong>
+                {item.body}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {block.reframe && (
+        <div className="reframe-box">
+          <div className="reframe-label">✓ Recommended reframe</div>
+          <div className="reframe-text">{block.reframe}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FlowDiagram({ flow }: { flow: NonNullable<EvidenceCard['richFlowDiagram']> }): React.JSX.Element {
+  return (
+    <div className="flow-diagram-wrap">
+      <div className="flow-diagram-chips">
+        {flow.chips.map((chip, i) => (
+          <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            {i > 0 && <span className="flow-diagram-arrow">→</span>}
+            <span className={`flow-diagram-chip flow-diagram-chip-${chip.kind ?? 'default'}`}>{chip.label}</span>
+          </span>
+        ))}
+      </div>
+      {flow.note && <div className="flow-diagram-note">{flow.note}</div>}
+    </div>
+  );
+}
+
+function RichTable({ table }: { table: NonNullable<EvidenceCard['richTable']> }): React.JSX.Element {
+  return (
+    <div className="rich-table-wrap">
+      <div className="rich-table-grid">
+        {table.devices.map((device) => (
+          <div key={device.name} className={`rich-device-card ${device.isPrimary ? 'primary' : ''}`}>
+            <div className="rich-device-badge">{device.badge}</div>
+            <div className="rich-device-name">{device.name}</div>
+            <div className="rich-device-sub">{device.subtitle}</div>
+            {device.features.map((f) => (
+              <div key={f.name} className="rich-feature-row">
+                <span className="rich-feature-name">{f.name}</span>
+                <span className={`rich-feature-val ${f.kind}`}>{f.val}</span>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function RichChart({ chart }: { chart: NonNullable<EvidenceCard['richChart']> }): React.JSX.Element {
+  const data = chart.labels.map((label, i) => {
+    const row: Record<string, string | number> = { label };
+    for (const ds of chart.datasets) {
+      row[ds.label] = ds.data[i];
+    }
+    return row;
+  });
+
+  return (
+    <div className="rich-chart-wrap">
+      <div className="rich-chart-legend">
+        {chart.datasets.map((ds) => (
+          <div key={ds.label} className="rich-chart-leg-item">
+            <div className="rich-chart-leg-swatch" style={{ background: ds.color }} />
+            <span>{ds.label}</span>
+          </div>
+        ))}
+      </div>
+      <ResponsiveContainer width="100%" height={200}>
+        <BarChart data={data} barCategoryGap="30%" barGap={4}>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+          <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'var(--text-secondary)' }} tickLine={false} axisLine={{ stroke: 'var(--border)' }} />
+          <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 10, fill: 'var(--text-secondary)' }} tickLine={false} axisLine={false} />
+          <Tooltip formatter={(v) => [`${v}%`]} contentStyle={{ fontSize: 12, border: '1px solid var(--border)', borderRadius: 8 }} />
+          {chart.datasets.map((ds) => (
+            <Bar key={ds.label} dataKey={ds.label} fill={ds.color} radius={[4, 4, 0, 0]} />
+          ))}
+        </BarChart>
+      </ResponsiveContainer>
+      <div className="rich-chart-note">{chart.note}</div>
     </div>
   );
 }

@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consul — Proactive Insight Popup</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #fafaf8;
+    --bg-card: #ffffff;
+    --bg-subtle: #f5f4f0;
+    --bg-blue: #EEF5FD;
+    --bg-green: #edf7f1;
+    --bg-amber: #fdf8ee;
+    --border: #e8e6e0;
+    --border-blue: #b5d4f4;
+    --border-green: #b8e0c8;
+    --border-amber: #e8d88a;
+    --text-primary: #1a1a18;
+    --text-secondary: #6b6a66;
+    --text-tertiary: #a8a7a2;
+    --accent-blue: #185FA5;
+    --accent-blue-mid: #378ADD;
+    --accent-green: #1a7a45;
+    --accent-amber: #8a6c00;
+    --success: #1a7a45;
+    --danger: #8a1a1a;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #e8e5de;
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+  }
+
+  .scene {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+    max-width: 540px;
+  }
+
+  .scene-label {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    color: #7a7870;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    text-align: center;
+  }
+
+  /* Transcript context */
+  .transcript-bubble {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.1rem 1.25rem;
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    font-style: italic;
+  }
+
+  .transcript-bubble strong {
+    color: var(--text-primary);
+    font-style: normal;
+    font-weight: 500;
+  }
+
+  /* Proactive insight card */
+  .proactive-card {
+    background: var(--bg-card);
+    border: 1.5px solid var(--border-green);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(26, 122, 69, 0.08), 0 1px 4px rgba(0,0,0,0.04);
+    animation: slideIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(12px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px 12px;
+    border-bottom: 1px solid var(--border-green);
+    background: var(--bg-green);
+  }
+
+  .card-header-left {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+  }
+
+  .header-icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    background: #1a7a45;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .header-icon svg { width: 14px; height: 14px; }
+
+  .card-header-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent-green);
+  }
+
+  .close-btn {
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: white;
+    letter-spacing: 0.03em;
+  }
+
+  .card-body {
+    padding: 1.25rem 1.4rem;
+  }
+
+  .proactive-label {
+    font-size: 9px;
+    font-family: 'DM Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--accent-green);
+    background: var(--bg-green);
+    border: 1px solid var(--border-green);
+    border-radius: 4px;
+    padding: 2px 8px;
+    display: inline-block;
+    margin-bottom: 12px;
+  }
+
+  .proactive-headline {
+    font-family: 'Instrument Serif', serif;
+    font-size: 17px;
+    color: var(--text-primary);
+    line-height: 1.4;
+    margin-bottom: 10px;
+    letter-spacing: -0.2px;
+  }
+
+  .proactive-body {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.75;
+    margin-bottom: 16px;
+    font-weight: 300;
+  }
+
+  .proactive-body strong {
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  /* Data highlight */
+  .data-highlight {
+    background: var(--bg-green);
+    border: 1px solid var(--border-green);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .data-stat {
+    flex-shrink: 0;
+    text-align: center;
+  }
+
+  .data-num {
+    font-family: 'Instrument Serif', serif;
+    font-size: 26px;
+    color: var(--accent-green);
+    line-height: 1;
+    display: block;
+  }
+
+  .data-unit {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    color: var(--accent-green);
+    opacity: 0.7;
+  }
+
+  .data-divider {
+    width: 1px;
+    background: var(--border-green);
+    align-self: stretch;
+    flex-shrink: 0;
+  }
+
+  .data-text {
+    font-size: 12px;
+    color: #1a3a2a;
+    line-height: 1.65;
+  }
+
+  /* Source */
+  .source-tag {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    color: var(--accent-green);
+    background: var(--bg-green);
+    border: 1px solid var(--border-green);
+    border-radius: 4px;
+    padding: 2px 8px;
+    display: inline-block;
+    margin-bottom: 16px;
+  }
+
+  /* Action row */
+  .action-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .btn-expand {
+    flex: 1;
+    background: var(--accent-green);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 9px 16px;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    letter-spacing: 0.01em;
+  }
+
+  .btn-remove {
+    background: var(--bg-subtle);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 16px;
+    font-size: 12px;
+    font-weight: 400;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+  }
+
+  /* Expanded state */
+  .expanded-card {
+    background: var(--bg-card);
+    border: 1.5px solid var(--border-green);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(26, 122, 69, 0.08), 0 1px 4px rgba(0,0,0,0.04);
+    animation: slideIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: 0.05s;
+  }
+
+  .expanded-body {
+    padding: 1.4rem;
+  }
+
+  .expanded-metric-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .e-metric {
+    background: var(--bg-green);
+    border: 1px solid var(--border-green);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+
+  .e-metric-label {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    color: var(--accent-green);
+    margin-bottom: 6px;
+    line-height: 1.4;
+  }
+
+  .e-metric-value {
+    font-family: 'Instrument Serif', serif;
+    font-size: 22px;
+    color: var(--text-primary);
+    letter-spacing: -0.3px;
+  }
+
+  .e-metric-sub {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+
+  .expanded-insight-text {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.75;
+    font-weight: 300;
+    border-top: 1px solid var(--border);
+    padding-top: 14px;
+  }
+
+  .expanded-insight-text strong {
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  .scene-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .scene-divider::before, .scene-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #ccc;
+  }
+
+  .scene-divider span {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+<div class="scene">
+
+  <div class="scene-label">Consul · Proactive insight popup — collapsed state</div>
+
+  <!-- Transcript context -->
+  <div class="transcript-bubble">
+    <strong>Person 2:</strong> "…Let's build the slide around this. And actually — <strong>the GO! being passive is huge for solo expeditions</strong>, because there's zero operational overhead on the ice. That's a differentiator worth leading with for the GTC pitch."
+  </div>
+
+  <!-- Proactive insight — collapsed -->
+  <div class="proactive-card">
+    <div class="card-header">
+      <div class="card-header-left">
+        <div class="header-icon">
+          <svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M7 1.5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11zm0 3.25a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm0 2.75a.5.5 0 0 0-.5.5v2a.5.5 0 0 0 1 0V8a.5.5 0 0 0-.5-.5z" fill="white"/>
+          </svg>
+        </div>
+        <span class="card-header-title">Proactive Insight</span>
+      </div>
+      <button class="close-btn">✕</button>
+    </div>
+    <div class="card-body">
+      <div class="proactive-label">↑ Consul noticed something</div>
+      <div class="proactive-headline">Passive setup correlates with higher content delivery — 91% vs 43%</div>
+      <div class="proactive-body">
+        You mentioned the GO!'s passive operation as a differentiator. The internal deployment data backs this up in a specific way: <strong>content delivery rate is where the biggest gap lives</strong> — 91% dual-device vs. 43% single-device. That's not just redundancy; it's because the GO!'s always-on passive mode keeps the data pipeline open even when the athlete is physically occupied.
+      </div>
+      <div class="data-highlight">
+        <div class="data-stat">
+          <span class="data-num">+48pp</span>
+          <span class="data-unit">content delivery</span>
+        </div>
+        <div class="data-divider"></div>
+        <div class="data-text">Content delivery gap between dual and single-device setups is the <strong>largest performance delta</strong> across all four metrics — bigger than mission completion or comms uptime.</div>
+      </div>
+      <div class="source-tag">internal → expedition deployments 2022–2024</div>
+      <div class="action-row">
+        <button class="btn-expand">Expand ↑—</button>
+        <button class="btn-remove">Remove</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="scene-divider"><span>expanded state</span></div>
+  <div class="scene-label">Consul · Proactive insight popup — expanded state</div>
+
+  <!-- Proactive insight — expanded -->
+  <div class="expanded-card">
+    <div class="card-header">
+      <div class="card-header-left">
+        <div class="header-icon">
+          <svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M7 1.5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11zm0 3.25a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5zm0 2.75a.5.5 0 0 0-.5.5v2a.5.5 0 0 0 1 0V8a.5.5 0 0 0-.5-.5z" fill="white"/>
+          </svg>
+        </div>
+        <span class="card-header-title">Proactive Insight — Full Breakdown</span>
+      </div>
+      <button class="close-btn">✕</button>
+    </div>
+    <div class="expanded-body">
+      <div class="expanded-metric-grid">
+        <div class="e-metric">
+          <div class="e-metric-label">Content delivery<br>dual-device</div>
+          <div class="e-metric-value">91%</div>
+          <div class="e-metric-sub">vs 43% single-device</div>
+        </div>
+        <div class="e-metric">
+          <div class="e-metric-label">Performance gap<br>vs all other metrics</div>
+          <div class="e-metric-value">+48pp</div>
+          <div class="e-metric-sub">largest delta in dataset</div>
+        </div>
+        <div class="e-metric">
+          <div class="e-metric-label">GO! field interactions<br>required on ice</div>
+          <div class="e-metric-value">0</div>
+          <div class="e-metric-sub">passive after pre-config</div>
+        </div>
+        <div class="e-metric">
+          <div class="e-metric-label">Comms failures from<br>single-point setups</div>
+          <div class="e-metric-value">68%</div>
+          <div class="e-metric-sub">external polar research</div>
+        </div>
+      </div>
+      <div class="expanded-insight-text">
+        The passive architecture of the GO! is the mechanism behind the content delivery advantage. Unlike voice comms — which require active device handling — data and photo pipelines run silently in the background via Iridium SBD. In solo expeditions specifically, athletes can't spare cognitive bandwidth for device management, so <strong>a passive data layer isn't just convenient, it's structurally necessary for consistent content output.</strong> This is the lead sales argument for GTC: not "two devices," but "one active device, one silent pipeline."
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

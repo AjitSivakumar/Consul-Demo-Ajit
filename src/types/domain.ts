@@ -46,6 +46,10 @@ export interface InformationNeed {
   confidence: number;
   priority: 'p1' | 'p2' | 'p3';
   status: 'new' | 'retrieving' | 'resolved' | 'unresolved' | 'kept' | 'dismissed' | 'failed';
+  demoEvidence?: Omit<EvidenceCard, 'id' | 'needId' | 'triggeredBySegmentId'>;
+  isProactiveDemoTrigger?: boolean;
+  proactiveHeadline?: string;
+  proactiveImportance?: number;
 }
 
 export interface RetrievalTask {
@@ -84,6 +88,35 @@ export interface EvidenceCard {
   triggeredBySegmentId: string;
   explainWhyNow: string;
   verification: 'verified' | 'inferred' | 'missing';
+  // Rich demo content
+  richTable?: {
+    devices: Array<{
+      name: string;
+      subtitle: string;
+      badge: string;
+      isPrimary: boolean;
+      features: Array<{ name: string; val: string; kind: 'yes' | 'no' | 'neu' }>;
+    }>;
+  };
+  richChart?: {
+    labels: string[];
+    datasets: Array<{ label: string; data: number[]; color: string }>;
+    note: string;
+  };
+  richMetricGrid?: {
+    metrics: Array<{ label: string; value: string; sub: string }>;
+    insightText?: string;
+  };
+  richCorrectionBlock?: {
+    wrong: { label: string; text: string };
+    right: { label: string; text: string };
+    riskItems?: Array<{ num: string; title: string; body: string }>;
+    reframe?: string;
+  };
+  richFlowDiagram?: {
+    chips: Array<{ label: string; kind?: 'active' | 'sos' | 'default' }>;
+    note?: string;
+  };
 }
 
 export interface DeliverableRequirement {

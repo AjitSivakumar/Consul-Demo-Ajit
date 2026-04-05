@@ -80,6 +80,26 @@ export function useAmbientMeetingAI(): {
 
       setTimeout(() => {
         void (async () => {
+          // Short-circuit for demo needs — use pre-built evidence immediately
+          if (need.demoEvidence) {
+            const evidence: EvidenceCard = {
+              ...need.demoEvidence,
+              id: `evidence-demo-${need.id}`,
+              needId: need.id,
+              triggeredBySegmentId: need.triggeredBySegmentId,
+            };
+            dispatch({ type: 'ADD_RESOLVED_EVIDENCE', payload: evidence });
+            dispatch({ type: 'UPDATE_NEED_STATUS', payload: { needId: need.id, status: 'resolved' } });
+            if (need.isProactiveDemoTrigger && need.proactiveHeadline) {
+              dispatch({ type: 'ADD_AMBIENT_SUGGESTION', payload: {
+                headline: need.proactiveHeadline,
+                needId: need.id,
+                importance: need.proactiveImportance ?? 9,
+              }});
+            }
+            return;
+          }
+
           dispatch({ type: 'UPDATE_NEED_STATUS', payload: { needId: need.id, status: 'retrieving' } });
 
           const transcriptContext = state.transcript
