@@ -60,11 +60,6 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
     }));
   }, [evidence]);
 
-  const topicNodes = useMemo(() => {
-    if (!isDiagram || !selectedNeed) return [];
-    const cats = [...new Set(state.needs.filter((n) => n.status !== 'dismissed').map((n) => n.category))];
-    return cats.slice(0, 5);
-  }, [isDiagram, selectedNeed, state.needs]);
 
   // Scroll body to bottom when query history updates
   useEffect(() => {

@@ -91,7 +91,7 @@ export function RealtimeMeetingPage(): React.JSX.Element {
 
   const onUploadFile = async (file: File): Promise<void> => {
     const content = await extractTextFromFile(file);
-    const doc = await uploadDocument(file.name, content, file.name.endsWith('.pdf') ? 'pdf' : 'text');
+    await uploadDocument(file.name, content, file.name.endsWith('.pdf') ? 'pdf' : 'text');
     setDocs(getAllDocuments());
   };
 
