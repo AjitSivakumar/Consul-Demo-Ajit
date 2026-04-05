@@ -146,10 +146,12 @@ export function meetingReducer(state: MeetingState, action: MeetingAction): Meet
       for (const evt of action.payload.transcript) {
         s = applyTranscriptEvent(s, evt);
       }
+      // Only keep demo-trigger needs (have demoEvidence) — suppress keyword-based noise
+      s = { ...s, needs: s.needs.filter(n => n.demoEvidence !== undefined) };
       return {
         ...s,
         context: { ...s.context, ...action.payload.context, discussedThemes: s.context.discussedThemes, unresolvedQuestions: s.context.unresolvedQuestions, confidenceByTheme: s.context.confidenceByTheme },
-        liveStatus: 'listening'
+        liveStatus: 'paused'
       };
     }
     case 'SET_NOTE':

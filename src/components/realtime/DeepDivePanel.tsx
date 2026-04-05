@@ -244,20 +244,13 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
           </div>
         )}
 
-        {isDiagram && evidence && topicNodes.length > 0 && (
+        {isDiagram && evidence && (
           <div className="diagram-banner">
             <div className="diagram-banner-head">
               <div className="diagram-icon">→</div>
               <div className="diagram-title">Diagram Suggested</div>
             </div>
-            <div className="diagram-nodes">
-              {topicNodes.map((node, i) => (
-                <span key={node}>
-                  {i > 0 && <span className="diagram-arr">→</span>}
-                  <span className="diagram-node">{node.replace('_', ' ')}</span>
-                </span>
-              ))}
-            </div>
+            <div className="diagram-body">A visual representation has been found to be useful for this topic.</div>
           </div>
         )}
 
@@ -474,16 +467,87 @@ function CorrectionBlock({ block }: { block: NonNullable<EvidenceCard['richCorre
 
 function FlowDiagram({ flow }: { flow: NonNullable<EvidenceCard['richFlowDiagram']> }): React.JSX.Element {
   return (
-    <div className="flow-diagram-wrap">
-      <div className="flow-diagram-chips">
-        {flow.chips.map((chip, i) => (
-          <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            {i > 0 && <span className="flow-diagram-arrow">→</span>}
-            <span className={`flow-diagram-chip flow-diagram-chip-${chip.kind ?? 'default'}`}>{chip.label}</span>
-          </span>
-        ))}
+    <div className="fd-wrap">
+      {/* Badges */}
+      <div className="fd-badge-row">
+        <span className="fd-badge fd-badge-blue">● Extreme</span>
+        <span className="fd-badge fd-badge-green">● GO! passive</span>
+        <span className="fd-badge fd-badge-red">● Emergency</span>
       </div>
-      {flow.note && <div className="flow-diagram-note">{flow.note}</div>}
+      <div className="fd-chart-title">Preet's communication decision tree — on the ice</div>
+
+      {/* Flowchart */}
+      <div className="fd-chart">
+        {/* Start */}
+        <div className="fd-row fd-centered">
+          <div className="fd-node fd-node-gray">
+            <div className="fd-node-title">Preet needs to communicate</div>
+            <div className="fd-node-sub">trigger event</div>
+          </div>
+        </div>
+        <div className="fd-v-connector"><div className="fd-v-line" /><div className="fd-v-arrow">▼</div></div>
+
+        {/* Decision 1 */}
+        <div className="fd-row fd-centered">
+          <div className="fd-node fd-node-diamond">
+            <div className="fd-node-title">Is this an emergency?</div>
+            <div className="fd-node-sub">lost, injured, critical failure</div>
+          </div>
+        </div>
+        <svg width="100%" height="34" viewBox="0 0 100 34" preserveAspectRatio="none" className="fd-branch-svg">
+          <line x1="50" y1="0" x2="20" y2="34" stroke="#eab308" strokeWidth="1.5" />
+          <line x1="50" y1="0" x2="80" y2="34" stroke="#eab308" strokeWidth="1.5" />
+        </svg>
+        <div className="fd-label-row">
+          <span className="fd-branch-label">Yes →</span>
+          <span className="fd-branch-label">← No</span>
+        </div>
+        <div className="fd-branch-row">
+          <div className="fd-node fd-node-red fd-node-wide">
+            <div className="fd-node-title">SOS — Iridium Extreme</div>
+            <div className="fd-node-sub">one-touch · no decision needed</div>
+          </div>
+          <div className="fd-node fd-node-diamond fd-node-wide">
+            <div className="fd-node-title">Voice or data?</div>
+            <div className="fd-node-sub">what type of comms</div>
+          </div>
+        </div>
+
+        {/* Lower split */}
+        <div className="fd-lower-split">
+          {/* Left: SOS terminus */}
+          <div className="fd-split-col">
+            <div className="fd-v-connector"><div className="fd-v-line" /><div className="fd-v-arrow">▼</div></div>
+            <div className="fd-node fd-node-red" style={{ width: '100%' }}>
+              <div className="fd-node-title">Alert dispatched</div>
+              <div className="fd-node-sub">coordinates + SBD signal</div>
+            </div>
+          </div>
+          {/* Right: voice vs data */}
+          <div className="fd-split-col">
+            <svg width="100%" height="34" viewBox="0 0 100 34" preserveAspectRatio="none" className="fd-branch-svg">
+              <line x1="50" y1="0" x2="20" y2="34" stroke="#eab308" strokeWidth="1.5" />
+              <line x1="50" y1="0" x2="80" y2="34" stroke="#eab308" strokeWidth="1.5" />
+            </svg>
+            <div className="fd-label-row">
+              <span className="fd-branch-label">Voice →</span>
+              <span className="fd-branch-label">← Data</span>
+            </div>
+            <div className="fd-branch-row">
+              <div className="fd-node fd-node-blue fd-node-wide">
+                <div className="fd-node-title">Iridium Extreme</div>
+                <div className="fd-node-sub">call · voice blog</div>
+              </div>
+              <div className="fd-node fd-node-green fd-node-wide">
+                <div className="fd-node-title">GO! passive</div>
+                <div className="fd-node-sub">photo · SBD · no touch</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {flow.note && <div className="fd-note">{flow.note}</div>}
     </div>
   );
 }

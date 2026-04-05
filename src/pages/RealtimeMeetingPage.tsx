@@ -18,7 +18,6 @@ export function RealtimeMeetingPage(): React.JSX.Element {
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [docs, setDocs] = useState<UploadedDocument[]>(() => getAllDocuments());
-  const [newDocId, setNewDocId] = useState<string | null>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(state.context.title);
   const [selectedNeedId, setSelectedNeedId] = useState<string | null>(null);
@@ -94,8 +93,6 @@ export function RealtimeMeetingPage(): React.JSX.Element {
     const content = await extractTextFromFile(file);
     const doc = await uploadDocument(file.name, content, file.name.endsWith('.pdf') ? 'pdf' : 'text');
     setDocs(getAllDocuments());
-    setNewDocId(doc.id);
-    setTimeout(() => setNewDocId(null), 2000);
   };
 
   const commitTitle = (): void => {
@@ -233,7 +230,7 @@ export function RealtimeMeetingPage(): React.JSX.Element {
             {docs.map((doc) => {
               const referenced = referencedTitles.has(doc.name.toLowerCase());
               return (
-                <div key={doc.id} className={`src-item ${referenced ? 'referenced' : ''} ${doc.id === newDocId ? 'src-item--new' : ''}`}>
+                <div key={doc.id} className={`src-item ${referenced ? 'referenced' : ''}`}>
                   <div className="src-header">
                     <span className="src-title">{doc.name}</span>
                   </div>

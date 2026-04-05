@@ -10,47 +10,45 @@ interface InsightsFeedProps {
 }
 
 type TagModal = { type: 'caution' | 'diagram'; need: InformationNeed } | null;
-type ConfirmedPanel = { type: 'caution' | 'diagram'; need: InformationNeed } | null;
 
 export function InsightsFeed({ selectedNeedId, onSelectNeed }: InsightsFeedProps): React.JSX.Element {
   const { state, dispatch } = useMeetingStore();
   const [retryingId, setRetryingId] = useState<string | null>(null);
   const [tagModal, setTagModal] = useState<TagModal>(null);
-  const [confirmedPanel, setConfirmedPanel] = useState<ConfirmedPanel>(null);
   const shownCriticalIds = useRef<Set<string>>(new Set());
 
-  // Auto-show caution popup only when a misleading/incorrect claim has been resolved with corrective evidence
+  // Auto-show caution popup — only for needs with a richCorrectionBlock demo evidence
   useEffect(() => {
-    const misleadingResolved = state.needs.find((n) => {
+    const cautionResolved = state.needs.find((n) => {
       if (shownCriticalIds.current.has(n.id)) return false;
       if (n.status !== 'resolved') return false;
-      if (n.category !== 'correction') return false;
+      if (!n.demoEvidence?.richCorrectionBlock) return false;
       return state.evidence.some((e) => e.needId === n.id);
     });
-    if (misleadingResolved && !confirmedPanel && !tagModal) {
-      shownCriticalIds.current.add(misleadingResolved.id);
-      setConfirmedPanel({ type: 'caution', need: misleadingResolved });
+    if (cautionResolved && !tagModal) {
+      shownCriticalIds.current.add(cautionResolved.id);
+      setTagModal({ type: 'caution', need: cautionResolved });
     }
-  }, [state.needs, state.evidence, confirmedPanel, tagModal]);
+  }, [state.needs, state.evidence, tagModal]);
 
-  // Auto-show diagram popup when a comparison need with evidence appears
+  // Auto-show diagram popup — only for needs with a richFlowDiagram demo evidence
   useEffect(() => {
     const diagramResolved = state.needs.find((n) => {
       if (shownCriticalIds.current.has(n.id)) return false;
       if (n.status !== 'resolved') return false;
-      if (n.category !== 'comparison') return false;
+      if (!n.demoEvidence?.richFlowDiagram) return false;
       return state.evidence.some((e) => e.needId === n.id);
     });
-    if (diagramResolved && !confirmedPanel && !tagModal) {
+    if (diagramResolved && !tagModal) {
       shownCriticalIds.current.add(diagramResolved.id);
       setTagModal({ type: 'diagram', need: diagramResolved });
     }
-  }, [state.needs, state.evidence, confirmedPanel, tagModal]);
+  }, [state.needs, state.evidence, tagModal]);
 
   /* ── Derived data ── */
 
   const visibleNeeds = useMemo(
-    () => state.needs.filter((n) => n.status !== 'dismissed').slice(0, 5),
+    () => state.needs.filter((n) => n.status !== 'dismissed' && !n.isProactiveDemoTrigger).slice(0, 5),
     [state.needs]
   );
 
@@ -312,134 +310,61 @@ export function InsightsFeed({ selectedNeedId, onSelectNeed }: InsightsFeedProps
           <div className={`tag-modal-box tag-modal-box-${tagModal.type}`}>
             {tagModal.type === 'caution' ? (
               <>
-                <div className="tag-modal-header caution">
-                  <div className="caution-dot" />
-                  Caution
+                <div className="caut-popup-header">
+                  <div className="caut-popup-header-left">
+                    <div className="caut-popup-icon">⚠</div>
+                    <span className="caut-popup-title">Caution</span>
+                  </div>
                 </div>
-                <div className="tag-modal-body">
-                  <div className="tag-modal-question">{tagModal.need.prompt}</div>
-                  {tagModal.need.demoEvidence?.richCorrectionBlock ? (
-                    <div className="popup-correction-block">
-                      <div className="popup-correction-row">
-                        <div className="popup-correction-col popup-correction-wrong">
-                          <div className="popup-correction-label">{tagModal.need.demoEvidence.richCorrectionBlock.wrong.label}</div>
-                          <div className="popup-correction-text">{tagModal.need.demoEvidence.richCorrectionBlock.wrong.text}</div>
-                        </div>
-                        <div className="popup-correction-col popup-correction-right">
-                          <div className="popup-correction-label">{tagModal.need.demoEvidence.richCorrectionBlock.right.label}</div>
-                          <div className="popup-correction-text">{tagModal.need.demoEvidence.richCorrectionBlock.right.text}</div>
+                <div className="caut-popup-body">
+                  <div className="caut-popup-label">⚠ Positioning risk flagged</div>
+                  <div className="caut-popup-headline">{tagModal.need.prompt}</div>
+                  {tagModal.need.demoEvidence?.richCorrectionBlock && (
+                    <>
+                      <div className="caut-correction-block">
+                        <div className="caut-correction-row">
+                          <div className="caut-correction-col caut-wrong">
+                            <div className="caut-correction-label">{tagModal.need.demoEvidence.richCorrectionBlock.wrong.label}</div>
+                            <div className="caut-correction-text">{tagModal.need.demoEvidence.richCorrectionBlock.wrong.text}</div>
+                          </div>
+                          <div className="caut-correction-col caut-right">
+                            <div className="caut-correction-label">{tagModal.need.demoEvidence.richCorrectionBlock.right.label}</div>
+                            <div className="caut-correction-text">{tagModal.need.demoEvidence.richCorrectionBlock.right.text}</div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ) : (
-                    tagModal.need.rationale && <div className="tag-modal-detail">{tagModal.need.rationale}</div>
+                      <div className="caut-source-tag">product → Extreme spec · GO! architecture docs</div>
+                    </>
                   )}
-                  {!tagModal.need.demoEvidence?.richCorrectionBlock && (
-                    <div className="tag-modal-hint">Ambi detected potentially incorrect or misleading information in the conversation and found evidence that addresses it.</div>
-                  )}
+                </div>
+                <div className="caut-popup-actions">
+                  <button type="button" className="caut-popup-btn-expand" onClick={() => { onSelectNeed(tagModal.need.id); setTagModal(null); }}>Expand ↑</button>
+                  <button type="button" className="caut-popup-btn-remove" onClick={() => { dispatch({ type: 'DISMISS_NEED', payload: tagModal.need.id }); setTagModal(null); }}>Remove</button>
                 </div>
               </>
             ) : (
               <>
-                <div className="tag-modal-header diagram">
-                  <div className="diagram-dot" />
-                  Diagram Suggested
+                <div className="diag-popup-header">
+                  <div className="diag-popup-header-left">
+                    <div className="diag-popup-icon">↗</div>
+                    <span className="diag-popup-title">Diagram Suggested</span>
+                  </div>
                 </div>
-                <div className="tag-modal-body">
-                  <div className="tag-modal-question">{tagModal.need.prompt}</div>
-                  {tagModal.need.demoEvidence?.richFlowDiagram ? (
-                    <div className="popup-flow-preview">
-                      <div className="popup-flow-preview-label">Suggested flow</div>
-                      <div className="popup-flow-chips">
-                        {tagModal.need.demoEvidence.richFlowDiagram.chips.map((chip, i) => (
-                          <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                            {i > 0 && <span className="popup-flow-arrow">→</span>}
-                            <span className={`popup-flow-chip popup-flow-chip-${chip.kind ?? 'default'}`}>{chip.label}</span>
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      {tagModal.need.rationale && <div className="tag-modal-detail">{tagModal.need.rationale}</div>}
-                      <div className="tag-modal-hint">A visual comparison or diagram would help clarify this topic. Confirm to expand it.</div>
-                    </>
-                  )}
+                <div className="diag-popup-body">
+                  <div className="diag-popup-label">↗ Consul identified a flow</div>
+                  <div className="diag-popup-headline">{tagModal.need.prompt}</div>
+                  <div className="diag-popup-desc">{tagModal.need.demoEvidence?.summary ?? tagModal.need.rationale}</div>
+                </div>
+                <div className="diag-popup-actions">
+                  <button type="button" className="diag-popup-btn-expand" onClick={() => { onSelectNeed(tagModal.need.id); setTagModal(null); }}>Expand ↗</button>
+                  <button type="button" className="diag-popup-btn-remove" onClick={() => { dispatch({ type: 'DISMISS_NEED', payload: tagModal.need.id }); setTagModal(null); }}>Remove</button>
                 </div>
               </>
             )}
-            <div className="tag-modal-actions">
-              <button
-                type="button"
-                className="tag-modal-btn confirm"
-                onClick={() => {
-                  if (tagModal.type === 'diagram') {
-                    onSelectNeed(tagModal.need.id);
-                    setTagModal(null);
-                  } else {
-                    setConfirmedPanel({ type: tagModal.type, need: tagModal.need });
-                    setTagModal(null);
-                  }
-                }}
-              >
-                {tagModal.type === 'diagram' ? 'Open in Deep Dive →' : 'Confirm'}
-              </button>
-              <button
-                type="button"
-                className="tag-modal-btn remove"
-                onClick={() => {
-                  dispatch({ type: 'DISMISS_NEED', payload: tagModal.need.id });
-                  setTagModal(null);
-                }}
-              >
-                Remove
-              </button>
-            </div>
           </div>
         </div>
       )}
 
-      {/* ── Confirmed Center Panel ── */}
-      {confirmedPanel && (() => {
-        const evidence = state.evidence.find((e) => e.needId === confirmedPanel.need.id);
-        const triggerEvent = state.transcript.find((t) => t.segmentId === confirmedPanel.need.triggeredBySegmentId);
-        return (
-          <div className="confirmed-overlay">
-            <div className={`confirmed-panel confirmed-panel-${confirmedPanel.type}`}>
-              <button type="button" className="confirmed-close" onClick={() => setConfirmedPanel(null)}>✕</button>
-              <div className={`confirmed-header ${confirmedPanel.type}`}>
-                {confirmedPanel.type === 'caution'
-                  ? <><div className="caution-dot" /> Caution</>
-                  : <><div className="diagram-dot" /> Diagram Suggested</>
-                }
-              </div>
-              {triggerEvent && (
-                <div className="confirmed-trigger">
-                  <span className="confirmed-trigger-label">Triggered by</span>
-                  <span className="confirmed-trigger-quote">"{triggerEvent.speaker}: {triggerEvent.text}"</span>
-                </div>
-              )}
-              <div className="confirmed-question">{confirmedPanel.need.prompt}</div>
-              {confirmedPanel.need.rationale && (
-                <div className="confirmed-rationale">{confirmedPanel.need.rationale}</div>
-              )}
-              {evidence && (
-                <div className="confirmed-answer">
-                  <div className="confirmed-answer-label">Research</div>
-                  <div className="confirmed-answer-text">{evidence.summary}</div>
-                </div>
-              )}
-              <button
-                type="button"
-                className="confirmed-deepdive-btn"
-                onClick={() => { onSelectNeed(confirmedPanel.need.id); setConfirmedPanel(null); }}
-              >
-                Open in Deep Dive →
-              </button>
-            </div>
-          </div>
-        );
-      })()}
     </>
   );
 }

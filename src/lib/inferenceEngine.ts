@@ -29,100 +29,13 @@ export function updateMeetingContext(context: MeetingContext, event: TranscriptE
 }
 
 // ── Demo triggers: fire specific insights for known conversation segments ──
-const tableEvidence: DemoEvidence = {
-  title: 'Product capability comparison — why Preet needs both devices',
-  summary: 'The Extreme handles all voice and SOS functions natively. The GO! adds photo upload — the one capability the Extreme lacks. Neither device alone covers the full expedition communications requirement.',
-  kind: 'comparison',
-  recencyLabel: 'Product specs · 2024',
-  confidence: 0.97,
-  verification: 'verified',
-  explainWhyNow: 'GTC asked why both devices are needed',
-  attributions: [
-    { sourceId: 'iridium-spec-extreme', sourceType: 'product_doc', title: 'Iridium Extreme spec sheet', freshnessScore: 0.95, trustScore: 0.99 },
-    { sourceId: 'iridium-spec-go', sourceType: 'product_doc', title: 'Iridium GO! architecture docs', freshnessScore: 0.95, trustScore: 0.99 },
-  ],
-  richTable: {
-    devices: [
-      {
-        name: 'Iridium Extreme',
-        subtitle: 'Primary communications device',
-        badge: 'Recommended',
-        isPrimary: true,
-        features: [
-          { name: 'Voice calls', val: '✓ Native', kind: 'yes' },
-          { name: 'Voice blogs', val: '✓ Native', kind: 'yes' },
-          { name: 'GPS tracking', val: '✓ Integrated', kind: 'yes' },
-          { name: 'SOS button', val: '✓ One-touch', kind: 'yes' },
-          { name: 'Photo upload', val: '✗ Not supported', kind: 'no' },
-          { name: 'Weight', val: '247 g', kind: 'neu' },
-        ],
-      },
-      {
-        name: 'Iridium GO!',
-        subtitle: 'Content & data companion',
-        badge: 'Secondary',
-        isPrimary: false,
-        features: [
-          { name: 'Voice calls', val: '✗ Requires paired device', kind: 'no' },
-          { name: 'Voice blogs', val: '✗ Requires paired device', kind: 'no' },
-          { name: 'GPS tracking', val: '✓ Supported', kind: 'yes' },
-          { name: 'SOS button', val: '✗ Not available', kind: 'no' },
-          { name: 'Photo upload', val: '✓ Native', kind: 'yes' },
-          { name: 'Weight', val: '~160 g', kind: 'neu' },
-        ],
-      },
-    ],
-  },
-};
-
-const chartEvidence: DemoEvidence = {
-  title: 'Dual-device deployments: 94% mission success vs 71% single-device',
-  summary: 'Across Iridium expedition deployments 2022–2024, dual-device setups outperformed single-device on every metric. 68% of polar expedition comms failures are traced to single-point-of-failure device setups.',
-  kind: 'metric',
-  recencyLabel: 'Internal sales data · 2022–2024',
-  confidence: 0.94,
-  verification: 'verified',
-  explainWhyNow: 'GTC raised concern about two-device complexity',
-  attributions: [
-    { sourceId: 'iridium-deployments', sourceType: 'internal_structured', title: 'Expedition deployments 2022–2024', freshnessScore: 0.9, trustScore: 0.95 },
-    { sourceId: 'polar-research', sourceType: 'web', title: 'Polar comms failure research', freshnessScore: 0.85, trustScore: 0.88 },
-  ],
-  richChart: {
-    labels: ['Mission completion', 'Comms uptime', 'Content delivery', 'No critical failures'],
-    datasets: [
-      { label: 'Dual-device', data: [94, 98, 91, 96], color: '#7C3AED' },
-      { label: 'Single-device', data: [71, 79, 43, 68], color: '#c8a090' },
-    ],
-    note: 'Source: Internal Iridium sales data — expedition deployments 2022–2024 · External: 68% of polar expedition comms failures traced to single-point-of-failure device setups.',
-  },
-};
 
 const demoTriggers: Array<{
   detect: (text: string) => boolean;
   needs: Array<{ category: InformationNeed['category']; prompt: string; triggerPhrase: string; demoEvidence: DemoEvidence; isProactiveDemoTrigger?: boolean; proactiveHeadline?: string; proactiveImportance?: number; }>;
   fired: boolean;
 }> = [
-  {
-    detect: (text) =>
-      (text.includes('complementary') && text.includes('redundant')) ||
-      (text.includes('extreme') && (text.includes('go!') || (text.includes('voice') && text.includes('photo')))),
-    needs: [
-      {
-        category: 'comparison',
-        prompt: 'Product capability comparison — why Preet needs both devices',
-        triggerPhrase: 'complementary not redundant',
-        demoEvidence: tableEvidence,
-      },
-      {
-        category: 'metric',
-        prompt: 'Dual-device deployments: 94% mission success vs 71% single-device',
-        triggerPhrase: 'two devices complicates the story',
-        demoEvidence: chartEvidence,
-      },
-    ],
-    fired: false,
-  },
-  // Trigger 2: Proactive — passive setup + content delivery
+  // Trigger 1: Proactive — passive setup + content delivery
   {
     detect: (text) =>
       text.includes('passive') &&
@@ -198,7 +111,7 @@ const demoTriggers: Array<{
     ],
     fired: false,
   },
-  // Trigger 4: Diagram — device decision flow
+  // Trigger 3: Diagram — device decision flow
   {
     detect: (text) =>
       (text.includes('picks up') && (text.includes('extreme') || text.includes('voice'))) ||
