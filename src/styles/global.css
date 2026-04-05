@@ -777,6 +777,8 @@ h1 em {
 .controls-strip select { border:1px solid var(--border); background:var(--bg-card); color:var(--text-primary); border-radius:8px; padding:5px 10px; font-size:12px; cursor:pointer; font-family:inherit; }
 .controls-strip .ctrl-btn { border:1px solid var(--border); background:var(--bg-card); color:var(--text-primary); border-radius:8px; padding:5px 12px; font-size:12px; cursor:pointer; }
 .controls-strip .ctrl-btn:hover { background:var(--bg-subtle); }
+.controls-strip .ctrl-btn-danger { border-color:rgba(239,68,68,0.4); color:#ef4444; }
+.controls-strip .ctrl-btn-danger:hover { background:rgba(239,68,68,0.06); }
 .ctrl-divider { width:1px; height:24px; background:var(--border); flex-shrink:0; }
 .ctrl-label { font-size:11px; color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.06em; }
 .ctrl-stat { font-size:12px; color:var(--text-primary); }

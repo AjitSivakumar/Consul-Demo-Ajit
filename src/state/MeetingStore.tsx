@@ -27,6 +27,7 @@ function loadState(): MeetingState {
       liveStatus: parsed.liveStatus === 'listening' || parsed.liveStatus === 'ending' ? 'paused' : parsed.liveStatus,
       isGenerating: false,
       notes: parsed.notes ?? {},
+      presetTranscript: null, // always reset — never replay a stale preset on refresh
     };
   } catch {
     return initialMeetingState;

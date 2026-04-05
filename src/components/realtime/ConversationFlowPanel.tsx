@@ -7,15 +7,27 @@ import type { EvidenceCard, InformationNeed } from '../../types/domain';
 interface InsightsFeedProps {
   selectedNeedId: string | null;
   onSelectNeed: (id: string | null) => void;
+  resetKey?: number;
 }
 
 type TagModal = { type: 'caution' | 'diagram'; need: InformationNeed } | null;
 
-export function InsightsFeed({ selectedNeedId, onSelectNeed }: InsightsFeedProps): React.JSX.Element {
+export function InsightsFeed({ selectedNeedId, onSelectNeed, resetKey }: InsightsFeedProps): React.JSX.Element {
   const { state, dispatch } = useMeetingStore();
   const [retryingId, setRetryingId] = useState<string | null>(null);
   const [tagModal, setTagModal] = useState<TagModal>(null);
+  const [confirmedNeedIds, setConfirmedNeedIds] = useState<Set<string>>(new Set());
   const shownCriticalIds = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!resetKey) return;
+    setTagModal(null);
+    setConfirmedNeedIds(new Set());
+    shownCriticalIds.current = new Set();
+  }, [resetKey]);
+
+  const confirmNeed = (id: string): void =>
+    setConfirmedNeedIds((prev) => new Set([...prev, id]));
 
   // Auto-show caution popup — only for needs with a richCorrectionBlock demo evidence
   useEffect(() => {
@@ -48,8 +60,12 @@ export function InsightsFeed({ selectedNeedId, onSelectNeed }: InsightsFeedProps
   /* ── Derived data ── */
 
   const visibleNeeds = useMemo(
-    () => state.needs.filter((n) => n.status !== 'dismissed' && !n.isProactiveDemoTrigger).slice(0, 5),
-    [state.needs]
+    () => state.needs.filter((n) => {
+      if (n.status === 'dismissed' || n.isProactiveDemoTrigger) return false;
+      if ((n.category === 'correction' || n.category === 'comparison') && !confirmedNeedIds.has(n.id)) return false;
+      return true;
+    }).slice(0, 5),
+    [state.needs, confirmedNeedIds]
   );
 
   // Map needs to a short trigger phrase from transcript (fallback if AI didn't return one)
@@ -338,7 +354,7 @@ export function InsightsFeed({ selectedNeedId, onSelectNeed }: InsightsFeedProps
                   )}
                 </div>
                 <div className="caut-popup-actions">
-                  <button type="button" className="caut-popup-btn-expand" onClick={() => { onSelectNeed(tagModal.need.id); setTagModal(null); }}>Expand ↑</button>
+                  <button type="button" className="caut-popup-btn-expand" onClick={() => { confirmNeed(tagModal.need.id); onSelectNeed(tagModal.need.id); setTagModal(null); }}>Expand ↑</button>
                   <button type="button" className="caut-popup-btn-remove" onClick={() => { dispatch({ type: 'DISMISS_NEED', payload: tagModal.need.id }); setTagModal(null); }}>Remove</button>
                 </div>
               </>
@@ -356,7 +372,7 @@ export function InsightsFeed({ selectedNeedId, onSelectNeed }: InsightsFeedProps
                   <div className="diag-popup-desc">{tagModal.need.demoEvidence?.summary ?? tagModal.need.rationale}</div>
                 </div>
                 <div className="diag-popup-actions">
-                  <button type="button" className="diag-popup-btn-expand" onClick={() => { onSelectNeed(tagModal.need.id); setTagModal(null); }}>Expand ↗</button>
+                  <button type="button" className="diag-popup-btn-expand" onClick={() => { confirmNeed(tagModal.need.id); onSelectNeed(tagModal.need.id); setTagModal(null); }}>Expand ↗</button>
                   <button type="button" className="diag-popup-btn-remove" onClick={() => { dispatch({ type: 'DISMISS_NEED', payload: tagModal.need.id }); setTagModal(null); }}>Remove</button>
                 </div>
               </>

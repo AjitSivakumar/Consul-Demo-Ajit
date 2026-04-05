@@ -24,6 +24,8 @@ export function RealtimeMeetingPage(): React.JSX.Element {
   const [transcriptVisible, setTranscriptVisible] = useState(true);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [showBotSettings, setShowBotSettings] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [resetKey, setResetKey] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Timer
@@ -184,7 +186,21 @@ export function RealtimeMeetingPage(): React.JSX.Element {
 
         <div className="ctrl-divider" />
         <button type="button" className="ctrl-btn" onClick={runner.start}>Start</button>
-        <button type="button" className="ctrl-btn" onClick={runner.reset}>Reset</button>
+        {showResetConfirm ? (
+          <>
+            <span className="ctrl-label" style={{ color: 'var(--danger)' }}>Confirm reset?</span>
+            <button type="button" className="ctrl-btn ctrl-btn-danger" onClick={() => {
+              runner.reset();
+              setElapsedSeconds(0);
+              setResetKey((k) => k + 1);
+              setSelectedNeedId(null);
+              setShowResetConfirm(false);
+            }}>Reset</button>
+            <button type="button" className="ctrl-btn" onClick={() => setShowResetConfirm(false)}>Cancel</button>
+          </>
+        ) : (
+          <button type="button" className="ctrl-btn" onClick={() => setShowResetConfirm(true)}>Reset</button>
+        )}
 
       </div>
 
@@ -195,6 +211,7 @@ export function RealtimeMeetingPage(): React.JSX.Element {
           <InsightsFeed
             selectedNeedId={selectedNeedId}
             onSelectNeed={setSelectedNeedId}
+            resetKey={resetKey}
           />
         </div>
 

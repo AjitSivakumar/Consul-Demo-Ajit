@@ -1,4 +1,4 @@
-import { inferInformationNeeds, resetDemoTriggers, updateMeetingContext } from '../lib/inferenceEngine';
+import { inferInformationNeeds, updateMeetingContext } from '../lib/inferenceEngine';
 import { initialDeliverables } from '../mock-data/deliverables';
 import {
   Deliverable,
@@ -26,6 +26,8 @@ export interface MeetingState {
   isGenerating: boolean;
   // Per-insight notes (keyed by needId or '__general__')
   notes: Record<string, string>;
+  // Preset replay: transcript queued for step-by-step playback on Start
+  presetTranscript: TranscriptEvent[] | null;
 }
 
 export type MeetingAction =
@@ -44,6 +46,7 @@ export type MeetingAction =
   | { type: 'SET_GENERATING'; payload: boolean }
   | { type: 'SET_GENERATED_CONTENT'; payload: GeneratedDeliverables }
   | { type: 'LOAD_PRESET'; payload: { context: MeetingContext; transcript: TranscriptEvent[] } }
+  | { type: 'CLEAR_PRESET_TRANSCRIPT' }
   | { type: 'SET_NOTE'; payload: { key: string; text: string } }
   | { type: 'SAVE_INSIGHT'; payload: { question: string; answer: string; source: string } }
   | { type: 'RESET' };
@@ -69,7 +72,8 @@ export const initialMeetingState: MeetingState = {
   lastSuggestionTime: 0,
   generatedContent: {},
   isGenerating: false,
-  notes: {}
+  notes: {},
+  presetTranscript: null,
 };
 
 export function meetingReducer(state: MeetingState, action: MeetingAction): MeetingState {
@@ -89,7 +93,7 @@ export function meetingReducer(state: MeetingState, action: MeetingAction): Meet
         }
       };
     case 'PROCESS_EVENT':
-      return applyTranscriptEvent(state, action.payload);
+      return applyTranscriptEvent(state, action.payload, state.presetTranscript !== null);
     case 'ADD_AI_NEEDS':
       return applyAdditionalNeeds(state, action.payload);
     case 'ADD_AMBIENT_SUGGESTION':
@@ -141,19 +145,15 @@ export function meetingReducer(state: MeetingState, action: MeetingAction): Meet
         liveStatus: 'ended'
       };
     case 'LOAD_PRESET': {
-      resetDemoTriggers();
-      let s = { ...initialMeetingState };
-      for (const evt of action.payload.transcript) {
-        s = applyTranscriptEvent(s, evt);
-      }
-      // Only keep demo-trigger needs (have demoEvidence) — suppress keyword-based noise
-      s = { ...s, needs: s.needs.filter(n => n.demoEvidence !== undefined) };
       return {
-        ...s,
-        context: { ...s.context, ...action.payload.context, discussedThemes: s.context.discussedThemes, unresolvedQuestions: s.context.unresolvedQuestions, confidenceByTheme: s.context.confidenceByTheme },
-        liveStatus: 'paused'
+        ...initialMeetingState,
+        context: { ...initialMeetingState.context, ...action.payload.context },
+        presetTranscript: action.payload.transcript,
+        liveStatus: 'paused',
       };
     }
+    case 'CLEAR_PRESET_TRANSCRIPT':
+      return { ...state, presetTranscript: null };
     case 'SET_NOTE':
       return { ...state, notes: { ...state.notes, [action.payload.key]: action.payload.text } };
     case 'SAVE_INSIGHT': {
@@ -179,7 +179,7 @@ export function meetingReducer(state: MeetingState, action: MeetingAction): Meet
   }
 }
 
-function applyTranscriptEvent(state: MeetingState, event: TranscriptEvent): MeetingState {
+function applyTranscriptEvent(state: MeetingState, event: TranscriptEvent, presetMode = false): MeetingState {
   const context = updateMeetingContext(state.context, event);
   const withTranscript = {
     ...state,
@@ -188,16 +188,23 @@ function applyTranscriptEvent(state: MeetingState, event: TranscriptEvent): Meet
   };
 
   // Keep deterministic local inference as fallback when API calls are unavailable.
-  return applyAdditionalNeeds(withTranscript, inferInformationNeeds(event));
+  return applyAdditionalNeeds(withTranscript, inferInformationNeeds(event), presetMode);
 }
 
-function applyAdditionalNeeds(state: MeetingState, incomingNeeds: InformationNeed[]): MeetingState {
+function applyAdditionalNeeds(state: MeetingState, incomingNeeds: InformationNeed[], presetMode = false): MeetingState {
   if (incomingNeeds.length === 0) {
     return state;
   }
 
+  // During preset replay, only admit demo-triggered needs (suppress keyword-based noise)
+  const presetFiltered = presetMode
+    ? incomingNeeds.filter((need) => need.demoEvidence !== undefined)
+    : incomingNeeds;
+
+  if (presetFiltered.length === 0) return state;
+
   // Quality gate: only admit p1 needs with confidence >= 0.80
-  const qualityFiltered = incomingNeeds.filter(
+  const qualityFiltered = presetFiltered.filter(
     (need) => need.priority === 'p1' && need.confidence >= 0.80
   );
 

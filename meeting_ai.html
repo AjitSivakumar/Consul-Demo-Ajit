@@ -1933,6 +1933,24 @@
   let lineIdx = 0;
   let timeMin = 42; let timeSec = 17;
 
+  function injectCard(html) {
+    const aiFeed = document.getElementById('aiFeed');
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = html.trim();
+    const card = wrapper.firstElementChild;
+    card.style.opacity = '0';
+    card.style.transform = 'translateY(-10px)';
+    aiFeed.prepend(card);
+    attachDismiss(card);
+    // Animate bars if any
+    setTimeout(() => {
+      card.style.transition = 'opacity 0.35s, transform 0.35s';
+      card.style.opacity = '1';
+      card.style.transform = 'translateY(0)';
+      card.querySelectorAll('.data-fill[data-width]').forEach(el => { el.style.width = el.dataset.width; });
+    }, 50);
+  }
+
   function startTranscript() {
     transcriptInterval = setInterval(() => {
       timeSec += 14;
@@ -1953,6 +1971,112 @@
       feed.querySelectorAll('.live-cursor').forEach((c, i, arr) => {
         if (i < arr.length - 1) c.remove();
       });
+
+      // Inject bar graph card after 1st new transcript line
+      if (lineIdx === 1) {
+        setTimeout(() => injectCard(`
+          <div class="suggestion-card type-data">
+            <div class="card-top">
+              <div class="card-type">◈ Data Pull</div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div class="card-age">just now</div>
+                <button class="card-dismiss">×</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="card-title">Content delivery — dual vs single device</div>
+              <div class="card-content">Passive setup correlates with higher content delivery — 91% vs 43% for single-device setups.</div>
+              <div class="card-data-viz">
+                <div class="data-row">
+                  <div class="data-label">Dual-device</div>
+                  <div class="data-track"><div class="data-fill" data-width="91%" style="background:#2563EB;width:0;transition:width 1s ease"></div></div>
+                  <div class="data-val">91%</div>
+                </div>
+                <div class="data-row">
+                  <div class="data-label">Single-device</div>
+                  <div class="data-track"><div class="data-fill" data-width="43%" style="background:#94A3B8;width:0;transition:width 1s ease"></div></div>
+                  <div class="data-val">43%</div>
+                </div>
+              </div>
+              <div class="confidence">
+                <span class="confidence-label">CONF</span>
+                <div class="confidence-pips">
+                  <div class="pip filled"></div><div class="pip filled"></div><div class="pip filled"></div><div class="pip filled"></div><div class="pip filled"></div>
+                </div>
+              </div>
+              <div class="card-source">
+                <div class="source-icon">📊</div>
+                <div class="source-text">
+                  <div class="source-name">Expedition deployments 2022–2024</div>
+                  <div class="source-page">Internal deployment data</div>
+                </div>
+              </div>
+              <div class="card-actions">
+                <button class="card-btn card-btn-primary">Share to meeting</button>
+                <button class="card-btn card-btn-ghost">Dismiss</button>
+              </div>
+            </div>
+          </div>
+        `), 1200);
+      }
+
+      // Inject comparison table card after 3rd new transcript line
+      if (lineIdx === 3) {
+        setTimeout(() => injectCard(`
+          <div class="suggestion-card type-answer">
+            <div class="card-top">
+              <div class="card-type">◎ Comparison</div>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div class="card-age">just now</div>
+                <button class="card-dismiss">×</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="card-title">Iridium Extreme vs GO! — feature breakdown</div>
+              <div class="card-content">Side-by-side capability comparison for the GTC Thursday deck.</div>
+              <div style="margin-top:10px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;overflow:hidden;font-size:11px;font-family:'DM Mono',monospace;">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;background:rgba(255,255,255,0.05);">
+                  <div style="padding:6px 10px;color:var(--text-muted);font-size:9px;letter-spacing:0.08em;text-transform:uppercase;">Feature</div>
+                  <div style="padding:6px 10px;color:var(--neon-blue);font-size:9px;letter-spacing:0.08em;text-transform:uppercase;">Extreme</div>
+                  <div style="padding:6px 10px;color:var(--neon-green);font-size:9px;letter-spacing:0.08em;text-transform:uppercase;">GO!</div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-top:1px solid rgba(255,255,255,0.06);">
+                  <div style="padding:6px 10px;color:var(--text-dim);">SOS button</div>
+                  <div style="padding:6px 10px;color:#4ade80;">✓</div>
+                  <div style="padding:6px 10px;color:var(--warn);">✗</div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-top:1px solid rgba(255,255,255,0.06);">
+                  <div style="padding:6px 10px;color:var(--text-dim);">Voice calls</div>
+                  <div style="padding:6px 10px;color:#4ade80;">✓</div>
+                  <div style="padding:6px 10px;color:var(--warn);">✗</div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-top:1px solid rgba(255,255,255,0.06);">
+                  <div style="padding:6px 10px;color:var(--text-dim);">Passive data</div>
+                  <div style="padding:6px 10px;color:var(--text-muted);">—</div>
+                  <div style="padding:6px 10px;color:#4ade80;">✓</div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-top:1px solid rgba(255,255,255,0.06);">
+                  <div style="padding:6px 10px;color:var(--text-dim);">Photo upload</div>
+                  <div style="padding:6px 10px;color:var(--text-muted);">—</div>
+                  <div style="padding:6px 10px;color:#4ade80;">✓</div>
+                </div>
+              </div>
+              <div class="card-source">
+                <div class="source-icon">📄</div>
+                <div class="source-text">
+                  <div class="source-name">Iridium device architecture docs</div>
+                  <div class="source-page">Extreme spec · GO! architecture</div>
+                </div>
+              </div>
+              <div class="card-actions">
+                <button class="card-btn card-btn-primary">Share to meeting</button>
+                <button class="card-btn card-btn-ghost">Dismiss</button>
+              </div>
+            </div>
+          </div>
+        `), 1200);
+      }
+
       lineIdx++;
     }, 9000);
   }

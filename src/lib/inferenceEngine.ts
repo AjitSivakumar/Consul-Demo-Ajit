@@ -33,8 +33,95 @@ export function updateMeetingContext(context: MeetingContext, event: TranscriptE
 const demoTriggers: Array<{
   detect: (text: string) => boolean;
   needs: Array<{ category: InformationNeed['category']; prompt: string; triggerPhrase: string; demoEvidence: DemoEvidence; isProactiveDemoTrigger?: boolean; proactiveHeadline?: string; proactiveImportance?: number; }>;
-  fired: boolean;
 }> = [
+  // Trigger A: Comparison table — Extreme vs GO! feature breakdown
+  {
+    detect: (text) =>
+      (text.includes('extreme covers voice') || text.includes('go supports photo') || text.includes('go! handles photos')),
+    needs: [
+      {
+        category: 'metric' as InformationNeed['category'],
+        prompt: 'Iridium Extreme vs GO! — side-by-side capability breakdown',
+        triggerPhrase: 'Extreme covers voice and SOS. GO supports photo upload.',
+        isProactiveDemoTrigger: false,
+        demoEvidence: {
+          title: 'Iridium Extreme vs GO! — side-by-side capability breakdown',
+          summary: 'The Extreme and GO! solve different constraints. The Extreme handles voice, SOS, and GPS; the GO! handles passive photo upload and data. In a solo expedition context, the two devices are complementary — not redundant.',
+          kind: 'comparison' as EvidenceKind,
+          recencyLabel: 'Iridium device architecture docs',
+          confidence: 0.97,
+          verification: 'verified' as const,
+          explainWhyNow: 'Account Exec distinguished the two device roles',
+          attributions: [
+            { sourceId: 'iridium-spec-combo-table', sourceType: 'product_doc' as const, title: 'Iridium device architecture docs', freshnessScore: 0.95, trustScore: 0.97 },
+          ],
+          richTable: {
+            devices: [
+              {
+                name: 'Iridium Extreme',
+                badge: '★ Primary',
+                subtitle: 'Voice · SOS · GPS',
+                isPrimary: true,
+                features: [
+                  { name: 'SOS button', val: '✓', kind: 'yes' as const },
+                  { name: 'Voice calls', val: '✓', kind: 'yes' as const },
+                  { name: 'GPS tracking', val: '✓', kind: 'yes' as const },
+                  { name: 'Passive data', val: '—', kind: 'neu' as const },
+                  { name: 'Photo upload', val: '—', kind: 'neu' as const },
+                ],
+              },
+              {
+                name: 'Iridium GO!',
+                badge: '◎ Passive layer',
+                subtitle: 'Data · Photos · Content',
+                isPrimary: false,
+                features: [
+                  { name: 'SOS button', val: '✗', kind: 'no' as const },
+                  { name: 'Voice calls', val: '✗', kind: 'no' as const },
+                  { name: 'GPS tracking', val: '✓', kind: 'yes' as const },
+                  { name: 'Passive data', val: '✓', kind: 'yes' as const },
+                  { name: 'Photo upload', val: '✓', kind: 'yes' as const },
+                ],
+              },
+            ],
+          },
+        },
+      },
+    ],
+  },
+  // Trigger B: Bar graph — dual vs single device content delivery
+  {
+    detect: (text) =>
+      (text.includes('that chart is the answer') || text.includes('ninety-four versus seventy-one') || text.includes('94') && text.includes('71') && text.includes('percent')),
+    needs: [
+      {
+        category: 'metric' as InformationNeed['category'],
+        prompt: 'Dual-device vs single-device — mission completion and content delivery comparison',
+        triggerPhrase: 'That chart is the answer.',
+        isProactiveDemoTrigger: false,
+        demoEvidence: {
+          title: 'Dual-device vs single-device — mission completion and content delivery',
+          summary: 'Deployment data across 2022–2024 shows dual-device setups complete missions at 94% vs 71% for single-device, and deliver content at 91% vs 43%. The gap is largest in content delivery — driven by the GO!\'s passive pipeline.',
+          kind: 'metric' as EvidenceKind,
+          recencyLabel: 'Internal deployment data · 2022–2024',
+          confidence: 0.95,
+          verification: 'verified' as const,
+          explainWhyNow: 'Account Exec referenced the data chart directly',
+          attributions: [
+            { sourceId: 'iridium-deployments-dual-single', sourceType: 'internal_structured' as const, title: 'Expedition deployments 2022–2024', freshnessScore: 0.9, trustScore: 0.95 },
+          ],
+          richChart: {
+            labels: ['Mission completion', 'Content delivery', 'Comms uptime'],
+            datasets: [
+              { label: 'Dual-device', color: '#2563EB', data: [94, 91, 88] },
+              { label: 'Single-device', color: '#94A3B8', data: [71, 43, 62] },
+            ],
+            note: 'Expedition deployments 2022–2024 · n=47 solo expeditions · Iridium internal data',
+          },
+        },
+      },
+    ],
+  },
   // Trigger 1: Proactive — passive setup + content delivery
   {
     detect: (text) =>
@@ -71,7 +158,6 @@ const demoTriggers: Array<{
         },
       },
     ],
-    fired: false,
   },
   // Trigger 3: Caution — leading with GO! as primary
   {
@@ -109,7 +195,6 @@ const demoTriggers: Array<{
         },
       },
     ],
-    fired: false,
   },
   // Trigger 3: Diagram — device decision flow
   {
@@ -146,29 +231,21 @@ const demoTriggers: Array<{
         },
       },
     ],
-    fired: false,
   },
 ];
-
-export function resetDemoTriggers(): void {
-  for (const t of demoTriggers) {
-    t.fired = false;
-  }
-}
 
 export function inferInformationNeeds(event: TranscriptEvent): InformationNeed[] {
   const text = event.text.toLowerCase();
   const needs: InformationNeed[] = [];
 
-  // Check demo triggers first
+  // Check demo triggers — stateless, dedup is handled by applyAdditionalNeeds in the reducer
   for (const trigger of demoTriggers) {
-    if (!trigger.fired && trigger.detect(text)) {
-      trigger.fired = true;
+    if (trigger.detect(text)) {
       for (const t of trigger.needs) {
         needs.push({
           id: t.isProactiveDemoTrigger
-            ? `proactive-demo-${event.id}-${t.category}`
-            : `need-${event.id}-${t.category}-demo`,
+            ? `proactive-demo-${event.segmentId}-${t.category}`
+            : `need-${event.segmentId}-${t.category}-demo`,
           category: t.category,
           prompt: t.prompt,
           rationale: `Triggered by: "${event.text.slice(0, 80)}"`,
@@ -183,7 +260,7 @@ export function inferInformationNeeds(event: TranscriptEvent): InformationNeed[]
           proactiveImportance: t.proactiveImportance,
         });
       }
-      break;
+      break; // at most one trigger per event
     }
   }
 

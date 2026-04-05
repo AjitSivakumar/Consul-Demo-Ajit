@@ -46,7 +46,8 @@ export function useTranscriptRunner(): {
   const micRetryTimerRef = useRef<number | null>(null);
   const micRestartAttemptsRef = useRef(0);
   const eventCounterRef = useRef(1000);
-  const [mode, setMode] = useState<TranscriptStreamMode>('ai-live');
+  const presetCursorRef = useRef(0);
+  const [mode, setMode] = useState<TranscriptStreamMode>('recall-bot');
   const [upcomingTurn, setUpcomingTurn] = useState<{ speaker: string; text: string } | null>(null);
   const [micError, setMicError] = useState<string | null>(null);
   const [micInterimText, setMicInterimText] = useState('');
@@ -139,6 +140,9 @@ export function useTranscriptRunner(): {
 
     const timer = window.setInterval(() => {
       void (async () => {
+        // Don't run ai-live generation during preset replay
+        if (stateRef.current.presetTranscript !== null) return;
+
         if (generatingRef.current) {
           return;
         }
@@ -175,6 +179,29 @@ export function useTranscriptRunner(): {
 
     return () => window.clearInterval(timer);
   }, [dispatch, mode, state.liveStatus]);
+
+  // ── Preset replay: fire stored transcript events one-by-one when Start is pressed ──
+  useEffect(() => {
+    if (state.liveStatus !== 'listening' || !state.presetTranscript || state.presetTranscript.length === 0) {
+      return;
+    }
+
+    presetCursorRef.current = 0;
+    const events = state.presetTranscript;
+
+    const timer = window.setInterval(() => {
+      if (presetCursorRef.current >= events.length) {
+        window.clearInterval(timer);
+        dispatch({ type: 'CLEAR_PRESET_TRANSCRIPT' });
+        return;
+      }
+      const evt = events[presetCursorRef.current];
+      presetCursorRef.current += 1;
+      dispatch({ type: 'PROCESS_EVENT', payload: evt });
+    }, 2500);
+
+    return () => window.clearInterval(timer);
+  }, [dispatch, state.liveStatus, state.presetTranscript]);
 
   useEffect(() => {
     if (mode !== 'microphone') {
