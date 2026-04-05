@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ambi — Annotated Script · Chen Lab × Tobin Center</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital,wght@0,400;1,400&family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f5f4f0;
+  --panel: #ffffff;
+  --border: #e4e2dc;
+  --border-mid: #ccc9c0;
+  --t1: #1a1a18;
+  --t2: #6b6a66;
+  --t3: #a8a7a2;
+  --green: #1a7a45;
+  --bg-green: #edf7f1;
+  --border-green: #b8e0c8;
+  --blue: #185FA5;
+  --bg-blue: #EEF5FD;
+  --border-blue: #b5d4f4;
+  --red: #b8291c;
+  --bg-red: #fdf2f0;
+  --border-red: #eeb8b0;
+  --gold: #7a5400;
+  --bg-gold: #fdf7e8;
+  --border-gold: #e0c878;
+
+  /* highlight colors — semi-transparent so text stays readable */
+  --hl-reactive1: rgba(26,122,69,0.13);
+  --hl-reactive2: rgba(26,122,69,0.13);
+  --hl-diagram:   rgba(122,84,0,0.11);
+  --hl-caution:   rgba(184,41,28,0.10);
+  --hl-proactive: rgba(24,95,165,0.10);
+
+  --pill-reactive: #1a7a45;
+  --pill-diagram:  #7a5400;
+  --pill-caution:  #b8291c;
+  --pill-proactive:#185FA5;
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--t1);
+  min-height: 100vh;
+  padding: 0;
+}
+
+/* ── TOPBAR ── */
+.topbar {
+  height: 46px;
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 10px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.logo { font-family: 'Instrument Serif', serif; font-size: 17px; letter-spacing: -.2px; }
+.tb-div { width: 1px; height: 16px; background: var(--border); }
+.tb-ctx { font-size: 11px; color: var(--t2); font-family: 'DM Mono', monospace; }
+.tb-pill {
+  margin-left: auto; display: flex; align-items: center; gap: 6px;
+  background: #f0f0ee; border: 1px solid var(--border); border-radius: 100px; padding: 4px 11px;
+}
+.dot-live { width: 6px; height: 6px; border-radius: 50%; background: #4caf50; animation: blink 2s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.75)} }
+.tb-pill span { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--t2); }
+
+/* ── LAYOUT ── */
+.page { display: flex; min-height: calc(100vh - 46px); }
+
+/* ── LEGEND SIDEBAR ── */
+.legend-col {
+  width: 220px;
+  flex-shrink: 0;
+  padding: 28px 16px;
+  border-right: 1px solid var(--border);
+  position: sticky;
+  top: 46px;
+  height: calc(100vh - 46px);
+  overflow-y: auto;
+}
+
+.legend-title {
+  font-size: 9px;
+  font-family: 'DM Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  color: var(--t3);
+  margin-bottom: 16px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.legend-item:last-child { border-bottom: none; }
+.legend-item:hover { opacity: .75; }
+
+.legend-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.sw-r1 { background: var(--green); }
+.sw-r2 { background: var(--green); opacity: .65; }
+.sw-dg { background: var(--gold); }
+.sw-ca { background: var(--red); }
+.sw-pr { background: var(--blue); }
+
+.legend-text { }
+.legend-type {
+  font-size: 9px;
+  font-family: 'DM Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-bottom: 3px;
+}
+.lt-r1, .lt-r2 { color: var(--green); }
+.lt-dg { color: var(--gold); }
+.lt-ca { color: var(--red); }
+.lt-pr { color: var(--blue); }
+
+.legend-desc {
+  font-size: 11px;
+  color: var(--t2);
+  line-height: 1.4;
+  font-weight: 300;
+}
+
+/* ── SCRIPT MAIN ── */
+.script-main {
+  flex: 1;
+  padding: 36px 48px 80px;
+  max-width: 760px;
+}
+
+.script-header { margin-bottom: 32px; }
+.script-eyebrow {
+  font-size: 9px;
+  font-family: 'DM Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  color: var(--t3);
+  margin-bottom: 10px;
+}
+.script-title {
+  font-family: 'Instrument Serif', serif;
+  font-size: 28px;
+  font-weight: 400;
+  letter-spacing: -.3px;
+  color: var(--t1);
+  line-height: 1.2;
+  margin-bottom: 6px;
+}
+.script-sub {
+  font-size: 13px;
+  color: var(--t2);
+  font-weight: 300;
+}
+
+/* SOURCES ROW */
+.sources-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 9px 13px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 32px;
+}
+.src-label {
+  font-size: 9px;
+  font-family: 'DM Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--t3);
+  margin-right: 4px;
+}
+.src-tag {
+  font-size: 9px;
+  font-family: 'DM Mono', monospace;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.st-green { background: var(--bg-green); color: var(--green); border: 1px solid var(--border-green); }
+.st-blue  { background: var(--bg-blue);  color: var(--blue);  border: 1px solid var(--border-blue); }
+.st-gold  { background: var(--bg-gold);  color: var(--gold);  border: 1px solid var(--border-gold); }
+
+/* ── SCRIPT LINES ── */
+.script { display: flex; flex-direction: column; gap: 0; }
+
+.line {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 20px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+  align-items: flex-start;
+}
+.line:last-child { border-bottom: none; }
+
+.speaker {
+  font-size: 10px;
+  font-family: 'DM Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  padding-top: 2px;
+  line-height: 1.6;
+}
+.sp-sarah { color: var(--green); }
+.sp-james { color: var(--blue); }
+.sp-ambi  { color: var(--t3); }
+
+.dialogue {
+  font-size: 14px;
+  color: var(--t1);
+  line-height: 1.85;
+  font-weight: 300;
+}
+
+.stage-dir {
+  font-size: 11.5px;
+  color: var(--t3);
+  font-style: italic;
+  font-family: 'DM Mono', monospace;
+  line-height: 1.6;
+}
+
+/* ── HIGHLIGHTS ── */
+.hl {
+  border-radius: 3px;
+  padding: 1px 0;
+  cursor: default;
+  position: relative;
+  transition: filter .15s;
+}
+.hl:hover { filter: brightness(.93); }
+
+.hl-r1 { background: var(--hl-reactive1); }
+.hl-r2 { background: var(--hl-reactive2); }
+.hl-dg { background: var(--hl-diagram); }
+.hl-ca { background: var(--hl-caution); }
+.hl-pr { background: var(--hl-proactive); }
+
+/* ── INSIGHT PILLS ── (appear after triggered line) */
+.insight-pills {
+  grid-column: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 0 4px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 11px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-family: 'DM Mono', monospace;
+  width: fit-content;
+  letter-spacing: .02em;
+  animation: popIn .3s cubic-bezier(.22,1,.36,1) both;
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: translateX(-6px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.pill-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+.pill-r1, .pill-r2 { background: var(--bg-green); border: 1px solid var(--border-green); color: var(--green); }
+.pill-r1 .pill-dot, .pill-r2 .pill-dot { background: var(--green); }
+
+.pill-dg { background: var(--bg-gold); border: 1px solid var(--border-gold); color: var(--gold); }
+.pill-dg .pill-dot { background: var(--gold); }
+
+.pill-ca { background: var(--bg-red); border: 1px solid var(--border-red); color: var(--red); }
+.pill-ca .pill-dot { background: var(--red); }
+
+.pill-pr { background: var(--bg-blue); border: 1px solid var(--border-blue); color: var(--blue); }
+.pill-pr .pill-dot { background: var(--blue); }
+
+/* ── ANNOTATION MARGIN ── */
+.annotation {
+  margin-top: 6px;
+  font-size: 10.5px;
+  color: var(--t3);
+  font-family: 'DM Mono', monospace;
+  line-height: 1.55;
+  padding-left: 2px;
+  border-left: 2px solid var(--border-mid);
+  padding-left: 8px;
+}
+
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">Ambi</div>
+  <div class="tb-div"></div>
+  <div class="tb-ctx">Annotated script · Chen Lab × Tobin Center · Heat / preterm birth</div>
+  <div class="tb-pill"><div class="dot-live"></div><span>Listening</span></div>
+</div>
+
+<div class="page">
+
+  <!-- LEGEND -->
+  <div class="legend-col">
+    <div class="legend-title">Insight triggers</div>
+
+    <div class="legend-item">
+      <div class="legend-swatch sw-r1"></div>
+      <div class="legend-text">
+        <div class="legend-type lt-r1">Reactive · 01</div>
+        <div class="legend-desc">Effect size table — which numbers are stable to anchor on</div>
+      </div>
+    </div>
+
+    <div class="legend-item">
+      <div class="legend-swatch sw-r2"></div>
+      <div class="legend-text">
+        <div class="legend-type lt-r2">Reactive · 02</div>
+        <div class="legend-desc">Dose-response graph — diverging curves by income stratum</div>
+      </div>
+    </div>
+
+    <div class="legend-item">
+      <div class="legend-swatch sw-dg"></div>
+      <div class="legend-text">
+        <div class="legend-type lt-dg">Diagram Suggested</div>
+        <div class="legend-desc">CT stakeholder sign-off pathway — branching flowchart</div>
+      </div>
+    </div>
+
+    <div class="legend-item">
+      <div class="legend-swatch sw-ca"></div>
+      <div class="legend-text">
+        <div class="legend-type lt-ca">Caution</div>
+        <div class="legend-desc">Bridgeport data is thinner — citing both cities risks credibility</div>
+      </div>
+    </div>
+
+    <div class="legend-item">
+      <div class="legend-swatch sw-pr"></div>
+      <div class="legend-text">
+        <div class="legend-type lt-pr">Proactive</div>
+        <div class="legend-desc">DEEP heat mapping publishes this spring — neither party has raised it</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT -->
+  <div class="script-main">
+
+    <div class="script-header">
+      <div class="script-eyebrow">Ambi · Annotated meeting script · Preset: YSPH Epi Lab × Tobin Center</div>
+      <div class="script-title">Sarah Chen × James Okafor<br><em style="color:var(--t2);font-size:22px;">Heat exposure / preterm birth · CT climate adaptation pitch</em></div>
+      <div class="script-sub">Highlights show exactly what triggers each Ambi insight. Colored pills mark where each fires.</div>
+    </div>
+
+    <div class="sources-row">
+      <span class="src-label">Sources active</span>
+      <span class="src-tag st-green">ambi_data_effect_sizes.json</span>
+      <span class="src-tag st-green">ambi_data_rr_graph.json</span>
+      <span class="src-tag st-blue">Chersich et al. (2025) · Nature Medicine</span>
+      <span class="src-tag st-gold">web → CT DEEP heat mapping · legislative calendar</span>
+    </div>
+
+    <div class="script">
+
+      <!-- JAMES LINE 1 -->
+      <div class="line">
+        <div class="speaker sp-james">James<br>Okafor</div>
+        <div class="dialogue">
+          I want to build the economic case before the June session. We take your effect sizes, model out prevented preterm births across New Haven, put a dollar figure on it — NICHD puts average direct cost at around $50,000 per preterm birth. If your data holds, we have something the adaptation office can act on.
+        </div>
+      </div>
+
+      <!-- SARAH LINE 1 — triggers reactive 01 -->
+      <div class="line">
+        <div class="speaker sp-sarah">Sarah<br>Chen</div>
+        <div class="dialogue">
+          I want to help you get there but I need to flag something first — <span class="hl hl-r1">the preprint isn't peer reviewed yet and we're still working through a confounder around AC access that could affect the effect size. I don't want to hand you a number that shifts in the revision and becomes a liability for the Tobin pitch.</span>
+        </div>
+      </div>
+      <div class="line" style="border-bottom:none;padding-top:0;padding-bottom:4px">
+        <div></div>
+        <div class="insight-pills">
+          <div class="pill pill-r1"><span class="pill-dot"></span>Reactive 01 fires — effect size table with stability flags pulled from ambi_data_effect_sizes.json</div>
+          <div class="annotation">Trigger: Sarah's mention of the AC confounder and unstable effect sizes prompts Ambi to surface the full stratum-by-stratum table so James can immediately see which numbers are safe to anchor on versus which are in flux.</div>
+        </div>
+      </div>
+
+      <!-- JAMES LINE 2 -->
+      <div class="line">
+        <div class="speaker sp-james">James<br>Okafor</div>
+        <div class="dialogue">
+          Okay — so if we anchor only on the numbers you're confident in, the lower-bound estimate still gets us somewhere meaningful. What's the effect size for extreme heat days in the third trimester, low-income tracts, even with conservative assumptions?
+        </div>
+      </div>
+
+      <!-- SARAH LINE 2 — triggers reactive 02 -->
+      <div class="line">
+        <div class="speaker sp-sarah">Sarah<br>Chen</div>
+        <div class="dialogue">
+          <span class="hl hl-r2">The association is around 1.4 relative risk in that stratum. But look — even if the AC confounder shaves that down, the directionality is stable.</span> What I'd say to the adaptation office is: the evidence is strong enough to justify piloting. What it can't support yet is a city-wide cost-benefit number with a single point estimate.
+        </div>
+      </div>
+      <div class="line" style="border-bottom:none;padding-top:0;padding-bottom:4px">
+        <div></div>
+        <div class="insight-pills">
+          <div class="pill pill-r2"><span class="pill-dot"></span>Reactive 02 fires — dose-response graph showing diverging RR curves by income stratum</div>
+          <div class="annotation">Trigger: Sarah naming the RR 1.4 figure and asserting directionality is stable prompts Ambi to visualize the full dose-response curve — making the income disparity argument legible and citing Chersich et al. (2025) as external validation.</div>
+        </div>
+      </div>
+
+      <!-- JAMES LINE 3 — triggers diagram -->
+      <div class="line">
+        <div class="speaker sp-james">James<br>Okafor</div>
+        <div class="dialogue">
+          That's actually a cleaner story for the adaptation office anyway — pilot justification with a credible lower bound, rather than a city-wide projection they'll pick apart. Let me think about the stakeholder pathway. <span class="hl hl-dg">The adaptation office reports to DEEP, but the funding for cool corridors probably runs through OPM — and we'd need DPH sign-off to use the maternal outcomes data in any public-facing materials. This could get complicated fast.</span>
+        </div>
+      </div>
+      <div class="line" style="border-bottom:none;padding-top:0;padding-bottom:4px">
+        <div></div>
+        <div class="insight-pills">
+          <div class="pill pill-dg"><span class="pill-dot"></span>Diagram Suggested — CT stakeholder sign-off pathway mapped as a branching flowchart</div>
+          <div class="annotation">Trigger: James names three separate agencies (DEEP, OPM, DPH) with distinct roles that don't run in sequence. Ambi identifies a branching decision structure and suggests visualizing the approval chain before Thursday.</div>
+        </div>
+      </div>
+
+      <!-- SARAH LINE 3 — triggers caution -->
+      <div class="line">
+        <div class="speaker sp-sarah">Sarah<br>Chen</div>
+        <div class="dialogue">
+          And honestly before we even get to the pathway — <span class="hl hl-ca">I want to make sure we're not inadvertently overstating the geographic precision of this. The census tract-level data is solid for New Haven. Bridgeport is thinner. If James leads with "New Haven and Bridgeport" the way the preprint title reads, and the Bridgeport estimates don't survive revision, that's a credibility problem.</span>
+        </div>
+      </div>
+      <div class="line" style="border-bottom:none;padding-top:0;padding-bottom:4px">
+        <div></div>
+        <div class="insight-pills">
+          <div class="pill pill-ca"><span class="pill-dot"></span>Caution fires — Bridgeport data is thinner; citing both cities risks credibility with the adaptation office</div>
+          <div class="annotation">Trigger: Sarah explicitly flags that Bridgeport sample sizes are thinner, while the preprint title implies equal data quality across both cities. Ambi surfaces this as a positioning risk because James has been citing both cities throughout — and the adaptation office may scrutinize this.</div>
+        </div>
+      </div>
+
+      <!-- JAMES LINE 4 — triggers proactive -->
+      <div class="line">
+        <div class="speaker sp-james">James<br>Okafor</div>
+        <div class="dialogue">
+          You're right. New Haven is the anchor. Bridgeport is directional. Let's build the deck that way.
+        </div>
+      </div>
+      <div class="line" style="border-bottom:none;padding-top:0;padding-bottom:4px">
+        <div></div>
+        <div class="insight-pills">
+          <div class="pill pill-pr"><span class="pill-dot"></span>Proactive fires — DEEP heat vulnerability indices publish this spring, before the June session</div>
+          <div class="annotation">Trigger: Neither James nor Sarah has mentioned the DEEP urban heat island mapping project throughout the conversation. As they shift to pitch planning, Ambi proactively flags that DEEP's census tract-level heat vulnerability indices are expected spring 2026 — overlapping directly with the Tobin pitch window — and that this could either validate or complicate their geographic targeting.</div>
+        </div>
+      </div>
+
+      <!-- SARAH LINE 4 — close -->
+      <div class="line">
+        <div class="speaker sp-sarah">Sarah<br>Chen</div>
+        <div class="dialogue">
+          Let's get it in front of the adaptation office before they're locked into summer priorities.
+        </div>
+      </div>
+
+      <!-- AMBI CLOSE -->
+      <div class="line">
+        <div class="speaker sp-ambi">Ambi</div>
+        <div class="stage-dir">
+          [Ambi doesn't need to source anything additional → script ends]
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

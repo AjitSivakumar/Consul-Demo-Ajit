@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ambi — Reactive 02 · Dose-Response Graph</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital,wght@0,400;1,400&family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f4f0;--panel:#fff;--border:#e4e2dc;--border-mid:#ccc9c0;
+  --t1:#1a1a18;--t2:#6b6a66;--t3:#a8a7a2;
+  --green:#1a7a45;--bg-green:#edf7f1;--border-green:#b8e0c8;
+  --blue:#185FA5;--bg-blue:#EEF5FD;--border-blue:#b5d4f4;
+  --red:#b8291c;--bg-red:#fdf2f0;--border-red:#eeb8b0;
+  --gold:#7a5400;--bg-gold:#fdf7e8;--border-gold:#e0c878;
+  --warn:#7a4a1a;--bg-warn:#fdf3e8;--border-warn:#e0c090;
+  --series-low:#2d5a3d;--series-high:#c8a060;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t1);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:46px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 18px;gap:10px;flex-shrink:0}
+.logo{font-family:'Instrument Serif',serif;font-size:17px;letter-spacing:-.2px}
+.tb-div{width:1px;height:16px;background:var(--border)}
+.tb-ctx{font-size:11px;color:var(--t2);font-family:'DM Mono',monospace}
+.tb-pill{margin-left:auto;display:flex;align-items:center;gap:6px;background:#f0f0ee;border:1px solid var(--border);border-radius:100px;padding:4px 11px}
+.dot-live{width:6px;height:6px;border-radius:50%;background:#4caf50;animation:blink 2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.75)}}
+.tb-pill span{font-size:10px;font-family:'DM Mono',monospace;color:var(--t2)}
+.body{display:flex;flex:1;overflow:hidden}
+.left{width:300px;flex-shrink:0;border-right:1px solid var(--border);background:#fafaf8;display:flex;flex-direction:column;overflow:hidden}
+.left-hd{padding:12px 14px 9px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.left-hd-label{font-size:10px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--t3)}
+.count-badge{background:var(--green);color:#fff;font-size:10px;font-family:'DM Mono',monospace;border-radius:100px;padding:1px 8px}
+.feed{padding:8px;display:flex;flex-direction:column;gap:6px;overflow-y:auto;flex:1}
+.fc{border-radius:10px;padding:11px 12px;cursor:pointer;border:1.5px solid var(--border);background:#fff;transition:all .15s}
+.fc:hover{border-color:var(--border-mid);box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.fc.sel-reactive{border-color:var(--green);background:var(--bg-green)}
+.fc.sel-diagram{border-color:var(--gold);background:var(--bg-gold)}
+.fc.sel-caution{border-color:var(--red);background:var(--bg-red)}
+.fc.sel-proactive{border-color:var(--blue);background:var(--bg-blue)}
+.fc-type{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;display:flex;align-items:center;gap:5px}
+.fc-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.t-reactive .fc-dot{background:var(--green)} .t-reactive{color:var(--green)}
+.t-proactive .fc-dot{background:var(--blue)} .t-proactive{color:var(--blue)}
+.t-caution .fc-dot{background:var(--red)} .t-caution{color:var(--red)}
+.t-diagram .fc-dot{background:var(--gold)} .t-diagram{color:var(--gold)}
+.fc-title{font-size:12.5px;font-weight:500;color:var(--t1);line-height:1.4;margin-bottom:5px}
+.fc-trigger{font-size:11px;color:var(--t2);font-style:italic;line-height:1.45;font-weight:300;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.center{flex:1;overflow-y:auto;padding:26px 30px 40px}
+.c-eye{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.12em;color:var(--t3);margin-bottom:8px}
+.c-title{font-family:'Instrument Serif',serif;font-size:24px;font-weight:400;line-height:1.25;color:var(--t1);margin-bottom:6px;letter-spacing:-.3px}
+.c-body{font-size:13px;color:var(--t2);font-weight:300;line-height:1.65;margin-bottom:20px}
+.trig-box{background:#f5f4f0;border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:20px}
+.trig-label{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--t3);margin-bottom:4px}
+.trig-text{font-size:12px;color:var(--t2);font-style:italic;line-height:1.6}
+
+/* CHART */
+.chart-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px 20px 14px;margin-bottom:14px}
+.chart-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;gap:12px}
+.chart-title-text{font-family:'Instrument Serif',serif;font-size:15px;color:var(--t1);margin-bottom:3px;letter-spacing:-.2px}
+.chart-sub{font-size:10px;font-family:'DM Mono',monospace;color:var(--t3)}
+.legend{display:flex;gap:14px;flex-shrink:0}
+.leg-item{display:flex;align-items:center;gap:6px;font-size:10px;font-family:'DM Mono',monospace;color:var(--t2)}
+.leg-line{width:18px;height:2.5px;border-radius:2px;flex-shrink:0}
+.leg-low{background:var(--series-low)} .leg-high{background:var(--series-high)}
+.chart-wrap{position:relative;width:100%;height:230px}
+.chart-note{font-size:10px;font-family:'DM Mono',monospace;color:var(--t3);margin-top:12px;padding-top:10px;border-top:1px solid var(--border);line-height:1.6}
+
+/* FINDING GRID */
+.find-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.find-card{border-radius:10px;padding:12px 14px;border:1px solid}
+.fc-div{background:var(--bg-green);border-color:var(--border-green)}
+.fc-pol{background:var(--bg-warn);border-color:var(--border-warn)}
+.find-label{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
+.fc-div .find-label{color:var(--green)} .fc-pol .find-label{color:var(--warn)}
+.find-text{font-size:12px;line-height:1.65;font-weight:300}
+.fc-div .find-text{color:#1a3a28} .fc-pol .find-text{color:#5a3010}
+.src-tag{display:inline-block;font-size:9px;font-family:'DM Mono',monospace;color:var(--t3);background:#f5f4f0;border:1px solid var(--border);border-radius:4px;padding:2px 8px}
+.src-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+
+/* INLINE CITE */
+.cite{color:var(--blue);font-size:11px;font-family:'DM Mono',monospace;cursor:pointer;border-bottom:1px dashed var(--blue);padding-bottom:1px;white-space:nowrap}
+.cite:hover{color:#0d3d6e}
+
+/* CITATION BLOCK */
+.cite-block{background:#fff;border:1.5px solid var(--border-blue);border-radius:12px;overflow:hidden;margin-top:14px;margin-bottom:4px;display:none;animation:fadeIn .2s ease}
+.cite-block.open{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.cite-header{display:flex;align-items:flex-start;justify-content:space-between;padding:12px 14px;background:var(--bg-blue);border-bottom:1px solid var(--border-blue);gap:10px}
+.cite-header-left{display:flex;align-items:flex-start;gap:10px}
+.cite-icon{font-size:9px;font-family:'DM Mono',monospace;font-weight:500;color:#fff;background:var(--blue);border-radius:4px;padding:3px 7px;flex-shrink:0;margin-top:1px}
+.cite-title{font-size:12px;font-weight:500;color:var(--blue);margin-bottom:2px}
+.cite-journal{font-size:10px;font-family:'DM Mono',monospace;color:#4a7ab5}
+.cite-close{background:none;border:none;font-size:12px;color:var(--t3);cursor:pointer;flex-shrink:0;margin-top:2px}
+.cite-apa{font-size:11.5px;color:var(--t2);line-height:1.7;padding:12px 14px;border-bottom:1px solid var(--border);font-style:normal}
+.cite-apa em{font-style:italic}
+.cite-abstract-label{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--t3);padding:10px 14px 4px}
+.cite-abstract{font-size:12px;color:var(--t2);line-height:1.75;padding:0 14px 12px;font-weight:300;border-bottom:1px solid var(--border)}
+.cite-footer{display:flex;gap:6px;flex-wrap:wrap;padding:10px 14px}
+.cite-tag{font-size:9px;font-family:'DM Mono',monospace;padding:2px 8px;border-radius:4px;background:var(--bg-blue);color:var(--blue);border:1px solid var(--border-blue)}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo">Ambi</div><div class="tb-div"></div>
+  <div class="tb-ctx">Chen Lab × Tobin Center · Heat / preterm birth · CT adaptation pitch</div>
+  <div class="tb-pill"><div class="dot-live"></div><span>Listening</span></div>
+</div>
+<div class="body">
+  <div class="left">
+    <div class="left-hd"><div class="left-hd-label">Insights Feed</div><div class="count-badge">5</div></div>
+    <div class="feed">
+      <div class="fc t-reactive" onclick="sel(this,'reactive')">
+        <div class="fc-type"><span class="fc-dot"></span>Reactive</div>
+        <div class="fc-title">Effect sizes by trimester — which numbers are safe to anchor on</div>
+        <div class="fc-trigger">"…still working through a confounder around AC access…"</div>
+      </div>
+      <div class="fc sel-reactive t-reactive" onclick="sel(this,'reactive')">
+        <div class="fc-type"><span class="fc-dot"></span>Reactive</div>
+        <div class="fc-title">Dose-response curves diverge sharply by income — directionality holds</div>
+        <div class="fc-trigger">"…around 1.4 relative risk…even if AC shaves that down…"</div>
+      </div>
+      <div class="fc t-diagram" onclick="sel(this,'diagram')">
+        <div class="fc-type"><span class="fc-dot"></span>Diagram Suggested</div>
+        <div class="fc-title">CT stakeholder sign-off pathway maps to a branching flowchart</div>
+        <div class="fc-trigger">"…adaptation office reports to DEEP, funding runs through OPM…"</div>
+      </div>
+      <div class="fc t-caution" onclick="sel(this,'caution')">
+        <div class="fc-type"><span class="fc-dot"></span>Caution</div>
+        <div class="fc-title">Bridgeport data is thinner — citing both cities risks credibility</div>
+        <div class="fc-trigger">"…the preprint title reads 'New Haven and Bridgeport'…"</div>
+      </div>
+      <div class="fc t-proactive" onclick="sel(this,'proactive')">
+        <div class="fc-type"><span class="fc-dot"></span>Proactive</div>
+        <div class="fc-title">DEEP heat mapping publishes this spring — before the June session</div>
+        <div class="fc-trigger">Neither party has mentioned it · Ambi noticed</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="center">
+    <div class="c-eye">Reactive Insight · 02 · Source: ambi_data_rr_graph.json</div>
+    <div class="c-title">Dose-response curves diverge sharply by income stratum — directionality is stable</div>
+    <div class="c-body">Even with the AC confounder pending, the shape of these curves makes the pilot justification argument visually legible. Low-income tracts show a steep monotonic increase in preterm birth risk with heat exposure. Higher-income tracts are essentially flat.</div>
+
+    <div class="trig-box">
+      <div class="trig-label">Triggered by</div>
+      <div class="trig-text">Sarah Chen: "Around 1.4 relative risk in that stratum. Even if AC shaves that down, the directionality is stable. What the evidence supports is a pilot justification — not a city-wide point estimate."</div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-top">
+        <div>
+          <div class="chart-title-text">Relative risk of preterm birth by heat exposure quintile</div>
+          <div class="chart-sub">Third trimester · New Haven CT census tracts · 2018–2023</div>
+        </div>
+        <div class="legend">
+          <div class="leg-item"><div class="leg-line leg-low"></div>Low-income (Q1)</div>
+          <div class="leg-item"><div class="leg-line leg-high" style="border-top:2px dashed var(--series-high);background:none;height:0"></div>Higher-income (Q2–Q4)</div>
+        </div>
+      </div>
+      <div class="chart-wrap"><canvas id="rrChart"></canvas></div>
+      <div class="chart-note">Q1 = 0–1 extreme heat days; Q5 = 9+ extreme heat days during third trimester &nbsp;·&nbsp; ⚠ Low-income Q5 central estimate under review (AC confounder) — lower bound 1.24 considered stable &nbsp;·&nbsp; Source: ambi_data_rr_graph.json</div>
+    </div>
+
+    <div class="find-grid">
+      <div class="find-card fc-div">
+        <div class="find-label">↑ Diverging curves</div>
+        <div class="find-text">Low-income tracts show a steep, monotonic increase with heat exposure. Higher-income tracts show a flat, attenuated curve — consistent with AC access buffering the effect at higher income levels. This income-stratified dose-response pattern is corroborated by the broader literature: across 198 studies, heat wave exposure increased preterm birth odds by 26% (OR = 1.26, 95% CI: 1.08–1.47) <span class="cite" onclick="toggleCite()">(Chersich et al., 2025)</span>.</div>
+      </div>
+      <div class="find-card fc-pol">
+        <div class="find-label">→ Policy implication</div>
+        <div class="find-text">Pattern holds under conservative assumptions — directionality is stable even if the Q5 central estimate shifts. Supports a geographically targeted pilot in low-income tracts with the highest heat exposure. Chersich et al. (2025) note that effect sizes are consistently larger in lower-income and higher-exposure populations, reinforcing the case for income-stratified targeting.</div>
+      </div>
+    </div>
+
+    <!-- CITATION BLOCK -->
+    <div class="cite-block" id="citeBlock">
+      <div class="cite-header">
+        <div class="cite-header-left">
+          <div class="cite-icon">PDF</div>
+          <div>
+            <div class="cite-title">Chersich et al. (2025) — Nature Medicine</div>
+            <div class="cite-journal">Vol. 31 · pp. 684–694 · DOI: 10.1038/s41591-024-03395-8</div>
+          </div>
+        </div>
+        <button class="cite-close" onclick="toggleCite()">✕</button>
+      </div>
+      <div class="cite-apa">Chersich, M. F., Scorgie, F., Filippi, V., Luchters, S., &amp; the HEAT Network. (2025). A systematic review and meta-analysis of heat exposure impacts on maternal, fetal and neonatal health. <em>Nature Medicine</em>, <em>31</em>, 684–694. https://doi.org/10.1038/s41591-024-03395-8</div>
+      <div class="cite-abstract-label">Abstract</div>
+      <div class="cite-abstract">Despite growing evidence of heat-associated adverse maternal and neonatal health outcomes, there remains a lack of synthesis quantifying associations and identifying specific risk periods. We systematically reviewed the literature on heat impacts on maternal, fetal and neonatal health and quantified impacts through meta-analyses. We found 198 studies across 66 countries. Results showed increased odds of preterm birth of 1.04 (95% CI = 1.03, 1.06) per 1°C increase in heat exposure and 1.26 (95% CI = 1.08, 1.47) during heat waves. Similarly, high heat exposure increased the risk for stillbirths (OR = 1.13), congenital anomalies (OR = 1.48), and gestational diabetes mellitus (OR = 1.28). Findings underscore the urgent need for heat-health interventions targeting pregnant women, particularly in lower-income populations with limited adaptive capacity.</div>
+      <div class="cite-footer">
+        <span class="cite-tag">systematic review</span>
+        <span class="cite-tag">meta-analysis</span>
+        <span class="cite-tag">198 studies · 66 countries</span>
+        <span class="cite-tag">Nature Medicine 2025</span>
+      </div>
+    </div>
+
+    <div class="src-row">
+      <div class="src-tag">ambi_data_rr_graph.json · Chen Lab preprint v2 · not peer reviewed</div>
+      <div class="src-tag">Chersich et al. (2025) · <em>Nature Medicine</em> · DOI: 10.1038/s41591-024-03395-8</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function sel(el, type) {
+  document.querySelectorAll('.fc').forEach(c => c.className = c.className.replace(/\bsel-\w+/g,'').trim());
+  el.classList.add('sel-' + type);
+}
+function toggleCite() {
+  document.getElementById('citeBlock').classList.toggle('open');
+}
+
+const errorBarPlugin = {
+  id:'eb',
+  afterDatasetsDraw(chart){
+    const ctx=chart.ctx;
+    const drawBars=(pts,lows,highs,col)=>{
+      pts.forEach((pt,i)=>{
+        const yL=chart.scales.y.getPixelForValue(lows[i]);
+        const yH=chart.scales.y.getPixelForValue(highs[i]);
+        ctx.save();ctx.strokeStyle=col;ctx.lineWidth=1.5;
+        ctx.beginPath();ctx.moveTo(pt.x,yL);ctx.lineTo(pt.x,yH);ctx.stroke();
+        [-4,4].forEach(d=>{
+          ctx.beginPath();ctx.moveTo(pt.x+d,yL);ctx.lineTo(pt.x-d,yL);ctx.stroke();
+          ctx.beginPath();ctx.moveTo(pt.x+d,yH);ctx.lineTo(pt.x-d,yH);ctx.stroke();
+        });
+        ctx.restore();
+      });
+    };
+    drawBars(chart.getDatasetMeta(0).data,[1.00,1.02,1.10,1.18,1.24],[1.00,1.21,1.31,1.45,1.60],'rgba(45,90,61,.3)');
+    drawBars(chart.getDatasetMeta(1).data,[1.00,.98,.99,1.00,1.01],[1.00,1.11,1.14,1.17,1.20],'rgba(200,160,96,.3)');
+  }
+};
+
+new Chart(document.getElementById('rrChart'),{
+  type:'line',plugins:[errorBarPlugin],
+  data:{
+    labels:['Q1 (0–1 days)','Q2 (2–3 days)','Q3 (4–5 days)','Q4 (6–8 days)','Q5 (9+ days)'],
+    datasets:[
+      {label:'Low-income (Q1)',data:[1.00,1.11,1.20,1.31,1.41],borderColor:'#2d5a3d',backgroundColor:'rgba(45,90,61,.07)',borderWidth:2.5,pointBackgroundColor:'#2d5a3d',pointRadius:5,tension:.2,fill:false},
+      {label:'Higher-income (Q2–Q4)',data:[1.00,1.04,1.06,1.08,1.10],borderColor:'#c8a060',borderWidth:2,pointBackgroundColor:'#c8a060',pointRadius:5,tension:.2,fill:false,borderDash:[5,3]}
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    interaction:{mode:'index',intersect:false},
+    plugins:{
+      legend:{display:false},
+      tooltip:{backgroundColor:'#fff',borderColor:'#e4e2dc',borderWidth:1,titleColor:'#1a1a18',titleFont:{family:'DM Mono',size:10},bodyColor:'#6b6a66',bodyFont:{family:'DM Sans',size:11},padding:10,
+        callbacks:{label:ctx=>ctx.dataset.label+': RR '+ctx.parsed.y.toFixed(2)}}
+    },
+    scales:{
+      x:{ticks:{color:'#a8a7a2',font:{size:10,family:'DM Mono'}},grid:{display:false},border:{color:'#e4e2dc'}},
+      y:{min:.92,max:1.72,ticks:{color:'#a8a7a2',font:{size:10,family:'DM Mono'},callback:v=>'RR '+v.toFixed(2)},grid:{color:'#f0ede6'},border:{color:'#e4e2dc'}}
+    }
+  }
+});
+</script>
+</body>
+</html>

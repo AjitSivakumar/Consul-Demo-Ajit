@@ -1,0 +1,103 @@
+{
+  "document": {
+    "title": "Chen Lab — Heat Exposure & Preterm Birth: Effect Size Summary",
+    "source": "YSPH Environmental Epidemiology Lab — Preprint v2 (not peer reviewed)",
+    "uploaded_by": "Sarah Chen",
+    "date": "2026-03-18",
+    "ambi_context": "Uploaded as supporting data for Tobin Center collaboration meeting"
+  },
+  "metadata": {
+    "study_population": "Live singleton births, CT 2018–2023",
+    "n_total": 84312,
+    "exposure_definition": "Extreme heat days = max daily temp ≥ 90°F during trimester",
+    "outcome": "Preterm birth (<37 weeks gestation)",
+    "geographic_unit": "Census tract",
+    "cities_included": ["New Haven", "Bridgeport", "Hartford", "Waterbury"],
+    "note_on_bridgeport": "Bridgeport tract-level sample sizes are thinner — estimates less stable, especially in Q4 income quartile"
+  },
+  "effect_sizes": [
+    {
+      "stratum": "First trimester exposure",
+      "income_quartile": "Q1 (lowest)",
+      "relative_risk": 1.08,
+      "ci_lower": 0.96,
+      "ci_upper": 1.21,
+      "p_value": 0.19,
+      "ac_confounder_flag": false,
+      "stability": "stable",
+      "note": "Association not statistically significant"
+    },
+    {
+      "stratum": "First trimester exposure",
+      "income_quartile": "Q2–Q3",
+      "relative_risk": 1.05,
+      "ci_lower": 0.98,
+      "ci_upper": 1.13,
+      "p_value": 0.17,
+      "ac_confounder_flag": false,
+      "stability": "stable",
+      "note": null
+    },
+    {
+      "stratum": "Second trimester exposure",
+      "income_quartile": "Q1 (lowest)",
+      "relative_risk": 1.19,
+      "ci_lower": 1.07,
+      "ci_upper": 1.32,
+      "p_value": 0.001,
+      "ac_confounder_flag": false,
+      "stability": "stable",
+      "note": "Statistically significant; confounder impact minimal in this window"
+    },
+    {
+      "stratum": "Second trimester exposure",
+      "income_quartile": "Q2–Q3",
+      "relative_risk": 1.11,
+      "ci_lower": 1.02,
+      "ci_upper": 1.20,
+      "p_value": 0.014,
+      "ac_confounder_flag": false,
+      "stability": "stable",
+      "note": null
+    },
+    {
+      "stratum": "Third trimester exposure",
+      "income_quartile": "Q1 (lowest)",
+      "relative_risk": 1.41,
+      "ci_lower": 1.24,
+      "ci_upper": 1.60,
+      "p_value": 0.0001,
+      "ac_confounder_flag": true,
+      "stability": "in_flux",
+      "note": "⚠ AC access confounder under active review — effect size may shift in revision. Do not anchor policy estimates on this stratum without flagging."
+    },
+    {
+      "stratum": "Third trimester exposure",
+      "income_quartile": "Q2–Q3",
+      "relative_risk": 1.18,
+      "ci_lower": 1.09,
+      "ci_upper": 1.28,
+      "p_value": 0.0003,
+      "ac_confounder_flag": false,
+      "stability": "stable",
+      "note": null
+    },
+    {
+      "stratum": "Third trimester exposure",
+      "income_quartile": "Q4 (highest)",
+      "relative_risk": 1.03,
+      "ci_lower": 0.95,
+      "ci_upper": 1.12,
+      "p_value": 0.48,
+      "ac_confounder_flag": false,
+      "stability": "stable",
+      "note": "No significant association in highest income quartile"
+    }
+  ],
+  "conservative_anchor": {
+    "recommended_stratum": "Third trimester, Q1, lower-bound estimate",
+    "relative_risk_conservative": 1.24,
+    "rationale": "CI lower bound for the key stratum — holds even if AC confounder adjustment reduces central estimate",
+    "james_policy_note": "This is the number that survives revision with highest probability. Suitable for pilot justification framing."
+  }
+}

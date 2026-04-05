@@ -1,0 +1,78 @@
+{
+  "document": {
+    "title": "Chen Lab — Relative Risk Across Heat Exposure Quintiles: Third Trimester",
+    "source": "YSPH Environmental Epidemiology Lab — Preprint v2 (not peer reviewed)",
+    "uploaded_by": "Sarah Chen",
+    "date": "2026-03-18",
+    "ambi_context": "Dose-response visualization data — third trimester heat exposure by income stratum"
+  },
+  "chart_config": {
+    "x_axis": "Heat exposure quintile (extreme heat days in third trimester)",
+    "y_axis": "Relative risk of preterm birth (ref = Q1 exposure, no extreme heat days)",
+    "series": ["Low-income tracts (Q1 income)", "Higher-income tracts (Q2–Q4 income)"],
+    "note": "Quintile 1 = 0–1 extreme heat days; Quintile 5 = 9+ extreme heat days during third trimester"
+  },
+  "data_points": [
+    {
+      "exposure_quintile": 1,
+      "label": "Q1 (0–1 days)",
+      "low_income_rr": 1.00,
+      "low_income_ci_lower": 1.00,
+      "low_income_ci_upper": 1.00,
+      "higher_income_rr": 1.00,
+      "higher_income_ci_lower": 1.00,
+      "higher_income_ci_upper": 1.00,
+      "note": "Reference category"
+    },
+    {
+      "exposure_quintile": 2,
+      "label": "Q2 (2–3 days)",
+      "low_income_rr": 1.11,
+      "low_income_ci_lower": 1.02,
+      "low_income_ci_upper": 1.21,
+      "higher_income_rr": 1.04,
+      "higher_income_ci_lower": 0.98,
+      "higher_income_ci_upper": 1.11,
+      "note": null
+    },
+    {
+      "exposure_quintile": 3,
+      "label": "Q3 (4–5 days)",
+      "low_income_rr": 1.20,
+      "low_income_ci_lower": 1.10,
+      "low_income_ci_upper": 1.31,
+      "higher_income_rr": 1.06,
+      "higher_income_ci_lower": 0.99,
+      "higher_income_ci_upper": 1.14,
+      "note": null
+    },
+    {
+      "exposure_quintile": 4,
+      "label": "Q4 (6–8 days)",
+      "low_income_rr": 1.31,
+      "low_income_ci_lower": 1.18,
+      "low_income_ci_upper": 1.45,
+      "higher_income_rr": 1.08,
+      "higher_income_ci_lower": 1.00,
+      "higher_income_ci_upper": 1.17,
+      "note": null
+    },
+    {
+      "exposure_quintile": 5,
+      "label": "Q5 (9+ days)",
+      "low_income_rr": 1.41,
+      "low_income_ci_lower": 1.24,
+      "low_income_ci_upper": 1.60,
+      "higher_income_rr": 1.10,
+      "higher_income_ci_lower": 1.01,
+      "higher_income_ci_upper": 1.20,
+      "ac_confounder_flag": true,
+      "note": "⚠ AC confounder under review for low-income Q5 — central estimate may shift; lower bound (1.24) considered stable"
+    }
+  ],
+  "key_finding": {
+    "summary": "Diverging dose-response curves by income stratum. Low-income tracts show a steep, monotonic increase in RR with heat exposure. Higher-income tracts show a flatter, attenuated curve — consistent with AC access buffering effect.",
+    "directionality_stable": true,
+    "policy_implication": "Pattern holds under conservative assumptions. Supports pilot program targeting low-income tracts with highest heat exposure days."
+  }
+}

@@ -12,3 +12,8 @@ dist/
 # Editor
 .DS_Store
 *.local
+
+# Resource FIle
+
+*.pdf
+*.zip
