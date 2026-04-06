@@ -28,6 +28,8 @@ export interface MeetingState {
   notes: Record<string, string>;
   // Preset replay: transcript queued for step-by-step playback on Start
   presetTranscript: TranscriptEvent[] | null;
+  // True for the entire session once a preset is loaded — blocks AI inference
+  presetActive: boolean;
   // When true, auto-timer always runs regardless of mode (no script-assist)
   presetAutoPlay: boolean;
   // Script-assist: preset loaded + recall-bot mode — disables auto-timer, uses looser trigger matching
@@ -79,6 +81,7 @@ export const initialMeetingState: MeetingState = {
   isGenerating: false,
   notes: {},
   presetTranscript: null,
+  presetActive: false,
   presetAutoPlay: false,
   scriptAssistMode: false,
 };
@@ -157,6 +160,7 @@ export function meetingReducer(state: MeetingState, action: MeetingAction): Meet
     case 'LOAD_PRESET': {
       return {
         ...initialMeetingState,
+        presetActive: true,
         presetAutoPlay: action.payload.autoPlay ?? false,
         context: { ...initialMeetingState.context, ...action.payload.context },
         presetTranscript: action.payload.transcript,

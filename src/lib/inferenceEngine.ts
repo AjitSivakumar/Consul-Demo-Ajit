@@ -211,10 +211,9 @@ const demoTriggers: Array<{
  detect: (text) =>
  text.includes('confounder around ac') || text.includes('working through a confounder'),
  detectAssist: (text) =>
- text.includes('confounder') || text.includes('effect size') ||
- text.includes('ac access') || text.includes('air conditioning') ||
- text.includes('preprint') || text.includes('preliminary') ||
- text.includes('estimate') || text.includes('in flux') || text.includes('peer review'),
+ text.includes('confounder around ac') || text.includes('effect size') ||
+ text.includes('working through a confounder') || text.includes('not peer reviewed') ||
+ text.includes('in flux') || text.includes('liability for the tobin'),
  needs: [
  {
   category: 'metric' as InformationNeed['category'],
@@ -289,9 +288,9 @@ const demoTriggers: Array<{
  detect: (text) =>
  text.includes('1.4 relative risk') || text.includes('directionality is stable'),
  detectAssist: (text) =>
- text.includes('1.4') || text.includes('relative risk') || text.includes('directionality') ||
- text.includes('stable') || text.includes('low income') || text.includes('dose') ||
- text.includes('exposure') || text.includes('stratum') || text.includes('association'),
+ text.includes('1.4 relative risk') || text.includes('directionality is stable') ||
+ text.includes('around 1.4') || text.includes('conservative assumptions') ||
+ (text.includes('relative risk') && text.includes('stratum')),
  needs: [
  {
   category: 'metric' as InformationNeed['category'],
@@ -329,9 +328,10 @@ const demoTriggers: Array<{
  detect: (text) =>
  text.includes('reports to deep') || (text.includes('runs through opm') && text.includes('dph')),
  detectAssist: (text) =>
- text.includes('opm') || text.includes('dph') ||
- text.includes('adaptation') || text.includes('sign-off') ||
- text.includes('stakeholder') || text.includes('pathway') || text.includes('approval'),
+ (text.includes('adaptation office') && text.includes('opm')) ||
+ (text.includes('opm') && text.includes('dph')) ||
+ text.includes('stakeholder pathway') ||
+ (text.includes('adaptation office') && text.includes('deep')),
  needs: [
  {
   category: 'comparison' as InformationNeed['category'],
@@ -382,9 +382,9 @@ const demoTriggers: Array<{
  detect: (text) =>
  text.includes('bridgeport is thinner') || (text.includes('bridgeport') && text.includes('credibility problem')),
  detectAssist: (text) =>
- text.includes('bridgeport') || text.includes('thinner') ||
- text.includes('sample size') || text.includes('data quality') ||
- text.includes('both cities') || text.includes('coverage') || text.includes('credibility'),
+ text.includes('bridgeport is thinner') || text.includes('credibility problem') ||
+ (text.includes('bridgeport') && text.includes('estimates')) ||
+ (text.includes('bridgeport') && text.includes('revision')),
  needs: [
  {
   category: 'correction' as InformationNeed['category'],
@@ -424,9 +424,9 @@ const demoTriggers: Array<{
  detect: (text) =>
  text.includes('new haven is the anchor') || text.includes('build the deck that way'),
  detectAssist: (text) =>
- text.includes('anchor') || text.includes('new haven') ||
- text.includes('pilot') || text.includes('june') ||
- text.includes('build the deck') || text.includes('adaptation office'),
+ text.includes('new haven is the anchor') || text.includes('build the deck') ||
+ (text.includes('new haven') && text.includes('anchor')) ||
+ text.includes('bridgeport is directional'),
  needs: [
  {
   category: 'metric' as InformationNeed['category'],
