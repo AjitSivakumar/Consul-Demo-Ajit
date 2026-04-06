@@ -211,9 +211,10 @@ const demoTriggers: Array<{
  detect: (text) =>
  text.includes('confounder around ac') || text.includes('working through a confounder'),
  detectAssist: (text) =>
- text.includes('confounder around ac') || text.includes('effect size') ||
- text.includes('working through a confounder') || text.includes('not peer reviewed') ||
- text.includes('in flux') || text.includes('liability for the tobin'),
+ text.includes('confounder around ac') ||
+ text.includes('working through a confounder') ||
+ text.includes('liability for the tobin') ||
+ text.includes('shifts in revision'),
  needs: [
  {
   category: 'metric' as InformationNeed['category'],
@@ -288,9 +289,9 @@ const demoTriggers: Array<{
  detect: (text) =>
  text.includes('1.4 relative risk') || text.includes('directionality is stable'),
  detectAssist: (text) =>
- text.includes('1.4 relative risk') || text.includes('directionality is stable') ||
- text.includes('around 1.4') || text.includes('conservative assumptions') ||
- (text.includes('relative risk') && text.includes('stratum')),
+ text.includes('1.4 relative risk') ||
+ text.includes('directionality is stable') ||
+ (text.includes('around 1.4') && text.includes('stratum')),
  needs: [
  {
   category: 'metric' as InformationNeed['category'],
@@ -328,10 +329,10 @@ const demoTriggers: Array<{
  detect: (text) =>
  text.includes('reports to deep') || (text.includes('runs through opm') && text.includes('dph')),
  detectAssist: (text) =>
- (text.includes('adaptation office') && text.includes('opm')) ||
- (text.includes('opm') && text.includes('dph')) ||
- text.includes('stakeholder pathway') ||
- (text.includes('adaptation office') && text.includes('deep')),
+ text.includes('office of policy and management') ||
+ text.includes('department of public health') ||
+ text.includes('department of energy and environmental') ||
+ (text.includes('cool corridors') && text.includes('funding')),
  needs: [
  {
   category: 'comparison' as InformationNeed['category'],
@@ -382,9 +383,9 @@ const demoTriggers: Array<{
  detect: (text) =>
  text.includes('bridgeport is thinner') || (text.includes('bridgeport') && text.includes('credibility problem')),
  detectAssist: (text) =>
- text.includes('bridgeport is thinner') || text.includes('credibility problem') ||
- (text.includes('bridgeport') && text.includes('estimates')) ||
- (text.includes('bridgeport') && text.includes('revision')),
+ text.includes('bridgeport is thinner') ||
+ text.includes('credibility problem with the adaptation') ||
+ (text.includes('bridgeport') && text.includes('estimates') && text.includes('revision')),
  needs: [
  {
   category: 'correction' as InformationNeed['category'],
@@ -424,9 +425,9 @@ const demoTriggers: Array<{
  detect: (text) =>
  text.includes('new haven is the anchor') || text.includes('build the deck that way'),
  detectAssist: (text) =>
- text.includes('new haven is the anchor') || text.includes('build the deck') ||
- (text.includes('new haven') && text.includes('anchor')) ||
- text.includes('bridgeport is directional'),
+ text.includes('new haven is the anchor') ||
+ text.includes('bridgeport is directional') ||
+ text.includes('build the deck that way'),
  needs: [
  {
   category: 'metric' as InformationNeed['category'],
