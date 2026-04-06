@@ -105,7 +105,7 @@ export function meetingReducer(state: MeetingState, action: MeetingAction): Meet
     case 'PROCESS_EVENT': {
       const presetMode = state.presetTranscript !== null && !state.scriptAssistMode;
       const assistMode = state.scriptAssistMode;
-      return applyTranscriptEvent(state, action.payload, presetMode, assistMode);
+      return applyTranscriptEvent(state, action.payload, presetMode, assistMode, state.presetActive);
     }
     case 'ADD_AI_NEEDS':
       return applyAdditionalNeeds(state, action.payload);
@@ -196,7 +196,7 @@ export function meetingReducer(state: MeetingState, action: MeetingAction): Meet
   }
 }
 
-function applyTranscriptEvent(state: MeetingState, event: TranscriptEvent, presetMode = false, assistMode = false): MeetingState {
+function applyTranscriptEvent(state: MeetingState, event: TranscriptEvent, presetMode = false, assistMode = false, presetActive = false): MeetingState {
   const context = updateMeetingContext(state.context, event);
   const withTranscript = {
     ...state,
@@ -205,7 +205,7 @@ function applyTranscriptEvent(state: MeetingState, event: TranscriptEvent, prese
   };
 
   // Keep deterministic local inference as fallback when API calls are unavailable.
-  return applyAdditionalNeeds(withTranscript, inferInformationNeeds(event, assistMode), presetMode);
+  return applyAdditionalNeeds(withTranscript, inferInformationNeeds(event, assistMode, presetActive), presetMode || presetActive);
 }
 
 function applyAdditionalNeeds(state: MeetingState, incomingNeeds: InformationNeed[], presetMode = false): MeetingState {

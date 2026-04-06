@@ -211,10 +211,9 @@ const demoTriggers: Array<{
  detect: (text) =>
  text.includes('confounder around ac') || text.includes('working through a confounder'),
  detectAssist: (text) =>
- text.includes('confounder around ac') ||
- text.includes('working through a confounder') ||
  text.includes('liability for the tobin') ||
- text.includes('shifts in revision'),
+ text.includes('shifts in revision') ||
+ (text.includes('confounder') && text.includes('liability')),
  needs: [
  {
   category: 'metric' as InformationNeed['category'],
@@ -289,9 +288,9 @@ const demoTriggers: Array<{
  detect: (text) =>
  text.includes('1.4 relative risk') || text.includes('directionality is stable'),
  detectAssist: (text) =>
- text.includes('1.4 relative risk') ||
  text.includes('directionality is stable') ||
- (text.includes('around 1.4') && text.includes('stratum')),
+ text.includes('justify a pilot') ||
+ text.includes('strong enough to justify'),
  needs: [
  {
   category: 'metric' as InformationNeed['category'],
@@ -329,10 +328,10 @@ const demoTriggers: Array<{
  detect: (text) =>
  text.includes('reports to deep') || (text.includes('runs through opm') && text.includes('dph')),
  detectAssist: (text) =>
- text.includes('office of policy and management') ||
  text.includes('department of public health') ||
- text.includes('department of energy and environmental') ||
- (text.includes('cool corridors') && text.includes('funding')),
+ text.includes('maternal outcomes data') ||
+ text.includes('public-facing materials') ||
+ text.includes('get complicated fast'),
  needs: [
  {
   category: 'comparison' as InformationNeed['category'],
@@ -383,9 +382,9 @@ const demoTriggers: Array<{
  detect: (text) =>
  text.includes('bridgeport is thinner') || (text.includes('bridgeport') && text.includes('credibility problem')),
  detectAssist: (text) =>
- text.includes('bridgeport is thinner') ||
- text.includes('credibility problem with the adaptation') ||
- (text.includes('bridgeport') && text.includes('estimates') && text.includes('revision')),
+ text.includes('credibility problem') ||
+ text.includes("don't survive revision") ||
+ text.includes('estimates don\'t survive'),
  needs: [
  {
   category: 'correction' as InformationNeed['category'],
@@ -500,7 +499,7 @@ const demoTriggers: Array<{
  },
 ];
 
-export function inferInformationNeeds(event: TranscriptEvent, assistMode = false): InformationNeed[] {
+export function inferInformationNeeds(event: TranscriptEvent, assistMode = false, presetActive = false): InformationNeed[] {
  const text = event.text.toLowerCase();
  const needs: InformationNeed[] = [];
 
@@ -532,6 +531,9 @@ export function inferInformationNeeds(event: TranscriptEvent, assistMode = false
  break; // at most one trigger per event
  }
  }
+
+ // Skip keyword-based fallback inference during any preset session
+ if (presetActive) return needs;
 
  if (comparisonHints.some((hint) => text.includes(hint))) {
  const topic = extractKeyPhrase(event.text);
