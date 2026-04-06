@@ -100,8 +100,10 @@ export interface EvidenceCard {
   };
   richChart?: {
     labels: string[];
-    datasets: Array<{ label: string; data: number[]; color: string }>;
+    datasets: Array<{ label: string; data: number[]; color: string; dashed?: boolean }>;
     note: string;
+    chartType?: 'bar' | 'line';
+    yAxisLabel?: string;
   };
   richMetricGrid?: {
     metrics: Array<{ label: string; value: string; sub: string }>;
@@ -116,6 +118,20 @@ export interface EvidenceCard {
   richFlowDiagram?: {
     chips: Array<{ label: string; kind?: 'active' | 'sos' | 'default' }>;
     note?: string;
+    badges?: Array<{ label: string; color: 'teal' | 'navy' | 'red' | 'green' | 'blue' | 'gold' | 'gray' }>;
+    nodes?: Array<{
+      id: string;
+      label: string;
+      sub?: string;
+      kind: 'start' | 'default' | 'branch' | 'warning' | 'end';
+      color?: 'gray' | 'teal' | 'gold' | 'navy' | 'red' | 'green' | 'blue';
+      /** id of the branch node this is a child of */
+      parentId?: string;
+      /** groups sequential nodes within the same branch column */
+      trackId?: string;
+      /** label shown above the track column */
+      trackLabel?: string;
+    }>;
   };
 }
 

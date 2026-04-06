@@ -978,7 +978,9 @@ h1 em {
 .rich-feature-val.neu { color:var(--text-primary); }
 
 .rich-chart-wrap { display:flex; flex-direction:column; gap:10px; }
-.rich-chart-legend { display:flex; gap:14px; }
+.rich-chart-header { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.rich-chart-y-label { font-size:9px; font-family:'DM Mono',monospace; text-transform:uppercase; letter-spacing:.08em; color:var(--text-tertiary); }
+.rich-chart-legend { display:flex; gap:14px; flex-wrap:wrap; }
 .rich-chart-leg-item { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text-secondary); }
 .rich-chart-leg-swatch { width:10px; height:10px; border-radius:2px; flex-shrink:0; }
 .rich-chart-note { font-size:10px; color:var(--text-tertiary); line-height:1.6; border-top:1px solid var(--border); padding-top:8px; }
@@ -1093,6 +1095,10 @@ h1 em {
 .fd-node-blue .fd-node-title { color:#185FA5; }
 .fd-node-green { background:#edf7f1; border:1.5px solid #b8e0c8; }
 .fd-node-green .fd-node-title { color:#1a7a45; }
+.fd-node-teal { background:#e8f4f8; border:1.5px solid #90c4d4; }
+.fd-node-teal .fd-node-title { color:#1a4a5a; }
+.fd-node-navy { background:#edf2fd; border:1.5px solid #90a8d4; }
+.fd-node-navy .fd-node-title { color:#1a3a6a; }
 .fd-node-wide { flex:1; min-width:0; }
 .fd-v-connector { display:flex; flex-direction:column; align-items:center; }
 .fd-v-line { width:1.5px; height:16px; background:var(--diagram-yellow); }

@@ -101,5 +101,78 @@ export const meetingPresets: MeetingPreset[] = [
         segmentId: 'seg-11'
       }
     ]
+  },
+  {
+    id: 'chen-tobin-heat',
+    label: 'Chen Lab × Tobin Center',
+    context: {
+      meetingId: 'meeting-chen-tobin-heat',
+      title: 'Chen Lab × Tobin Center',
+      participants: ['Sarah Chen', 'James Okafor'],
+      accountContext: 'Tobin Center for Economic Policy',
+      projectContext: 'Heat exposure / preterm birth — CT climate adaptation pitch, June session',
+      discussedThemes: [],
+      unresolvedQuestions: [],
+      deliverableTargets: ['Pilot justification brief', 'Stakeholder pathway diagram', 'Data limitations memo'],
+      confidenceByTheme: {}
+    },
+    transcript: [
+      {
+        id: 'evt-ct-1',
+        segmentId: 'seg-ct-1',
+        timestampIso: '2026-04-10T14:00:05Z',
+        speaker: 'James Okafor',
+        text: "I want to build the economic case before the June session. We take your effect sizes, model out prevented preterm births across New Haven, put a dollar figure on it — NICHD puts average direct cost at around fifty thousand dollars per preterm birth. If your data holds, we have something the adaptation office can act on."
+      },
+      {
+        id: 'evt-ct-2',
+        segmentId: 'seg-ct-2',
+        timestampIso: '2026-04-10T14:00:38Z',
+        speaker: 'Sarah Chen',
+        text: "I want to help you get there but I need to flag something first — the preprint isn't peer reviewed yet and we're still working through a confounder around AC access that could affect the effect size. I don't want to hand you a number that shifts in the revision and becomes a liability for the Tobin pitch."
+      },
+      {
+        id: 'evt-ct-3',
+        segmentId: 'seg-ct-3',
+        timestampIso: '2026-04-10T14:01:10Z',
+        speaker: 'James Okafor',
+        text: "Okay — so if we anchor only on the numbers you're confident in, the lower-bound estimate still gets us somewhere meaningful. What's the effect size for extreme heat days in the third trimester, low-income tracts, even with conservative assumptions?"
+      },
+      {
+        id: 'evt-ct-4',
+        segmentId: 'seg-ct-4',
+        timestampIso: '2026-04-10T14:01:44Z',
+        speaker: 'Sarah Chen',
+        text: "The association is around 1.4 relative risk in that stratum. But look — even if the AC confounder shaves that down, the directionality is stable. What I'd say to the adaptation office is: the evidence is strong enough to justify piloting. What it can't support yet is a city-wide cost-benefit number with a single point estimate."
+      },
+      {
+        id: 'evt-ct-5',
+        segmentId: 'seg-ct-5',
+        timestampIso: '2026-04-10T14:02:18Z',
+        speaker: 'James Okafor',
+        text: "That's actually a cleaner story for the adaptation office anyway — pilot justification with a credible lower bound, rather than a city-wide projection they'll pick apart. Let me think about the stakeholder pathway. The adaptation office reports to DEEP, but the funding for cool corridors probably runs through OPM — and we'd need DPH sign-off to use the maternal outcomes data in any public-facing materials. This could get complicated fast."
+      },
+      {
+        id: 'evt-ct-6',
+        segmentId: 'seg-ct-6',
+        timestampIso: '2026-04-10T14:02:58Z',
+        speaker: 'Sarah Chen',
+        text: "And honestly before we even get to the pathway — I want to make sure we're not inadvertently overstating the geographic precision of this. The census tract-level data is solid for New Haven. Bridgeport is thinner. If James leads with New Haven and Bridgeport the way the preprint title reads, and the Bridgeport estimates don't survive revision, that's a credibility problem."
+      },
+      {
+        id: 'evt-ct-7',
+        segmentId: 'seg-ct-7',
+        timestampIso: '2026-04-10T14:03:24Z',
+        speaker: 'James Okafor',
+        text: "You're right. New Haven is the anchor. Bridgeport is directional. Let's build the deck that way."
+      },
+      {
+        id: 'evt-ct-8',
+        segmentId: 'seg-ct-8',
+        timestampIso: '2026-04-10T14:03:42Z',
+        speaker: 'Sarah Chen',
+        text: "Let's get it in front of the adaptation office before they're locked into summer priorities."
+      }
+    ]
   }
 ];

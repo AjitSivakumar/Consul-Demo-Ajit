@@ -64,14 +64,22 @@ export function RealtimeMeetingPage(): React.JSX.Element {
     [state.evidence]
   );
 
+  const SOURCE_TYPE_LABEL: Record<string, string> = {
+    web: 'Web',
+    internal_structured: 'Internal data',
+    internal_document: 'Internal doc',
+    product_doc: 'Product doc',
+    prior_notes: 'Prior notes',
+  };
+
   const webSources = useMemo(() => {
     const seen = new Set<string>();
-    const sources: Array<{ title: string; url: string | undefined; needId: string }> = [];
+    const sources: Array<{ title: string; url: string | undefined; needId: string; sourceType: string; recencyLabel: string }> = [];
     for (const ev of state.evidence) {
       for (const attr of ev.attributions) {
-        if (attr.sourceType === 'web' && !seen.has(attr.title)) {
+        if (!seen.has(attr.title)) {
           seen.add(attr.title);
-          sources.push({ title: attr.title, url: attr.url, needId: ev.needId });
+          sources.push({ title: attr.title, url: attr.url, needId: ev.needId, sourceType: attr.sourceType, recencyLabel: ev.recencyLabel });
         }
       }
     }
@@ -275,7 +283,7 @@ export function RealtimeMeetingPage(): React.JSX.Element {
                   {src.url && <span className="src-ext-icon">↗</span>}
                 </div>
                 <div className="src-meta">
-                  Web · {src.url ? src.url.replace(/^https?:\/\//, '').split('/')[0] : 'AI research'}
+                  {SOURCE_TYPE_LABEL[src.sourceType] ?? 'Source'} · {src.url ? src.url.replace(/^https?:\/\//, '').split('/')[0] : src.recencyLabel}
                 </div>
               </div>
             ))}

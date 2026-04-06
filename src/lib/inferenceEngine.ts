@@ -196,7 +196,233 @@ const demoTriggers: Array<{
       },
     ],
   },
-  // Trigger 3: Diagram — device decision flow
+  // Trigger CT-R1: Effect size table — fires on Chen Lab confounder mention
+  {
+    detect: (text) =>
+      text.includes('confounder around ac') || text.includes('working through a confounder'),
+    needs: [
+      {
+        category: 'metric' as InformationNeed['category'],
+        prompt: 'Effect sizes by trimester and income stratum — which numbers are safe to anchor on',
+        triggerPhrase: 'still working through a confounder around AC access',
+        isProactiveDemoTrigger: false,
+        demoEvidence: {
+          title: 'Effect size estimates by trimester and income stratum — stability flags',
+          summary: 'Cross-referenced Chen Lab preprint data. Here are the strata James can safely anchor on — and the one still in flux due to the AC access confounder Sarah flagged. Conservative anchor: RR 1.24 (CI lower bound) holds even if Q1/3rd-trim central estimate shifts.',
+          kind: 'metric' as EvidenceKind,
+          recencyLabel: 'ambi_data_effect_sizes.json · Chen Lab preprint v2 · not peer reviewed',
+          confidence: 0.93,
+          verification: 'verified' as const,
+          explainWhyNow: 'Sarah flagged the AC confounder affecting third-trimester Q1 estimates',
+          attributions: [
+            { sourceId: 'chen-lab-effect-sizes', sourceType: 'internal_structured' as const, title: 'ambi_data_effect_sizes.json', freshnessScore: 0.9, trustScore: 0.93 },
+          ],
+          richTable: {
+            devices: [
+              {
+                name: '2nd Trim · Q1',
+                badge: '✓ Anchor',
+                subtitle: 'Low income · p=0.001',
+                isPrimary: true,
+                features: [
+                  { name: 'RR', val: '1.19', kind: 'yes' as const },
+                  { name: '95% CI', val: '1.07 – 1.32', kind: 'neu' as const },
+                  { name: 'Stability', val: 'Stable ✓', kind: 'yes' as const },
+                ],
+              },
+              {
+                name: '2nd Trim · Q2-Q3',
+                badge: '✓ Anchor',
+                subtitle: 'Mid income · p=0.014',
+                isPrimary: true,
+                features: [
+                  { name: 'RR', val: '1.11', kind: 'yes' as const },
+                  { name: '95% CI', val: '1.02 – 1.20', kind: 'neu' as const },
+                  { name: 'Stability', val: 'Stable ✓', kind: 'yes' as const },
+                ],
+              },
+              {
+                name: '3rd Trim · Q2-Q3',
+                badge: '✓ Anchor',
+                subtitle: 'Mid income · p=0.0003',
+                isPrimary: false,
+                features: [
+                  { name: 'RR', val: '1.18', kind: 'yes' as const },
+                  { name: '95% CI', val: '1.09 – 1.28', kind: 'neu' as const },
+                  { name: 'Stability', val: 'Stable ✓', kind: 'yes' as const },
+                ],
+              },
+              {
+                name: '3rd Trim · Q1 ⚠',
+                badge: '⚠ In flux',
+                subtitle: 'Low income · AC confounder',
+                isPrimary: false,
+                features: [
+                  { name: 'RR', val: '1.41', kind: 'no' as const },
+                  { name: '95% CI', val: '1.24 – 1.60', kind: 'neu' as const },
+                  { name: 'Stability', val: 'In flux ⚠', kind: 'no' as const },
+                ],
+              },
+            ],
+          },
+        },
+      },
+    ],
+  },
+  // Trigger CT-R2: Dose-response chart — fires on RR 1.4 / directionality mention
+  {
+    detect: (text) =>
+      text.includes('1.4 relative risk') || text.includes('directionality is stable'),
+    needs: [
+      {
+        category: 'metric' as InformationNeed['category'],
+        prompt: 'Dose-response curves diverge sharply by income — directionality holds across assumptions',
+        triggerPhrase: 'around 1.4 relative risk in that stratum, directionality is stable',
+        isProactiveDemoTrigger: false,
+        demoEvidence: {
+          title: 'Dose-response curves diverge sharply by income stratum — directionality is stable',
+          summary: 'Low-income tracts show a steep monotonic increase in preterm birth risk with heat exposure. Higher-income tracts are essentially flat — consistent with AC access buffering the effect. Pattern holds under conservative assumptions. Corroborated by Chersich et al. (2025): heat wave exposure increased preterm birth odds by 26% across 198 studies.',
+          kind: 'metric' as EvidenceKind,
+          recencyLabel: 'ambi_data_rr_graph.json · Chersich et al. (2025) · Nature Medicine',
+          confidence: 0.95,
+          verification: 'verified' as const,
+          explainWhyNow: 'Sarah named the 1.4 RR figure and asserted directionality is stable under conservative assumptions',
+          attributions: [
+            { sourceId: 'chen-lab-rr-graph', sourceType: 'internal_structured' as const, title: 'ambi_data_rr_graph.json', freshnessScore: 0.9, trustScore: 0.93 },
+            { sourceId: 'chersich-2025', sourceType: 'web' as const, title: 'Chersich et al. (2025) · Nature Medicine', freshnessScore: 0.95, trustScore: 0.97 },
+          ],
+          richChart: {
+            chartType: 'line',
+            yAxisLabel: 'Relative risk (RR)',
+            labels: ['Q1 (0–1 days)', 'Q2 (2–3)', 'Q3 (4–5)', 'Q4 (6–8)', 'Q5 (9+ days)'],
+            datasets: [
+              { label: 'Low-income (Q1)', color: '', data: [1.00, 1.11, 1.20, 1.31, 1.41] },
+              { label: 'Higher-income (Q2–Q4)', color: '', dashed: true, data: [1.00, 1.04, 1.06, 1.08, 1.10] },
+            ],
+            note: 'Third trimester · New Haven CT census tracts 2018–2023 · ⚠ Low-income Q5 central estimate under review (AC confounder) — lower bound 1.24 considered stable · Chersich et al. (2025): OR=1.26 during heat waves across 198 studies',
+          },
+        },
+      },
+    ],
+  },
+  // Trigger CT-DG: CT stakeholder diagram — fires on DEEP/OPM/DPH agency mention
+  {
+    detect: (text) =>
+      text.includes('reports to deep') || (text.includes('runs through opm') && text.includes('dph')),
+    needs: [
+      {
+        category: 'comparison' as InformationNeed['category'],
+        prompt: 'CT stakeholder sign-off pathway maps to a branching flowchart — three parallel tracks',
+        triggerPhrase: 'adaptation office reports to DEEP, funding runs through OPM, DPH sign-off',
+        isProactiveDemoTrigger: false,
+        demoEvidence: {
+          title: 'CT stakeholder sign-off pathway — DEEP, OPM, and DPH don\'t run in sequence',
+          summary: 'James just described a multi-agency approval structure that doesn\'t run in sequence: policy sign-off through DEEP, capital funding through OPM, data authorization through DPH. Ambi identified a branching decision structure worth visualizing before the pitch — so the critical path is visible.',
+          kind: 'comparison' as EvidenceKind,
+          recencyLabel: 'Generated from conversation context',
+          confidence: 0.91,
+          verification: 'inferred' as const,
+          explainWhyNow: 'James named three separate agencies (DEEP, OPM, DPH) with distinct non-sequential roles',
+          attributions: [
+            { sourceId: 'ct-stakeholder-context', sourceType: 'web' as const, title: 'CT DEEP · OPM · DPH stakeholder pathway', freshnessScore: 0.85, trustScore: 0.88 },
+          ],
+          richFlowDiagram: {
+            chips: [],
+            note: 'Ambi generated from conversation context · DEEP = CT Dept. of Energy & Environmental Protection · OPM = Office of Policy & Management · DPH = CT Dept. of Public Health · Critical path: DPH data-sharing MOU with YSPH typically takes 6–10 weeks — likely the longest lead-time item',
+            badges: [
+              { label: '● DEEP (policy)',    color: 'teal'  as const },
+              { label: '● OPM (funding)',    color: 'navy'  as const },
+              { label: '● DPH (data auth)', color: 'red'   as const },
+              { label: '● Pilot launch',    color: 'green' as const },
+            ],
+            nodes: [
+              { id: 'tobin',    label: 'Tobin Center pitch',         kind: 'start'   as const, color: 'gray'  as const, sub: 'June session window' },
+              { id: 'deep',     label: 'CT Climate Adaptation Office', kind: 'default' as const, color: 'teal'  as const, sub: 'reports to DEEP · concept approval' },
+              { id: 'parallel', label: 'Parallel tracks required',   kind: 'branch'  as const, color: 'gold'  as const, sub: 'funding + data auth run concurrently' },
+              { id: 'opm',      label: 'OPM',                        kind: 'default' as const, color: 'navy'  as const, sub: 'cool corridor capital · budget review',   parentId: 'parallel', trackId: 'funding',   trackLabel: 'Funding track' },
+              { id: 'gov',      label: 'Governor\'s Office',         kind: 'default' as const, color: 'navy'  as const, sub: 'climate budget authorization',            parentId: 'parallel', trackId: 'funding' },
+              { id: 'dph',      label: 'CT DPH',                     kind: 'warning' as const, color: 'red'   as const, sub: 'maternal outcomes · public use auth',     parentId: 'parallel', trackId: 'data-auth', trackLabel: 'Data auth track' },
+              { id: 'irb',      label: 'IRB / data agreement',       kind: 'warning' as const, color: 'red'   as const, sub: 'Chen Lab YSPH · data sharing MOU',        parentId: 'parallel', trackId: 'data-auth' },
+              { id: 'gate',     label: 'Both tracks cleared?',       kind: 'branch'  as const, color: 'gold'  as const, sub: 'funding + data auth both required to proceed' },
+              { id: 'pilot',    label: 'New Haven pilot launch',     kind: 'end'     as const, color: 'green' as const, sub: 'cool corridor program · geographically targeted' },
+            ],
+          },
+        },
+      },
+    ],
+  },
+  // Trigger CT-CA: Bridgeport caution — fires on Bridgeport data limitation mention
+  {
+    detect: (text) =>
+      text.includes('bridgeport is thinner') || (text.includes('bridgeport') && text.includes('credibility problem')),
+    needs: [
+      {
+        category: 'correction' as InformationNeed['category'],
+        prompt: 'Bridgeport data is thinner — citing both cities in the pitch risks a credibility problem',
+        triggerPhrase: 'Bridgeport is thinner — if you lead with both cities and those estimates shift, that\'s a credibility problem',
+        isProactiveDemoTrigger: false,
+        demoEvidence: {
+          title: 'Bridgeport data is thinner — citing both cities risks credibility with the adaptation office',
+          summary: 'James has been framing this as a New Haven and Bridgeport study. Sarah just flagged that Bridgeport tract-level sample sizes are thinner and estimates less stable. If Bridgeport estimates shift in peer review after the pitch, the adaptation office\'s trust in the whole dataset is at risk.',
+          kind: 'claim' as EvidenceKind,
+          recencyLabel: 'ambi_data_effect_sizes.json · Chen Lab preprint v2',
+          confidence: 0.96,
+          verification: 'verified' as const,
+          explainWhyNow: 'Sarah explicitly flagged that Bridgeport sample sizes are thinner while the preprint title implies equal data quality',
+          attributions: [
+            { sourceId: 'chen-lab-effect-sizes', sourceType: 'internal_structured' as const, title: 'ambi_data_effect_sizes.json', freshnessScore: 0.9, trustScore: 0.93 },
+          ],
+          richCorrectionBlock: {
+            wrong: { label: '❌ Current framing', text: '"New Haven and Bridgeport" — implies equivalent data quality across both cities' },
+            right: { label: '✓ Correct framing', text: '"New Haven anchor, Bridgeport directional signal" — honest about data weight difference' },
+            riskItems: [
+              { num: '01', title: 'Bridgeport tract-level sample sizes are thinner', body: 'Especially in Q4 income quartile. If estimates move in peer review, the adaptation office will have heard a two-city claim that the published paper doesn\'t support.' },
+              { num: '02', title: 'Credibility is the pitch\'s only currency at this stage', body: 'The preprint hasn\'t cleared peer review. Any factual backpedaling after the June pitch damages Tobin Center\'s standing with DEEP and OPM for follow-on engagement.' },
+              { num: '03', title: 'New Haven alone is sufficient for pilot justification', body: 'Effect sizes in New Haven are robust and stable across all model specifications. A New Haven pilot with directional Bridgeport evidence is the stronger, more defensible case.' },
+            ],
+            reframe: '"The strongest evidence base is New Haven, where census tract data is robust and effect sizes are stable across all model specifications. Bridgeport data is directionally consistent and will be addressed in the peer-reviewed publication."',
+          },
+        },
+      },
+    ],
+  },
+  // Trigger CT-PR: DEEP heat mapping proactive — fires on New Haven anchor / deck build mention
+  {
+    detect: (text) =>
+      text.includes('new haven is the anchor') || text.includes('build the deck that way'),
+    needs: [
+      {
+        category: 'metric' as InformationNeed['category'],
+        prompt: 'DEEP heat vulnerability mapping publishes this spring — before the June session window',
+        triggerPhrase: 'Neither party has mentioned it — Ambi noticed',
+        isProactiveDemoTrigger: true,
+        proactiveHeadline: 'DEEP heat mapping publishes this spring — before the June session',
+        proactiveImportance: 9,
+        demoEvidence: {
+          title: 'DEEP heat vulnerability indices publish spring 2026 — before the June session',
+          summary: 'Neither James nor Sarah has mentioned the DEEP urban heat island mapping project. DEEP\'s census tract-level heat vulnerability indices are expected spring 2026 — directly overlapping the Tobin pitch window. This could validate their geographic targeting or create a complication if the heat maps reframe the priority tracts.',
+          kind: 'metric' as EvidenceKind,
+          recencyLabel: 'web → CT DEEP heat mapping · legislative calendar',
+          confidence: 0.88,
+          verification: 'inferred' as const,
+          explainWhyNow: 'Neither speaker has mentioned the DEEP heat mapping project; as they shift to pitch planning, timing overlap is directly relevant',
+          attributions: [
+            { sourceId: 'ct-deep-heat-mapping', sourceType: 'web' as const, title: 'CT DEEP urban heat island mapping project', freshnessScore: 0.85, trustScore: 0.82 },
+          ],
+          richMetricGrid: {
+            metrics: [
+              { label: 'DEEP heat mapping\npublication window', value: 'Spring 2026', sub: 'Before June session' },
+              { label: 'CT census tracts\nmapped to date', value: '892', sub: 'DEEP urban heat island atlas' },
+              { label: 'Overlap with\nNH preterm cohort', value: 'Direct', sub: 'Same tract boundaries' },
+              { label: 'Time to June\nlegislative session', value: '~9 weeks', sub: 'Policy window is tight' },
+            ],
+            insightText: 'DEEP\'s census tract-level heat vulnerability indices are expected spring 2026 — overlapping directly with the Tobin pitch window. If the heat maps align with the preterm clusters, they provide independent external validation of Sarah\'s geographic targeting. If they reframe the priority tracts, the pitch needs to account for that before June. Neither James nor Sarah has raised this — but the adaptation office almost certainly knows about it.',
+          },
+        },
+      },
+    ],
+  },
+  // Trigger (Iridium): Diagram — device decision flow
   {
     detect: (text) =>
       (text.includes('picks up') && (text.includes('extreme') || text.includes('voice'))) ||

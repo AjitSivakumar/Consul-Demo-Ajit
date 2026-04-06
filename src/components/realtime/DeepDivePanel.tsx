@@ -1,5 +1,9 @@
 import { useMemo, useRef, useEffect, useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import {
+  BarChart, Bar,
+  LineChart, Line,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
+} from 'recharts';
 import { resolveGapFromDocuments, resolveGapFromInternet } from '../../services/aiService';
 import { extractRelevantChunks, getAllDocuments } from '../../services/documentService';
 import { useMeetingStore } from '../../state/MeetingStore';
@@ -461,19 +465,20 @@ function CorrectionBlock({ block }: { block: NonNullable<EvidenceCard['richCorre
 }
 
 function FlowDiagram({ flow }: { flow: NonNullable<EvidenceCard['richFlowDiagram']> }): React.JSX.Element {
+  if (flow.nodes && flow.nodes.length > 0) {
+    return <FlowDiagramData nodes={flow.nodes} note={flow.note} badges={flow.badges} />;
+  }
+
+  // Legacy hardcoded Iridium device decision tree
   return (
     <div className="fd-wrap">
-      {/* Badges */}
       <div className="fd-badge-row">
         <span className="fd-badge fd-badge-blue">● Extreme</span>
         <span className="fd-badge fd-badge-green">● GO! passive</span>
         <span className="fd-badge fd-badge-red">● Emergency</span>
       </div>
       <div className="fd-chart-title">Preet's communication decision tree — on the ice</div>
-
-      {/* Flowchart */}
       <div className="fd-chart">
-        {/* Start */}
         <div className="fd-row fd-centered">
           <div className="fd-node fd-node-gray">
             <div className="fd-node-title">Preet needs to communicate</div>
@@ -481,8 +486,6 @@ function FlowDiagram({ flow }: { flow: NonNullable<EvidenceCard['richFlowDiagram
           </div>
         </div>
         <div className="fd-v-connector"><div className="fd-v-line" /><div className="fd-v-arrow">▼</div></div>
-
-        {/* Decision 1 */}
         <div className="fd-row fd-centered">
           <div className="fd-node fd-node-diamond">
             <div className="fd-node-title">Is this an emergency?</div>
@@ -507,10 +510,7 @@ function FlowDiagram({ flow }: { flow: NonNullable<EvidenceCard['richFlowDiagram
             <div className="fd-node-sub">what type of comms</div>
           </div>
         </div>
-
-        {/* Lower split */}
         <div className="fd-lower-split">
-          {/* Left: SOS terminus */}
           <div className="fd-split-col">
             <div className="fd-v-connector"><div className="fd-v-line" /><div className="fd-v-arrow">▼</div></div>
             <div className="fd-node fd-node-red" style={{ width: '100%' }}>
@@ -518,7 +518,6 @@ function FlowDiagram({ flow }: { flow: NonNullable<EvidenceCard['richFlowDiagram
               <div className="fd-node-sub">coordinates + SBD signal</div>
             </div>
           </div>
-          {/* Right: voice vs data */}
           <div className="fd-split-col">
             <svg width="100%" height="34" viewBox="0 0 100 34" preserveAspectRatio="none" className="fd-branch-svg">
               <line x1="50" y1="0" x2="20" y2="34" stroke="#eab308" strokeWidth="1.5" />
@@ -541,8 +540,139 @@ function FlowDiagram({ flow }: { flow: NonNullable<EvidenceCard['richFlowDiagram
           </div>
         </div>
       </div>
-
       {flow.note && <div className="fd-note">{flow.note}</div>}
+    </div>
+  );
+}
+
+type FlowNode = NonNullable<NonNullable<EvidenceCard['richFlowDiagram']>['nodes']>[number];
+
+const NODE_COLOR_CLASS: Record<NonNullable<FlowNode['color']>, string> = {
+  gray:  'fd-node-gray',
+  teal:  'fd-node-teal',
+  gold:  'fd-node-diamond',
+  navy:  'fd-node-navy',
+  red:   'fd-node-red',
+  green: 'fd-node-green',
+  blue:  'fd-node-blue',
+};
+
+function FlowDiagramData({ nodes, note, badges }: {
+  nodes: FlowNode[];
+  note?: string;
+  badges?: NonNullable<EvidenceCard['richFlowDiagram']>['badges'];
+}): React.JSX.Element {
+  // Build ordered list of unique trackIds per branch parent
+  const branchChildren = nodes.filter((n) => n.parentId);
+  const mainNodes = nodes.filter((n) => !n.parentId);
+
+  // Group branch children: parentId → trackId → ordered nodes
+  const branchTracks = new Map<string, Map<string, FlowNode[]>>();
+  for (const n of branchChildren) {
+    if (!n.parentId) continue;
+    if (!branchTracks.has(n.parentId)) branchTracks.set(n.parentId, new Map());
+    const trackId = n.trackId ?? n.id;
+    const tracks = branchTracks.get(n.parentId)!;
+    if (!tracks.has(trackId)) tracks.set(trackId, []);
+    tracks.get(trackId)!.push(n);
+  }
+
+  const BADGE_COLOR: Record<string, string> = {
+    teal:  '#1a4a5a', navy: '#1a3a6a', red: '#b8291c',
+    green: '#1a7a45', blue: '#185FA5', gold: '#7a5400', gray: '#6b6a66',
+  };
+  const BADGE_BG: Record<string, string> = {
+    teal:  '#e8f4f8', navy: '#edf2fd', red: '#fdf2f0',
+    green: '#edf7f1', blue: '#EEF5FD', gold: '#fdf7e8', gray: '#f5f4f0',
+  };
+  const BADGE_BORDER: Record<string, string> = {
+    teal:  '#90c4d4', navy: '#90a8d4', red: '#eeb8b0',
+    green: '#b8e0c8', blue: '#b5d4f4', gold: '#e0c878', gray: '#ccc9c0',
+  };
+
+  return (
+    <div className="fd-wrap">
+      {badges && badges.length > 0 && (
+        <div className="fd-badge-row">
+          {badges.map((b) => (
+            <span key={b.label} style={{
+              fontSize: 9, fontFamily: "'DM Mono', monospace", padding: '2px 8px',
+              borderRadius: 4, background: BADGE_BG[b.color] ?? '#f5f4f0',
+              color: BADGE_COLOR[b.color] ?? '#6b6a66',
+              border: `1px solid ${BADGE_BORDER[b.color] ?? '#ccc9c0'}`,
+            }}>
+              {b.label}
+            </span>
+          ))}
+        </div>
+      )}
+      <div className="fd-chart">
+        {mainNodes.map((node, i) => {
+          const colorClass = NODE_COLOR_CLASS[node.color ?? 'gray'];
+          const tracks = branchTracks.get(node.id);
+          const hasChildren = tracks && tracks.size > 0;
+          const nextMain = mainNodes[i + 1];
+
+          return (
+            <div key={node.id} style={{ display: 'contents' }}>
+              {i > 0 && (
+                <div className="fd-v-connector">
+                  <div className="fd-v-line" />
+                  <div className="fd-v-arrow">▼</div>
+                </div>
+              )}
+              <div className="fd-row fd-centered">
+                <div className={`fd-node ${colorClass}`} style={{ minWidth: 220 }}>
+                  <div className="fd-node-title">{node.label}</div>
+                  {node.sub && <div className="fd-node-sub">{node.sub}</div>}
+                </div>
+              </div>
+
+              {hasChildren && (
+                <>
+                  <svg width="100%" height="26" viewBox="0 0 100 26" preserveAspectRatio="none" className="fd-branch-svg">
+                    <line x1="50" y1="0" x2="22" y2="26" stroke="#e0c878" strokeWidth="1.5" />
+                    <line x1="50" y1="0" x2="78" y2="26" stroke="#e0c878" strokeWidth="1.5" />
+                  </svg>
+                  <div className="fd-branch-row" style={{ alignItems: 'flex-start' }}>
+                    {Array.from(tracks!.entries()).map(([, trackNodes]) => {
+                      const firstNode = trackNodes[0];
+                      return (
+                        <div key={firstNode.trackId ?? firstNode.id} className="fd-split-col">
+                          {firstNode.trackLabel && (
+                            <div className="fd-branch-label">{firstNode.trackLabel}</div>
+                          )}
+                          {trackNodes.map((tn, ti) => (
+                            <div key={tn.id} style={{ display: 'contents' }}>
+                              {ti > 0 && (
+                                <div className="fd-v-connector">
+                                  <div className="fd-v-line" />
+                                  <div className="fd-v-arrow">▼</div>
+                                </div>
+                              )}
+                              <div className={`fd-node ${NODE_COLOR_CLASS[tn.color ?? 'gray']}`} style={{ width: '100%' }}>
+                                <div className="fd-node-title">{tn.label}</div>
+                                {tn.sub && <div className="fd-node-sub">{tn.sub}</div>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {nextMain && (
+                    <svg width="100%" height="26" viewBox="0 0 100 26" preserveAspectRatio="none" className="fd-branch-svg">
+                      <line x1="22" y1="0" x2="50" y2="26" stroke="#e0c878" strokeWidth="1.5" />
+                      <line x1="78" y1="0" x2="50" y2="26" stroke="#e0c878" strokeWidth="1.5" />
+                    </svg>
+                  )}
+                </>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      {note && <div className="fd-note">{note}</div>}
     </div>
   );
 }
@@ -569,6 +699,10 @@ function RichTable({ table }: { table: NonNullable<EvidenceCard['richTable']> })
   );
 }
 
+// Ambi line-chart palette — matches :root CSS vars exactly
+// --neon-purple, --neon-blue, --neon-green, --diagram-yellow
+const LINE_PALETTE = ['#c084fc', '#60a5fa', '#4ade80', '#eab308'];
+
 function RichChart({ chart }: { chart: NonNullable<EvidenceCard['richChart']> }): React.JSX.Element {
   const data = chart.labels.map((label, i) => {
     const row: Record<string, string | number> = { label };
@@ -578,16 +712,98 @@ function RichChart({ chart }: { chart: NonNullable<EvidenceCard['richChart']> })
     return row;
   });
 
-  return (
-    <div className="rich-chart-wrap">
-      <div className="rich-chart-legend">
-        {chart.datasets.map((ds) => (
+  const isLine = chart.chartType === 'line';
+
+  const legend = (
+    <div className="rich-chart-legend">
+      {chart.datasets.map((ds, i) => {
+        const lineColor = LINE_PALETTE[i % LINE_PALETTE.length];
+        return (
           <div key={ds.label} className="rich-chart-leg-item">
-            <div className="rich-chart-leg-swatch" style={{ background: ds.color }} />
+            {isLine ? (
+              <svg width="22" height="10" style={{ flexShrink: 0 }}>
+                <line
+                  x1="0" y1="5" x2="22" y2="5"
+                  stroke={lineColor}
+                  strokeWidth="2.5"
+                  strokeDasharray={ds.dashed ? '5 3' : undefined}
+                />
+                {!ds.dashed && <circle cx="11" cy="5" r="3" fill={lineColor} />}
+              </svg>
+            ) : (
+              <div className="rich-chart-leg-swatch" style={{ background: ds.color }} />
+            )}
             <span>{ds.label}</span>
           </div>
-        ))}
+        );
+      })}
+    </div>
+  );
+
+  if (isLine) {
+    // Compute Y domain from data with a little padding
+    const allValues = chart.datasets.flatMap((ds) => ds.data);
+    const minVal = Math.min(...allValues);
+    const maxVal = Math.max(...allValues);
+    const pad = (maxVal - minVal) * 0.15;
+    const yMin = Math.floor((minVal - pad) * 20) / 20;
+    const yMax = Math.ceil((maxVal + pad) * 20) / 20;
+
+    return (
+      <div className="rich-chart-wrap">
+        <div className="rich-chart-header">
+          {chart.yAxisLabel && (
+            <div className="rich-chart-y-label">{chart.yAxisLabel}</div>
+          )}
+          {legend}
+        </div>
+        <ResponsiveContainer width="100%" height={220}>
+          <LineChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 4 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+            <XAxis
+              dataKey="label"
+              tick={{ fontSize: 10, fill: 'var(--text-secondary)' }}
+              tickLine={false}
+              axisLine={{ stroke: 'var(--border)' }}
+            />
+            <YAxis
+              domain={[yMin, yMax]}
+              tickFormatter={(v: number) => v.toFixed(2)}
+              tick={{ fontSize: 10, fill: 'var(--text-secondary)' }}
+              tickLine={false}
+              axisLine={false}
+              width={40}
+            />
+            <Tooltip
+              formatter={(v) => [typeof v === 'number' ? v.toFixed(2) : v, '']}
+              contentStyle={{ fontSize: 12, border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)' }}
+            />
+            <ReferenceLine y={1.0} stroke="var(--border)" strokeDasharray="4 2" />
+            {chart.datasets.map((ds, i) => {
+              const lineColor = LINE_PALETTE[i % LINE_PALETTE.length];
+              return (
+                <Line
+                  key={ds.label}
+                  type="monotone"
+                  dataKey={ds.label}
+                  stroke={lineColor}
+                  strokeWidth={2.5}
+                  strokeDasharray={ds.dashed ? '6 3' : undefined}
+                  dot={{ r: 4, fill: lineColor, strokeWidth: 0 }}
+                  activeDot={{ r: 5 }}
+                />
+              );
+            })}
+          </LineChart>
+        </ResponsiveContainer>
+        <div className="rich-chart-note">{chart.note}</div>
       </div>
+    );
+  }
+
+  return (
+    <div className="rich-chart-wrap">
+      {legend}
       <ResponsiveContainer width="100%" height={200}>
         <BarChart data={data} barCategoryGap="30%" barGap={4}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
