@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ambi -- Caution · Bridgeport Data</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital,wght@0,400;1,400&family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f4f0;--border:#e4e2dc;--border-mid:#ccc9c0;
+  --t1:#1a1a18;--t2:#6b6a66;--t3:#a8a7a2;
+  --green:#1a7a45;--bg-green:#edf7f1;--border-green:#b8e0c8;
+  --blue:#185FA5;--bg-blue:#EEF5FD;--border-blue:#b5d4f4;
+  --red:#b8291c;--bg-red:#fdf2f0;--border-red:#eeb8b0;
+  --gold:#7a5400;--bg-gold:#fdf7e8;--border-gold:#e0c878;
+  --warn:#7a4a1a;--bg-warn:#fdf3e8;--border-warn:#e0c090;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t1);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:46px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 18px;gap:10px;flex-shrink:0}
+.logo{font-family:'Instrument Serif',serif;font-size:17px;letter-spacing:-.2px}
+.tb-div{width:1px;height:16px;background:var(--border)}
+.tb-ctx{font-size:11px;color:var(--t2);font-family:'DM Mono',monospace}
+.tb-pill{margin-left:auto;display:flex;align-items:center;gap:6px;background:#f0f0ee;border:1px solid var(--border);border-radius:100px;padding:4px 11px}
+.dot-live{width:6px;height:6px;border-radius:50%;background:#4caf50;animation:blink 2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.75)}}
+.tb-pill span{font-size:10px;font-family:'DM Mono',monospace;color:var(--t2)}
+.body{display:flex;flex:1;overflow:hidden}
+.left{width:300px;flex-shrink:0;border-right:1px solid var(--border);background:#fafaf8;display:flex;flex-direction:column;overflow:hidden}
+.left-hd{padding:12px 14px 9px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.left-hd-label{font-size:10px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--t3)}
+.count-badge{background:var(--green);color:#fff;font-size:10px;font-family:'DM Mono',monospace;border-radius:100px;padding:1px 8px}
+.feed{padding:8px;display:flex;flex-direction:column;gap:6px;overflow-y:auto;flex:1}
+.fc{border-radius:10px;padding:11px 12px;cursor:pointer;border:1.5px solid var(--border);background:#fff;transition:all .15s}
+.fc:hover{border-color:var(--border-mid);box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.fc.sel-reactive{border-color:var(--green);background:var(--bg-green)}
+.fc.sel-diagram{border-color:var(--gold);background:var(--bg-gold)}
+.fc.sel-caution{border-color:var(--red);background:var(--bg-red)}
+.fc.sel-proactive{border-color:var(--blue);background:var(--bg-blue)}
+.fc-type{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;display:flex;align-items:center;gap:5px}
+.fc-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.t-reactive .fc-dot{background:var(--green)} .t-reactive{color:var(--green)}
+.t-proactive .fc-dot{background:var(--blue)} .t-proactive{color:var(--blue)}
+.t-caution .fc-dot{background:var(--red)} .t-caution{color:var(--red)}
+.t-diagram .fc-dot{background:var(--gold)} .t-diagram{color:var(--gold)}
+.fc-title{font-size:12.5px;font-weight:500;color:var(--t1);line-height:1.4;margin-bottom:5px}
+.fc-trigger{font-size:11px;color:var(--t2);font-style:italic;line-height:1.45;font-weight:300;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.center{flex:1;overflow-y:auto;padding:26px 30px 40px}
+.c-eye{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.12em;color:var(--t3);margin-bottom:8px}
+.c-title{font-family:'Instrument Serif',serif;font-size:24px;font-weight:400;line-height:1.25;color:var(--t1);margin-bottom:6px;letter-spacing:-.3px}
+.c-body{font-size:13px;color:var(--t2);font-weight:300;line-height:1.65;margin-bottom:20px}
+.trig-box{background:#f5f4f0;border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:20px}
+.trig-label{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--t3);margin-bottom:4px}
+.trig-text{font-size:12px;color:var(--t2);font-style:italic;line-height:1.6}
+
+/* CAUTION SPECIFIC */
+.caution-stripe{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg-red);border:1px solid var(--border-red);border-radius:8px;margin-bottom:18px;width:fit-content}
+.caution-stripe-dot{width:7px;height:7px;border-radius:50%;background:var(--red)}
+.caution-stripe-text{font-size:10px;font-family:'DM Mono',monospace;color:var(--red);text-transform:uppercase;letter-spacing:.08em}
+
+/* collapsed state */
+.collapsed-view{margin-bottom:24px}
+.state-label{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--t3);margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+
+.popup-card{background:#fff;border:1.5px solid var(--border-red);border-radius:14px;overflow:hidden;box-shadow:0 2px 12px rgba(184,41,28,.07)}
+.popup-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-red);border-bottom:1px solid var(--border-red)}
+.popup-header-left{display:flex;align-items:center;gap:7px}
+.popup-hdot{width:7px;height:7px;border-radius:50%;background:var(--red);flex-shrink:0}
+.popup-htitle{font-size:10px;font-family:'DM Mono',monospace;font-weight:500;color:var(--red);text-transform:uppercase;letter-spacing:.08em}
+.popup-x{font-size:12px;color:var(--t3);background:none;border:none;cursor:pointer}
+
+.popup-trigger{padding:9px 14px;background:#f5f4f0;border-bottom:1px solid var(--border)}
+.popup-trigger-label{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--t3);margin-bottom:3px}
+.popup-trigger-text{font-size:11.5px;color:var(--t2);font-style:italic;line-height:1.55}
+
+.popup-body{padding:14px}
+.popup-headline{font-family:'Instrument Serif',serif;font-size:17px;line-height:1.35;color:var(--t1);margin-bottom:8px;letter-spacing:-.2px}
+.popup-summary{font-size:12.5px;color:var(--t2);line-height:1.65;font-weight:300;margin-bottom:14px}
+.popup-actions{display:flex;gap:7px}
+.btn-deep{flex:1;background:#111;color:#fff;border:none;border-radius:8px;padding:9px 14px;font-size:12px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;transition:background .15s}
+.btn-deep:hover{background:#333}
+.btn-rem{background:#f0f0ee;color:var(--t2);border:1px solid var(--border);border-radius:8px;padding:9px 14px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer}
+
+/* expanded state */
+.corr-block{border-radius:10px;overflow:hidden;margin-bottom:12px;border:1px solid var(--border-red)}
+.corr-row{display:grid;grid-template-columns:1fr 1fr}
+.corr-col{padding:10px 13px}
+.corr-wrong{background:#fde8e6;border-right:1px solid var(--border-red)}
+.corr-right{background:var(--bg-green)}
+.corr-label{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}
+.corr-wrong .corr-label{color:var(--red)} .corr-right .corr-label{color:var(--green)}
+.corr-text{font-size:12px;line-height:1.55}
+.corr-wrong .corr-text{color:#5a1010} .corr-right .corr-text{color:#1a3a28}
+
+.risk-list{display:flex;flex-direction:column;gap:7px;margin-bottom:12px}
+.risk-item{display:flex;align-items:flex-start;gap:9px;padding:9px 12px;background:var(--bg-red);border:1px solid var(--border-red);border-radius:9px}
+.risk-num{font-size:9px;font-family:'DM Mono',monospace;color:var(--red);background:#fff;border:1px solid var(--border-red);border-radius:4px;padding:2px 6px;flex-shrink:0;margin-top:1px}
+.risk-text{font-size:12px;color:#5a1010;line-height:1.6}
+.risk-text strong{color:#3a0505;display:block;margin-bottom:1px}
+
+.reframe{background:var(--bg-green);border:1px solid var(--border-green);border-radius:9px;padding:12px 14px;font-size:12px;color:#1a3a28;line-height:1.7}
+.reframe-label{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--green);margin-bottom:5px}
+.src-tag{display:inline-block;margin-top:14px;font-size:9px;font-family:'DM Mono',monospace;color:var(--t3);background:#f5f4f0;border:1px solid var(--border);border-radius:4px;padding:2px 8px}
+
+.caution-sources{background:#f5f4f0;border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-top:12px}
+.cs-label{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--t3);margin-bottom:10px}
+.cs-item{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.cs-item:last-child{margin-bottom:0;padding-bottom:0;border-bottom:none}
+.cs-num{font-size:9px;font-family:'DM Mono',monospace;color:var(--red);background:var(--bg-red);border:1px solid var(--border-red);border-radius:3px;padding:1px 6px;flex-shrink:0;margin-top:2px}
+.cs-text{font-size:11px;color:var(--t2);line-height:1.65;font-weight:300}
+.cs-text strong{color:var(--t1);font-weight:500;display:block;margin-bottom:2px}
+.cs-link{color:var(--blue);font-size:10px;font-family:'DM Mono',monospace;text-decoration:none}
+.cs-link:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo">Ambi</div><div class="tb-div"></div>
+  <div class="tb-ctx">Chen Lab × Tobin Center · Heat / preterm birth · CT adaptation pitch</div>
+  <div class="tb-pill"><div class="dot-live"></div><span>Listening</span></div>
+</div>
+<div class="body">
+  <div class="left">
+    <div class="left-hd"><div class="left-hd-label">Insights Feed</div><div class="count-badge">5</div></div>
+    <div class="feed">
+      <div class="fc t-reactive" onclick="sel(this,'reactive')"><div class="fc-type"><span class="fc-dot"></span>Reactive</div><div class="fc-title">Effect sizes by trimester -- which numbers are safe to anchor on</div><div class="fc-trigger">"…still working through a confounder around AC access…"</div></div>
+      <div class="fc t-reactive" onclick="sel(this,'reactive')"><div class="fc-type"><span class="fc-dot"></span>Reactive</div><div class="fc-title">Dose-response curves diverge sharply by income -- directionality holds</div><div class="fc-trigger">"…around 1.4 relative risk…even if AC shaves that down…"</div></div>
+      <div class="fc t-diagram" onclick="sel(this,'diagram')"><div class="fc-type"><span class="fc-dot"></span>Diagram Suggested</div><div class="fc-title">CT stakeholder sign-off pathway maps to a branching flowchart</div><div class="fc-trigger">"…adaptation office reports to DEEP, funding runs through OPM…"</div></div>
+      <div class="fc sel-caution t-caution" onclick="sel(this,'caution')"><div class="fc-type"><span class="fc-dot"></span>Caution</div><div class="fc-title">Bridgeport data is thinner -- citing both cities risks credibility</div><div class="fc-trigger">"…the preprint title reads 'New Haven and Bridgeport'…"</div></div>
+      <div class="fc t-proactive" onclick="sel(this,'proactive')"><div class="fc-type"><span class="fc-dot"></span>Proactive</div><div class="fc-title">DEEP heat mapping publishes this spring -- before the June session</div><div class="fc-trigger">Neither party has mentioned it · Ambi noticed</div></div>
+    </div>
+  </div>
+
+  <div class="center">
+    <div class="c-eye">Caution · Positioning risk flagged</div>
+    <div class="c-title">Bridgeport data is thinner -- citing both cities in the pitch risks a credibility problem</div>
+    <div class="c-body">James has been framing this as a New Haven and Bridgeport study throughout the conversation. Sarah just flagged that Bridgeport tract-level sample sizes are thinner and estimates less stable. If Bridgeport estimates shift in peer review after the pitch, the adaptation office's trust in the whole dataset is at risk.</div>
+
+    <div class="caution-stripe"><div class="caution-stripe-dot"></div><span class="caution-stripe-text">Positioning risk · flagged by Ambi</span></div>
+
+    <div class="trig-box">
+      <div class="trig-label">Triggered by</div>
+      <div class="trig-text">Sarah Chen: "And before we even get to the pathway -- I want to make sure we're not inadvertently overstating the geographic precision of this. The census tract-level data is solid for New Haven. Bridgeport is thinner. If James leads with 'New Haven and Bridgeport' the way the preprint title reads, and the Bridgeport estimates don't survive revision, that's a credibility problem."</div>
+    </div>
+
+    <!-- COLLAPSED POPUP -->
+    <div class="state-label">Popup -- collapsed state</div>
+    <div class="collapsed-view">
+      <div class="popup-card">
+        <div class="popup-header">
+          <div class="popup-header-left"><div class="popup-hdot"></div><span class="popup-htitle">Caution</span></div>
+          <button class="popup-x">✕</button>
+        </div>
+        <div class="popup-trigger">
+          <div class="popup-trigger-label">Triggered by</div>
+          <div class="popup-trigger-text">"…Bridgeport is thinner. If you lead with 'New Haven and Bridgeport' and those estimates shift, that's a credibility problem."</div>
+        </div>
+        <div class="popup-body">
+          <div class="popup-headline">Bridgeport data is thinner -- citing both cities in the pitch risks a credibility problem</div>
+          <div class="popup-summary">Bridgeport tract-level sample sizes are thinner and estimates less stable. If those numbers shift in peer review after the pitch, the adaptation office's trust in the whole dataset is at risk.</div>
+          <div class="popup-actions">
+            <button class="btn-deep" onclick="expand()">Open in Deep Dive →</button>
+            <button class="btn-rem">Remove</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXPANDED -->
+    <div class="state-label" id="expanded-label" style="display:none">Popup -- expanded state (Deep Dive)</div>
+    <div id="expanded-view" style="display:none">
+      <div class="corr-block">
+        <div class="corr-row">
+          <div class="corr-col corr-wrong"><div class="corr-label">❌ Current framing</div><div class="corr-text">"New Haven and Bridgeport" -- implies equivalent data quality across both cities</div></div>
+          <div class="corr-col corr-right"><div class="corr-label">✓ Correct framing</div><div class="corr-text">"New Haven anchor, Bridgeport directional signal" -- honest about data weight difference</div></div>
+        </div>
+      </div>
+      <div class="risk-list">
+        <div class="risk-item"><span class="risk-num">01</span><div class="risk-text"><strong>Bridgeport tract-level sample sizes are thinner</strong>Especially in the Q4 income quartile. If estimates move in peer review, the adaptation office will have heard a two-city claim that the published paper doesn't support.</div></div>
+        <div class="risk-item"><span class="risk-num">02</span><div class="risk-text"><strong>Credibility is the pitch's only currency at this stage</strong>The preprint hasn't cleared peer review. The policy window is tight. Any factual backpedaling after the June pitch damages Tobin Center's standing for follow-on engagement with DEEP and OPM.</div></div>
+        <div class="risk-item"><span class="risk-num">03</span><div class="risk-text"><strong>New Haven alone is sufficient for pilot justification</strong>The effect sizes in New Haven are robust and stable across all model specifications. A New Haven pilot with directional Bridgeport evidence is a stronger, more defensible honest case.</div></div>
+      </div>
+      <div class="reframe">
+        <div class="reframe-label">✓ Recommended language for the deck</div>
+        "The strongest evidence base is New Haven, where census tract data is robust and effect sizes are stable across all model specifications. Bridgeport data is directionally consistent and will be addressed in the peer-reviewed publication."
+      </div>
+      <div class="src-tag">Source: Chen Lab preprint v2 · ambi_data_effect_sizes.json · uploaded 2026-03-18</div>
+      <div class="caution-sources">
+        <div class="cs-label">Why Bridgeport data is structurally thinner -- grounded in CT data</div>
+        <div class="cs-item"><span class="cs-num">01</span><div class="cs-text"><strong>Bridgeport has fewer census tracts and smaller per-tract birth populations than New Haven.</strong> Bridgeport (pop. ~148K) and New Haven (pop. ~135K) are comparable in size, but New Haven's population is concentrated across a smaller geographic footprint with denser tract-level birth counts -- giving the Chen Lab data more statistical power per tract. At census tract level (typically 1,200--8,000 residents), this means New Haven tracts generate more births per observation window, reducing uncertainty in effect estimates. Source: DataHaven Connecticut City Neighborhood Profiles; US Census Bureau QuickFacts CT. <a class="cs-link" href="https://ctdatahaven.org/profiles/bridgeport/" target="_blank">ctdatahaven.org -- Bridgeport profiles</a></div></div>
+        <div class="cs-item"><span class="cs-num">02</span><div class="cs-text"><strong>Bridgeport's Q4 income quartile (highest income tracts) has very few births relative to its lower-income tracts</strong>, making income-stratified estimates especially unstable in the upper quartile. The DataHaven 2021 New Haven Equity Profile and Bridgeport Equity data show that Bridgeport's income distribution is heavily skewed toward lower-income tracts -- meaning Q4 estimates are based on a very small number of births. This is precisely the stratum Sarah flagged as most at risk in the preprint data. <a class="cs-link" href="https://ctdatahaven.org/sites/ctdatahaven/files/new_haven_profile_v1.pdf" target="_blank">DataHaven New Haven Equity Profile (2021)</a></div></div>
+        <div class="cs-item"><span class="cs-num">03</span><div class="cs-text"><strong>CT DPH's own surveillance data acknowledges sample suppression in smaller geographic units.</strong> The CT-LLoVE longitudinal dataset (maternal-birth linkage 2010--2020) notes that small cell sizes in specific census tracts require suppression to prevent re-identification, particularly for less common outcomes like preterm birth in specific income-heat exposure combinations. This structural limitation applies more acutely to Bridgeport, where tract-level birth counts in specific exposure quintiles fall near or below standard suppression thresholds. Source: CT DPH MCH Data Capacity reporting to HRSA (2023). <a class="cs-link" href="https://mchb.tvisdata.hrsa.gov/Narratives/Other%20MCH%20Data%20Capacity%20Efforts/403b9776-0fb7-432c-8b16-8e10a15cfbcc" target="_blank">CT DPH MCH Data Capacity -- HRSA 2023</a></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function sel(el,type){document.querySelectorAll('.fc').forEach(c=>c.className=c.className.replace(/\bsel-\w+/g,'').trim());el.classList.add('sel-'+type)}
+function expand(){
+  document.getElementById('expanded-label').style.display='block';
+  document.getElementById('expanded-view').style.display='block';
+  document.getElementById('expanded-view').scrollIntoView({behavior:'smooth',block:'start'});
+}
+</script>
+</body>
+</html>

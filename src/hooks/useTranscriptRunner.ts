@@ -11,7 +11,7 @@ import { readBotSettings } from './useBotSettings';
 import { useMeetingStore } from '../state/MeetingStore';
 import { TranscriptEvent } from '../types/domain';
 
-export type TranscriptStreamMode = 'ai-live' | 'microphone' | 'google-meet' | 'recall-bot';
+export type TranscriptStreamMode = 'ai-live' | 'recall-bot';
 
 export function useTranscriptRunner(): {
   start: () => void;
@@ -21,12 +21,6 @@ export function useTranscriptRunner(): {
   setMode: (mode: TranscriptStreamMode) => void;
   injectLine: (speaker: string, text: string) => void;
   upcomingTurn: { speaker: string; text: string } | null;
-  micSupported: boolean;
-  micError: string | null;
-  micInterimText: string;
-  micSpeaker: string;
-  setMicSpeaker: (speaker: string) => void;
-  scriptAssistMode: boolean;
   // Recall.ai bot
   recallBotId: string | null;
   recallBotStatus: string;
@@ -42,17 +36,10 @@ export function useTranscriptRunner(): {
   const cursorRef = useRef(0);
   const queueRef = useRef<Array<{ speaker: string; text: string }>>([]);
   const generatingRef = useRef(false);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const manuallyStoppingMicRef = useRef(false);
-  const micRetryTimerRef = useRef<number | null>(null);
-  const micRestartAttemptsRef = useRef(0);
   const eventCounterRef = useRef(1000);
   const presetCursorRef = useRef(0);
   const [mode, setMode] = useState<TranscriptStreamMode>('recall-bot');
   const [upcomingTurn, setUpcomingTurn] = useState<{ speaker: string; text: string } | null>(null);
-  const [micError, setMicError] = useState<string | null>(null);
-  const [micInterimText, setMicInterimText] = useState('');
-  const [micSpeaker, setMicSpeaker] = useState('Account Exec');
 
   // Recall.ai bot state
   const [recallBotId, setRecallBotId] = useState<string | null>(null);
@@ -64,12 +51,6 @@ export function useTranscriptRunner(): {
   const [recallPartials, setRecallPartials] = useState<Record<string, string>>({});
 
   const RECALL_STORAGE_KEY = 'ambi_recall_bot';
-
-  const speechCtor =
-    typeof window !== 'undefined'
-      ? window.SpeechRecognition || window.webkitSpeechRecognition || null
-      : null;
-  const micSupported = Boolean(speechCtor);
 
   useEffect(() => {
     stateRef.current = state;
@@ -89,64 +70,18 @@ export function useTranscriptRunner(): {
   const injectLine = (speaker: string, text: string): void => {
     const trimmedText = text.trim();
     const trimmedSpeaker = speaker.trim();
-    if (!trimmedText || !trimmedSpeaker) {
-      return;
-    }
-
+    if (!trimmedText || !trimmedSpeaker) return;
     dispatch({ type: 'PROCESS_EVENT', payload: makeEvent(trimmedSpeaker, trimmedText) });
   };
 
-  // Listen for captions from the Ambi Chrome extension (Google Meet connector)
+  // ── AI-live: generate transcript turns every 3200ms ──
   useEffect(() => {
-    const handler = (event: MessageEvent) => {
-      if (event.data?.type === 'AMBI_CAPTION_FROM_EXTENSION') {
-        const { speaker, text } = event.data;
-        console.log('%c[Ambi App]', 'color:#63d2be;font-weight:bold',
-          `Received from extension: ${speaker}: ${text?.substring(0, 60)}`);
-        if (speaker && text) {
-          // Auto-start listening if idle when captions arrive
-          if (stateRef.current.liveStatus === 'idle') {
-            console.log('%c[Ambi App]', 'color:#63d2be;font-weight:bold', 'Auto-starting from idle');
-            dispatch({ type: 'START_LISTENING' });
-          }
-          dispatch({ type: 'PROCESS_EVENT', payload: makeEvent(speaker, text) });
-        }
-      }
-    };
-
-    window.addEventListener('message', handler);
-    console.log('%c[Ambi App]', 'color:#63d2be;font-weight:bold', 'postMessage listener registered');
-    return () => window.removeEventListener('message', handler);
-  }, [dispatch]);
-
-  const stopMicrophone = (): void => {
-    manuallyStoppingMicRef.current = true;
-    if (micRetryTimerRef.current) {
-      window.clearTimeout(micRetryTimerRef.current);
-      micRetryTimerRef.current = null;
-    }
-    recognitionRef.current?.stop();
-    recognitionRef.current = null;
-    setMicInterimText('');
-  };
-
-  useEffect(() => {
-    if (state.liveStatus !== 'listening') {
-      return;
-    }
-
-    if (mode === 'microphone' || mode === 'google-meet' || mode === 'recall-bot') {
-      return;
-    }
+    if (state.liveStatus !== 'listening' || mode !== 'ai-live') return;
 
     const timer = window.setInterval(() => {
       void (async () => {
-        // Don't run ai-live generation during preset replay
         if (stateRef.current.presetTranscript !== null) return;
-
-        if (generatingRef.current) {
-          return;
-        }
+        if (generatingRef.current) return;
 
         if (queueRef.current.length === 0) {
           generatingRef.current = true;
@@ -169,11 +104,7 @@ export function useTranscriptRunner(): {
 
         const next = queueRef.current.shift();
         setUpcomingTurn(queueRef.current[0] ?? null);
-
-        if (!next) {
-          return;
-        }
-
+        if (!next) return;
         dispatch({ type: 'PROCESS_EVENT', payload: makeEvent(next.speaker, next.text) });
       })();
     }, 3200);
@@ -181,22 +112,11 @@ export function useTranscriptRunner(): {
     return () => window.clearInterval(timer);
   }, [dispatch, mode, state.liveStatus]);
 
-  // ── Script-assist: detect preset + microphone combination, dispatch mode flag ──
-  useEffect(() => {
-    const isAssist = state.presetTranscript !== null && mode === 'microphone';
-    if (isAssist !== state.scriptAssistMode) {
-      dispatch({ type: 'SET_SCRIPT_ASSIST', payload: isAssist });
-    }
-  }, [state.presetTranscript, mode, state.scriptAssistMode, dispatch]);
-
   // ── Preset replay: fire stored transcript events one-by-one when Start is pressed ──
   useEffect(() => {
     if (state.liveStatus !== 'listening' || !state.presetTranscript || state.presetTranscript.length === 0) {
       return;
     }
-
-    // Script-assist mode: user speaks the script via mic — skip auto-timer
-    if (state.scriptAssistMode) return;
 
     presetCursorRef.current = 0;
     const events = state.presetTranscript;
@@ -213,134 +133,9 @@ export function useTranscriptRunner(): {
     }, 2500);
 
     return () => window.clearInterval(timer);
-  }, [dispatch, state.liveStatus, state.presetTranscript, state.scriptAssistMode]);
+  }, [dispatch, state.liveStatus, state.presetTranscript]);
 
-  useEffect(() => {
-    if (mode !== 'microphone') {
-      stopMicrophone();
-      setMicError(null);
-      micRestartAttemptsRef.current = 0;
-      return;
-    }
-
-    if (!micSupported || !speechCtor) {
-      setMicError('Microphone speech recognition is not supported in this browser.');
-      return;
-    }
-
-    if (state.liveStatus !== 'listening') {
-      stopMicrophone();
-      micRestartAttemptsRef.current = 0;
-      return;
-    }
-
-    if (recognitionRef.current) {
-      return;
-    }
-
-    const scheduleRestart = (delayMs: number): void => {
-      if (micRetryTimerRef.current) {
-        window.clearTimeout(micRetryTimerRef.current);
-      }
-
-      micRetryTimerRef.current = window.setTimeout(() => {
-        micRetryTimerRef.current = null;
-
-        if (mode !== 'microphone' || stateRef.current.liveStatus !== 'listening' || recognitionRef.current) {
-          return;
-        }
-
-        startRecognition();
-      }, delayMs);
-    };
-
-    const startRecognition = (): void => {
-      manuallyStoppingMicRef.current = false;
-      const recognition = new speechCtor();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = 'en-US';
-
-      recognition.onresult = (event) => {
-        let interim = '';
-
-        for (let i = event.resultIndex; i < event.results.length; i += 1) {
-          const transcript = event.results[i][0]?.transcript?.trim() || '';
-          if (!transcript) {
-            continue;
-          }
-
-          if (event.results[i].isFinal) {
-            dispatch({ type: 'PROCESS_EVENT', payload: makeEvent(micSpeaker, transcript) });
-          } else {
-            interim = transcript;
-          }
-        }
-
-        if (interim.length > 0) {
-          setMicInterimText(interim);
-        }
-
-        micRestartAttemptsRef.current = 0;
-        setMicError(null);
-      };
-
-      recognition.onerror = (event) => {
-        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-          setMicError('Microphone permission denied. Please allow microphone access and restart listening.');
-          dispatch({ type: 'PAUSE_LISTENING' });
-          return;
-        }
-
-        if (event.error === 'network') {
-          micRestartAttemptsRef.current += 1;
-
-          if (micRestartAttemptsRef.current >= 3) {
-            setMicError('Microphone network error persisted. Switched to AI live transcript mode.');
-            setMode('ai-live');
-            return;
-          }
-
-          setMicError('Microphone network error. Retrying speech capture...');
-          stopMicrophone();
-          scheduleRestart(1200 * micRestartAttemptsRef.current);
-          return;
-        }
-
-        setMicError(`Speech recognition error: ${event.error}`);
-      };
-
-      recognition.onend = () => {
-        recognitionRef.current = null;
-        setMicInterimText('');
-
-        if (manuallyStoppingMicRef.current) {
-          manuallyStoppingMicRef.current = false;
-          return;
-        }
-
-        if (mode === 'microphone' && stateRef.current.liveStatus === 'listening') {
-          scheduleRestart(500);
-        }
-      };
-
-      recognitionRef.current = recognition;
-
-      try {
-        recognition.start();
-      } catch {
-        setMicError('Unable to start microphone recognition in this browser session.');
-      }
-    };
-
-    startRecognition();
-
-    return () => {
-      stopMicrophone();
-    };
-  }, [dispatch, micSpeaker, micSupported, mode, speechCtor, state.liveStatus]);
-
-  // ── Recall.ai: start polling bot status from Recall.ai API ──
+  // ── Recall.ai: start polling bot status ──
   const startStatusPoll = useCallback((botId: string) => {
     if (recallStatusPollRef.current) window.clearInterval(recallStatusPollRef.current);
     recallStatusPollRef.current = window.setInterval(async () => {
@@ -373,7 +168,7 @@ export function useTranscriptRunner(): {
     }
   }, [recallBotId, recallMeetingUrl, RECALL_STORAGE_KEY]);
 
-  // ── Recall.ai: restore bot state on mount (survives page refresh) ──
+  // ── Recall.ai: restore bot state on mount ──
   useEffect(() => {
     const saved = localStorage.getItem(RECALL_STORAGE_KEY);
     if (!saved) return;
@@ -466,10 +261,8 @@ export function useTranscriptRunner(): {
       setRecallBotStatus('transcribing');
 
       if (evt.isPartial) {
-        // Show live interim text per speaker
         setRecallPartials((prev) => ({ ...prev, [speaker]: text }));
       } else {
-        // Final — clear this speaker's partial and process for AI
         setRecallPartials((prev) => { const n = { ...prev }; delete n[speaker]; return n; });
         console.log('%c[Recall]', 'color:#63d2be;font-weight:bold', `${speaker}: ${text.substring(0, 80)}`);
         dispatch({ type: 'PROCESS_EVENT', payload: makeEvent(speaker, text) });
@@ -491,18 +284,13 @@ export function useTranscriptRunner(): {
 
   return {
     start: () => dispatch({ type: 'START_LISTENING' }),
-    pause: () => {
-      stopMicrophone();
-      dispatch({ type: 'PAUSE_LISTENING' });
-    },
+    pause: () => dispatch({ type: 'PAUSE_LISTENING' }),
     reset: () => {
-      stopMicrophone();
       recallUnsubRef.current?.();
       recallUnsubRef.current = null;
       cursorRef.current = 0;
       queueRef.current = [];
       setUpcomingTurn(null);
-      setMicError(null);
       setRecallBotId(null);
       setRecallBotStatus('idle');
       setRecallError(null);
@@ -512,12 +300,6 @@ export function useTranscriptRunner(): {
     setMode,
     injectLine,
     upcomingTurn,
-    micSupported,
-    micError,
-    micInterimText,
-    micSpeaker,
-    setMicSpeaker,
-    scriptAssistMode: state.scriptAssistMode,
     // Recall.ai bot
     recallBotId,
     recallBotStatus,

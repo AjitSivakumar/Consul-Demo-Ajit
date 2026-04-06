@@ -24,10 +24,16 @@ function loadState(): MeetingState {
     // Reset transient statuses so a refresh doesn't leave a stale "listening" state
     return {
       ...parsed,
-      liveStatus: parsed.liveStatus === 'listening' || parsed.liveStatus === 'ending' ? 'paused' : parsed.liveStatus,
+      liveStatus:
+        parsed.liveStatus === 'listening' || parsed.liveStatus === 'ending'
+          ? 'paused'
+          : parsed.liveStatus === 'ended'
+          ? 'idle'
+          : parsed.liveStatus,
       isGenerating: false,
       notes: parsed.notes ?? {},
       presetTranscript: null, // always reset — never replay a stale preset on refresh
+      scriptAssistMode: false, // always reset on refresh
     };
   } catch {
     return initialMeetingState;

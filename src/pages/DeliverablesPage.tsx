@@ -2,7 +2,6 @@ import { useNavigate } from 'react-router-dom';
 import { ActionList } from '../components/deliverables/ActionList';
 import { QASection } from '../components/deliverables/QASection';
 import { ResearchCard } from '../components/deliverables/ResearchCard';
-import { SlideGrid } from '../components/deliverables/SlideGrid';
 import { useMeetingStore } from '../state/MeetingStore';
 
 export function DeliverablesPage(): React.JSX.Element {
@@ -18,7 +17,11 @@ export function DeliverablesPage(): React.JSX.Element {
     navigate('/realtime');
   };
   const g = state.generatedContent;
-  const hasContent = Boolean(g.research || g.qa || g.actions || g.slides);
+  const hasContent = Boolean(g.research || g.qa || g.actions);
+
+  const handleDownloadPDF = (): void => {
+    window.print();
+  };
 
   const participants = state.context.participants.slice(0, 3).join(' · ');
 
@@ -44,6 +47,11 @@ export function DeliverablesPage(): React.JSX.Element {
           <button type="button" className="nav-btn" onClick={handleBack}>
             ← Back
           </button>
+          {hasContent && (
+            <button type="button" className="nav-btn dl-pdf-btn" onClick={handleDownloadPDF}>
+              ↓ Download PDF
+            </button>
+          )}
           {hasContent && (
             <button type="button" className="nav-btn end" onClick={handleNewMeeting}>
               New Meeting
@@ -85,11 +93,7 @@ export function DeliverablesPage(): React.JSX.Element {
               </div>
             )}
 
-            {g.slides && g.slides.slides.length > 0 && (
-              <div className="dl-section">
-                <SlideGrid data={g.slides} />
-              </div>
-            )}
+
           </div>
         )}
       </div>

@@ -202,16 +202,13 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
           <div className="ev-question">{selectedNeed.prompt}</div>
           {evidence && (
             <>
-              {!evidence.richTable && !evidence.richChart && !evidence.richMetricGrid && !evidence.richCorrectionBlock && !evidence.richFlowDiagram && (
+              {!isCaution && !isDiagram && (
                 <div className="ev-answer">{evidence.summary}</div>
               )}
               <div className="ev-src-row">
                 {evidence.attributions.map((attr) => (
                   <div key={attr.sourceId} className="ev-src-badge">
-                    <div className="sdot" style={{
-                      background: attr.sourceType === 'web' ? '#185FA5' : '#3B6D11',
-                      width: 8, height: 8, borderRadius: '50%',
-                    }} />
+                    <div className={`src-type-dot src-type-dot--${attr.sourceType}`} />
                     {attr.title}
                   </div>
                 ))}
@@ -237,9 +234,7 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
               <div className="caution-icon">!</div>
               <div className="caution-title">Caution</div>
             </div>
-            <div className="caution-body">
-              This insight involves <strong>{selectedNeed.category}</strong> data that should be verified against primary sources before making decisions.
-            </div>
+            <div className="caution-body">{evidence.summary}</div>
           </div>
         )}
 
@@ -247,9 +242,9 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
           <div className="diagram-banner">
             <div className="diagram-banner-head">
               <div className="diagram-icon">→</div>
-              <div className="diagram-title">Diagram Suggested</div>
+              <div className="diagram-title">Diagram</div>
             </div>
-            <div className="diagram-body">A visual representation has been found to be useful for this topic.</div>
+            <div className="diagram-body">{evidence.summary}</div>
           </div>
         )}
 
