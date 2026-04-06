@@ -1,15 +1,15 @@
 <svg width="132" height="131" viewBox="0 0 132 131" fill="none" xmlns="http://www.w3.org/2000/svg">
 <rect width="132" height="131" rx="20" fill="white"/>
 <g filter="url(#filter0_d_37_32)">
-<rect x="50" y="28.5" width="15" height="96.2358" transform="rotate(-30 50 28.5)" fill="#A529F3"/>
+<rect x="50" y="28.5" width="15" height="96.2358" transform="rotate(-30 50 28.5)" fill="#7726AA"/>
 </g>
 <g filter="url(#filter1_d_37_32)">
-<rect x="72" y="21" width="15" height="96" transform="rotate(30 72 21)" fill="#A529F3"/>
+<rect x="72" y="21" width="15" height="96" transform="rotate(30 72 21)" fill="#7726AA"/>
 </g>
 <g filter="url(#filter2_d_37_32)">
-<rect x="18" y="94" width="15" height="96" transform="rotate(-90 18 94)" fill="#A529F3"/>
+<rect x="18" y="94" width="15" height="96" transform="rotate(-90 18 94)" fill="#7726AA"/>
 </g>
-<path d="M79.1799 79H96.5L105.141 94H87.8303L79.1799 79Z" fill="#A529F3"/>
+<path d="M79.1799 79H96.5L105.141 94H87.8303L79.1799 79Z" fill="#7726AA"/>
 <defs>
 <filter id="filter0_d_37_32" x="46" y="21" width="69.1083" height="98.8426" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
 <feFlood flood-opacity="0" result="BackgroundImageFix"/>

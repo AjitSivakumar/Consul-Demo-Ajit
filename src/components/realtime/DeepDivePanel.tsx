@@ -205,17 +205,21 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
               {!isCaution && !isDiagram && (
                 <div className="ev-answer">{evidence.summary}</div>
               )}
-              <div className="ev-src-row">
-                {evidence.attributions.map((attr) => (
-                  <div key={attr.sourceId} className="ev-src-badge">
-                    <div className={`src-type-dot src-type-dot--${attr.sourceType}`} />
-                    {attr.title}
-                  </div>
-                ))}
-                <div className="ev-conf">
-                  Match <b>{(evidence.confidence * 100).toFixed(0)}%</b>
+              {(isCaution || isDiagram) ? (
+                <div className="ev-src-row">
+                  <div className="ev-conf">Match <b>{(evidence.confidence * 100).toFixed(0)}%</b></div>
                 </div>
-              </div>
+              ) : (
+                <div className="ev-src-row">
+                  {evidence.attributions.map((attr) => (
+                    <div key={attr.sourceId} className="ev-src-badge">
+                      <div className={`src-type-dot src-type-dot--${attr.sourceType}`} />
+                      {attr.title}
+                    </div>
+                  ))}
+                  <div className="ev-conf">Match <b>{(evidence.confidence * 100).toFixed(0)}%</b></div>
+                </div>
+              )}
             </>
           )}
           {!evidence && selectedNeed.status === 'retrieving' && (
@@ -287,6 +291,52 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
             <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
               {evidence.summary}
             </div>
+          </div>
+        )}
+
+        {isCaution && evidence && evidence.attributions.length > 0 && (
+          <div className="caution-sources">
+            <div className="cs-label">Sources</div>
+            {evidence.attributions.map((attr, i) => (
+              <div key={attr.sourceId} className="cs-item">
+                <span className="cs-num">{String(i + 1).padStart(2, '0')}</span>
+                <div className="cs-text">
+                  <strong>{attr.title}</strong>
+                  {attr.snippet}
+                  {attr.url && (
+                    <a className="cs-link" href={attr.url} target="_blank" rel="noopener noreferrer">
+                      {attr.url.replace(/^https?:\/\//, '').split('/')[0]}
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {isDiagram && evidence && evidence.attributions.length > 0 && (
+          <div className="src-notes">
+            <div className="src-note-label">Sources backing each pathway node</div>
+            {evidence.attributions.map((attr) => {
+              const id = attr.sourceId;
+              const tagCls = id.includes('exec') || id.includes('deep') ? 'sn-teal'
+                : id.includes('ohs') || id.includes('dph') ? 'sn-red'
+                : 'sn-navy';
+              const tagLabel = tagCls === 'sn-teal' ? 'DEEP · policy track'
+                : tagCls === 'sn-red' ? 'DPH · data auth track'
+                : 'OPM · funding track';
+              return (
+                <div key={attr.sourceId} className="src-note-item">
+                  <span className={`src-node-tag ${tagCls}`}>{tagLabel}</span>
+                  {attr.snippet && <span> {attr.snippet}</span>}
+                  {attr.url && (
+                    <> <a className="src-link" href={attr.url} target="_blank" rel="noopener noreferrer">
+                      {attr.url.replace(/^https?:\/\//, '').split('/')[0]}
+                    </a></>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
 

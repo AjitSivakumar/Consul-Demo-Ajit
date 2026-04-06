@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ambi — Reactive 01 · Effect Size Table</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital,wght@0,400;1,400&family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f4f0;--panel:#fff;--border:#e4e2dc;--border-mid:#ccc9c0;
+  --t1:#1a1a18;--t2:#6b6a66;--t3:#a8a7a2;
+  --green:#1a7a45;--bg-green:#edf7f1;--border-green:#b8e0c8;
+  --blue:#185FA5;--bg-blue:#EEF5FD;--border-blue:#b5d4f4;
+  --red:#b8291c;--bg-red:#fdf2f0;--border-red:#eeb8b0;
+  --gold:#7a5400;--bg-gold:#fdf7e8;--border-gold:#e0c878;
+  --warn:#7a4a1a;--bg-warn:#fdf3e8;--border-warn:#e0c090;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t1);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+
+/* TOPBAR */
+.topbar{height:46px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 18px;gap:10px;flex-shrink:0}
+.logo{font-family:'Instrument Serif',serif;font-size:17px;letter-spacing:-.2px}
+.tb-div{width:1px;height:16px;background:var(--border)}
+.tb-ctx{font-size:11px;color:var(--t2);font-family:'DM Mono',monospace;letter-spacing:.02em}
+.tb-pill{margin-left:auto;display:flex;align-items:center;gap:6px;background:#f0f0ee;border:1px solid var(--border);border-radius:100px;padding:4px 11px}
+.dot-live{width:6px;height:6px;border-radius:50%;background:#4caf50;animation:blink 2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.75)}}
+.tb-pill span{font-size:10px;font-family:'DM Mono',monospace;color:var(--t2)}
+
+/* LAYOUT */
+.body{display:flex;flex:1;overflow:hidden}
+
+/* LEFT */
+.left{width:300px;flex-shrink:0;border-right:1px solid var(--border);background:#fafaf8;display:flex;flex-direction:column;overflow:hidden}
+.left-hd{padding:12px 14px 9px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.left-hd-label{font-size:10px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--t3)}
+.count-badge{background:var(--green);color:#fff;font-size:10px;font-family:'DM Mono',monospace;border-radius:100px;padding:1px 8px}
+.feed{padding:8px;display:flex;flex-direction:column;gap:6px;overflow-y:auto;flex:1}
+
+/* FEED CARDS */
+.fc{border-radius:10px;padding:11px 12px;cursor:pointer;border:1.5px solid var(--border);background:#fff;transition:all .15s}
+.fc:hover{border-color:var(--border-mid);box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.fc.sel-reactive{border-color:var(--green);background:var(--bg-green)}
+.fc.sel-diagram{border-color:var(--gold);background:var(--bg-gold)}
+.fc.sel-caution{border-color:var(--red);background:var(--bg-red)}
+.fc.sel-proactive{border-color:var(--blue);background:var(--bg-blue)}
+
+.fc-type{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;display:flex;align-items:center;gap:5px}
+.fc-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.t-reactive .fc-dot{background:var(--green)} .t-reactive{color:var(--green)}
+.t-proactive .fc-dot{background:var(--blue)} .t-proactive{color:var(--blue)}
+.t-caution .fc-dot{background:var(--red)} .t-caution{color:var(--red)}
+.t-diagram .fc-dot{background:var(--gold)} .t-diagram{color:var(--gold)}
+
+.fc-title{font-size:12.5px;font-weight:500;color:var(--t1);line-height:1.4;margin-bottom:5px}
+.fc-trigger{font-size:11px;color:var(--t2);font-style:italic;line-height:1.45;font-weight:300;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* CENTER */
+.center{flex:1;overflow-y:auto;padding:26px 30px 40px}
+.c-eye{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.12em;color:var(--t3);margin-bottom:8px}
+.c-title{font-family:'Instrument Serif',serif;font-size:24px;font-weight:400;line-height:1.25;color:var(--t1);margin-bottom:6px;letter-spacing:-.3px}
+.c-body{font-size:13px;color:var(--t2);font-weight:300;line-height:1.65;margin-bottom:20px}
+
+.trig-box{background:#f5f4f0;border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:20px}
+.trig-label{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--t3);margin-bottom:4px}
+.trig-text{font-size:12px;color:var(--t2);font-style:italic;line-height:1.6}
+
+/* TABLE */
+.tbl-card{background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px}
+.tbl-head,.tbl-row{display:grid;grid-template-columns:1.9fr .75fr .7fr 1.15fr .65fr .85fr;padding:8px 14px;align-items:center}
+.tbl-head{background:#f5f4f0;border-bottom:1px solid var(--border)}
+.th{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:var(--t3)}
+.tbl-row{border-bottom:1px solid var(--border);transition:background .1s}
+.tbl-row:last-child{border-bottom:none}
+.tbl-row:hover{background:#fafaf8}
+.tbl-row.warn-row{background:var(--bg-warn)}
+.tbl-row.warn-row:hover{background:#fdf0dc}
+.td{font-size:12px;color:var(--t1)}
+.td.dim{color:var(--t2);font-size:11px;font-weight:300}
+.td.mono{font-family:'DM Mono',monospace;font-size:12px}
+.td.sig{color:var(--green);font-weight:500}
+.td.ns{color:var(--t3)}
+.td.wn{color:var(--warn);font-weight:500}
+.td.ci{font-family:'DM Mono',monospace;font-size:10px;color:var(--t3)}
+.badge{display:inline-block;font-size:9px;font-family:'DM Mono',monospace;padding:2px 7px;border-radius:4px}
+.b-stable{background:var(--bg-green);color:var(--green);border:1px solid var(--border-green)}
+.b-flux{background:var(--bg-warn);color:var(--warn);border:1px solid var(--border-warn)}
+
+/* CALLOUTS */
+.callout{border-radius:10px;padding:14px 16px;margin-bottom:12px;border:1px solid}
+.co-warn{background:var(--bg-warn);border-color:var(--border-warn)}
+.co-green{background:var(--bg-green);border-color:var(--border-green)}
+.co-label{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin-bottom:7px}
+.co-warn .co-label{color:var(--warn)}
+.co-green .co-label{color:var(--green)}
+.co-text{font-size:12.5px;line-height:1.7;font-weight:300}
+.co-warn .co-text{color:#5a3010}
+.co-green .co-text{color:#1a3a28}
+.co-text strong{font-weight:500}
+.anchor-wrap{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center}
+.anchor-num{font-family:'Instrument Serif',serif;font-size:44px;color:var(--green);line-height:1;letter-spacing:-1px}
+.src-tag{display:inline-block;margin-top:14px;font-size:9px;font-family:'DM Mono',monospace;color:var(--t3);background:#f5f4f0;border:1px solid var(--border);border-radius:4px;padding:2px 8px}
+
+.read-guide{background:#f5f4f0;border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px;display:flex;flex-direction:column;gap:9px}
+.rg-item{font-size:12px;color:var(--t2);line-height:1.65;font-weight:300}
+.rg-item strong{color:var(--t1);font-weight:500}
+.rg-tag{display:inline-block;font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:var(--blue);background:var(--bg-blue);border:1px solid var(--border-blue);border-radius:4px;padding:2px 7px;margin-right:8px;white-space:nowrap}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">Ambi</div>
+  <div class="tb-div"></div>
+  <div class="tb-ctx">Chen Lab × Tobin Center · Heat / preterm birth · CT adaptation pitch</div>
+  <div class="tb-pill"><div class="dot-live"></div><span>Listening</span></div>
+</div>
+
+<div class="body">
+
+  <!-- LEFT -->
+  <div class="left">
+    <div class="left-hd">
+      <div class="left-hd-label">Insights Feed</div>
+      <div class="count-badge">5</div>
+    </div>
+    <div class="feed">
+      <div class="fc sel-reactive t-reactive" onclick="sel(this,'reactive')">
+        <div class="fc-type"><span class="fc-dot"></span>Reactive</div>
+        <div class="fc-title">Effect sizes by trimester — which numbers are safe to anchor on</div>
+        <div class="fc-trigger">"…still working through a confounder around AC access…"</div>
+      </div>
+      <div class="fc t-reactive" onclick="sel(this,'reactive')">
+        <div class="fc-type"><span class="fc-dot"></span>Reactive</div>
+        <div class="fc-title">Dose-response curves diverge sharply by income — directionality holds</div>
+        <div class="fc-trigger">"…around 1.4 relative risk…even if AC shaves that down…"</div>
+      </div>
+      <div class="fc t-diagram" onclick="sel(this,'diagram')">
+        <div class="fc-type"><span class="fc-dot"></span>Diagram Suggested</div>
+        <div class="fc-title">CT stakeholder sign-off pathway maps to a branching flowchart</div>
+        <div class="fc-trigger">"…adaptation office reports to DEEP, funding runs through OPM…"</div>
+      </div>
+      <div class="fc t-caution" onclick="sel(this,'caution')">
+        <div class="fc-type"><span class="fc-dot"></span>Caution</div>
+        <div class="fc-title">Bridgeport data is thinner — citing both cities risks credibility</div>
+        <div class="fc-trigger">"…the preprint title reads 'New Haven and Bridgeport'…"</div>
+      </div>
+      <div class="fc t-proactive" onclick="sel(this,'proactive')">
+        <div class="fc-type"><span class="fc-dot"></span>Proactive</div>
+        <div class="fc-title">DEEP heat mapping publishes this spring — before the June session</div>
+        <div class="fc-trigger">Neither party has mentioned it · Ambi noticed</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER -->
+  <div class="center">
+    <div class="c-eye">Reactive Insight · 01 · Source: ambi_data_effect_sizes.json</div>
+    <div class="c-title">Effect size estimates by trimester and income stratum — stability flags</div>
+    <div class="c-body">Ambi cross-referenced the uploaded Chen Lab preprint data against the conversation. Here are the numbers James can safely anchor on — and the ones still in flux due to the AC access confounder Sarah flagged.</div>
+
+    <div class="trig-box">
+      <div class="trig-label">Triggered by</div>
+      <div class="trig-text">Sarah Chen: "The preprint isn't peer reviewed yet and we're still working through a confounder around AC access that could shift the effect size. I don't want to hand you a number that changes in revision and becomes a liability."</div>
+    </div>
+
+    <div class="read-guide">
+      <div class="rg-item"><span class="rg-tag">RR (Relative Risk)</span> How much more likely preterm birth is in heat-exposed pregnancies vs. pregnancies with no extreme heat days. RR 1.19 = 19% higher risk. RR 1.00 = no difference. All RRs above 1.0 indicate harm.</div>
+      <div class="rg-item"><span class="rg-tag">95% CI</span> The confidence interval -- the range the true effect likely falls within. A CI that crosses 1.0 (e.g., 0.96-1.21) is not statistically significant. A CI entirely above 1.0 (e.g., 1.07-1.32) is. Wider intervals = less certainty.</div>
+      <div class="rg-item"><span class="rg-tag">What the table shows</span> Heat effects are strongest in the <strong>third trimester, lowest-income tracts (Q1)</strong> -- RR 1.41, meaning 41% higher preterm birth risk at peak heat exposure. Second trimester Q1 (RR 1.19) and Q2-Q3 (RR 1.11) are statistically significant and stable. First trimester associations are not significant. Only one row is flagged In flux: T3/Q1, because the AC access confounder could reduce that central estimate. The conservative anchor is RR 1.24 -- the lower bound of that interval, which holds even in worst-case adjustment.</div>
+    </div>
+
+    <div class="tbl-card">
+      <div class="tbl-head">
+        <div class="th">Stratum</div><div class="th">Income</div><div class="th">RR</div><div class="th">95% CI</div><div class="th">p</div><div class="th">Stability</div>
+      </div>
+      <div class="tbl-row"><div class="td dim">First trimester</div><div class="td">Q1 (lowest)</div><div class="td mono ns">1.08</div><div class="td ci">0.96 – 1.21</div><div class="td mono ns">0.19</div><div class="td"><span class="badge b-stable">Stable</span></div></div>
+      <div class="tbl-row"><div class="td dim">First trimester</div><div class="td">Q2–Q3</div><div class="td mono ns">1.05</div><div class="td ci">0.98 – 1.13</div><div class="td mono ns">0.17</div><div class="td"><span class="badge b-stable">Stable</span></div></div>
+      <div class="tbl-row"><div class="td dim">Second trimester</div><div class="td">Q1 (lowest)</div><div class="td mono sig">1.19</div><div class="td ci">1.07 – 1.32</div><div class="td mono sig">0.001</div><div class="td"><span class="badge b-stable">Stable</span></div></div>
+      <div class="tbl-row"><div class="td dim">Second trimester</div><div class="td">Q2–Q3</div><div class="td mono sig">1.11</div><div class="td ci">1.02 – 1.20</div><div class="td mono sig">0.014</div><div class="td"><span class="badge b-stable">Stable</span></div></div>
+      <div class="tbl-row warn-row"><div class="td dim">⚠ Third trimester</div><div class="td">Q1 (lowest)</div><div class="td mono wn">1.41</div><div class="td ci">1.24 – 1.60</div><div class="td mono sig">0.0001</div><div class="td"><span class="badge b-flux">In flux</span></div></div>
+      <div class="tbl-row"><div class="td dim">Third trimester</div><div class="td">Q2–Q3</div><div class="td mono sig">1.18</div><div class="td ci">1.09 – 1.28</div><div class="td mono sig">0.0003</div><div class="td"><span class="badge b-stable">Stable</span></div></div>
+      <div class="tbl-row"><div class="td dim">Third trimester</div><div class="td">Q4 (highest)</div><div class="td mono ns">1.03</div><div class="td ci">0.95 – 1.12</div><div class="td mono ns">0.48</div><div class="td"><span class="badge b-stable">Stable</span></div></div>
+    </div>
+
+    <div class="callout co-warn">
+      <div class="co-label">⚠ AC confounder — under active review</div>
+      <div class="co-text"><strong>Third trimester / Q1 central estimate (RR 1.41) may shift in revision.</strong> Low-income households have the lowest AC prevalence, making this stratum most sensitive to the confounder. Do not use this figure as a policy anchor without flagging uncertainty to the adaptation office.</div>
+    </div>
+
+    <div class="callout co-green">
+      <div class="co-label">✓ Conservative anchor for the Thursday pitch</div>
+      <div class="anchor-wrap">
+        <div class="anchor-num">1.24</div>
+        <div class="co-text">CI lower bound for the key stratum — holds even if the AC confounder adjustment reduces the central estimate. Most likely to survive peer review unchanged. Appropriate for pilot justification framing, not a city-wide projection.</div>
+      </div>
+    </div>
+
+    <div class="src-tag">Source: ambi_data_effect_sizes.json · Chen Lab preprint v2 · not peer reviewed · uploaded 2026-03-18</div>
+  </div>
+
+</div>
+<script>
+function sel(el, type) {
+  document.querySelectorAll('.fc').forEach(c => c.className = c.className.replace(/\bsel-\w+/g,'').trim());
+  el.classList.add('sel-' + type);
+}
+</script>
+</body>
+</html>

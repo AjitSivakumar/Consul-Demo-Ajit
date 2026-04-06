@@ -56,6 +56,14 @@ export function useTranscriptRunner(): {
     stateRef.current = state;
   }, [state]);
 
+  // Script-assist: preset loaded + recall-bot = disable auto-timer, use loose triggers
+  useEffect(() => {
+    const isAssist = state.presetTranscript !== null && mode === 'recall-bot';
+    if (isAssist !== state.scriptAssistMode) {
+      dispatch({ type: 'SET_SCRIPT_ASSIST', payload: isAssist });
+    }
+  }, [state.presetTranscript, mode, state.scriptAssistMode, dispatch]);
+
   const makeEvent = (speaker: string, text: string): TranscriptEvent => {
     eventCounterRef.current += 1;
     return {
@@ -117,6 +125,7 @@ export function useTranscriptRunner(): {
     if (state.liveStatus !== 'listening' || !state.presetTranscript || state.presetTranscript.length === 0) {
       return;
     }
+    if (state.scriptAssistMode) return; // real speech drives triggers; skip auto-timer
 
     presetCursorRef.current = 0;
     const events = state.presetTranscript;
@@ -133,7 +142,7 @@ export function useTranscriptRunner(): {
     }, 2500);
 
     return () => window.clearInterval(timer);
-  }, [dispatch, state.liveStatus, state.presetTranscript]);
+  }, [dispatch, state.liveStatus, state.presetTranscript, state.scriptAssistMode]);
 
   // ── Recall.ai: start polling bot status ──
   const startStatusPoll = useCallback((botId: string) => {

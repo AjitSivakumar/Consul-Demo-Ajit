@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ambi -- Diagram · Stakeholder Sign-off Flow</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital,wght@0,400;1,400&family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f4f0;--border:#e4e2dc;--border-mid:#ccc9c0;
+  --t1:#1a1a18;--t2:#6b6a66;--t3:#a8a7a2;
+  --green:#1a7a45;--bg-green:#edf7f1;--border-green:#b8e0c8;
+  --blue:#185FA5;--bg-blue:#EEF5FD;--border-blue:#b5d4f4;
+  --red:#b8291c;--bg-red:#fdf2f0;--border-red:#eeb8b0;
+  --gold:#7a5400;--bg-gold:#fdf7e8;--border-gold:#e0c878;
+  --teal:#1a4a5a;--bg-teal:#e8f4f8;--border-teal:#90c4d4;
+  --navy:#1a3a6a;--bg-navy:#edf2fd;--border-navy:#90a8d4;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t1);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:46px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 18px;gap:10px;flex-shrink:0}
+.logo{font-family:'Instrument Serif',serif;font-size:17px;letter-spacing:-.2px}
+.tb-div{width:1px;height:16px;background:var(--border)}
+.tb-ctx{font-size:11px;color:var(--t2);font-family:'DM Mono',monospace}
+.tb-pill{margin-left:auto;display:flex;align-items:center;gap:6px;background:#f0f0ee;border:1px solid var(--border);border-radius:100px;padding:4px 11px}
+.dot-live{width:6px;height:6px;border-radius:50%;background:#4caf50;animation:blink 2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.75)}}
+.tb-pill span{font-size:10px;font-family:'DM Mono',monospace;color:var(--t2)}
+.body{display:flex;flex:1;overflow:hidden}
+.left{width:300px;flex-shrink:0;border-right:1px solid var(--border);background:#fafaf8;display:flex;flex-direction:column;overflow:hidden}
+.left-hd{padding:12px 14px 9px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.left-hd-label{font-size:10px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--t3)}
+.count-badge{background:var(--green);color:#fff;font-size:10px;font-family:'DM Mono',monospace;border-radius:100px;padding:1px 8px}
+.feed{padding:8px;display:flex;flex-direction:column;gap:6px;overflow-y:auto;flex:1}
+.fc{border-radius:10px;padding:11px 12px;cursor:pointer;border:1.5px solid var(--border);background:#fff;transition:all .15s}
+.fc:hover{border-color:var(--border-mid);box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.fc.sel-reactive{border-color:var(--green);background:var(--bg-green)}
+.fc.sel-diagram{border-color:var(--gold);background:var(--bg-gold)}
+.fc.sel-caution{border-color:var(--red);background:var(--bg-red)}
+.fc.sel-proactive{border-color:var(--blue);background:var(--bg-blue)}
+.fc-type{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;display:flex;align-items:center;gap:5px}
+.fc-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.t-reactive .fc-dot{background:var(--green)} .t-reactive{color:var(--green)}
+.t-proactive .fc-dot{background:var(--blue)} .t-proactive{color:var(--blue)}
+.t-caution .fc-dot{background:var(--red)} .t-caution{color:var(--red)}
+.t-diagram .fc-dot{background:var(--gold)} .t-diagram{color:var(--gold)}
+.fc-title{font-size:12.5px;font-weight:500;color:var(--t1);line-height:1.4;margin-bottom:5px}
+.fc-trigger{font-size:11px;color:var(--t2);font-style:italic;line-height:1.45;font-weight:300;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.center{flex:1;overflow-y:auto;padding:26px 30px 40px}
+.c-eye{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.12em;color:var(--t3);margin-bottom:8px}
+.c-title{font-family:'Instrument Serif',serif;font-size:24px;font-weight:400;line-height:1.25;color:var(--t1);margin-bottom:6px;letter-spacing:-.3px}
+.c-body{font-size:13px;color:var(--t2);font-weight:300;line-height:1.65;margin-bottom:20px}
+.trig-box{background:#f5f4f0;border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:20px}
+.trig-label{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--t3);margin-bottom:4px}
+.trig-text{font-size:12px;color:var(--t2);font-style:italic;line-height:1.6}
+.state-label{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--t3);margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+
+/* POPUP CARD */
+.popup-card{background:#fff;border:1.5px solid var(--border-gold);border-radius:14px;overflow:hidden;box-shadow:0 2px 12px rgba(122,84,0,.07);margin-bottom:24px}
+.popup-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-gold);border-bottom:1px solid var(--border-gold)}
+.popup-header-left{display:flex;align-items:center;gap:8px}
+.popup-icon{width:20px;height:20px;border-radius:6px;background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;flex-shrink:0}
+.popup-htitle{font-size:10px;font-family:'DM Mono',monospace;font-weight:500;color:var(--gold);text-transform:uppercase;letter-spacing:.08em}
+.popup-x{font-size:12px;color:var(--t3);background:none;border:none;cursor:pointer}
+.popup-trigger{padding:9px 14px;background:#f5f4f0;border-bottom:1px solid var(--border)}
+.popup-trigger-label{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--t3);margin-bottom:3px}
+.popup-trigger-text{font-size:11.5px;color:var(--t2);font-style:italic;line-height:1.55}
+.popup-body{padding:14px}
+.popup-headline{font-family:'Instrument Serif',serif;font-size:17px;line-height:1.35;color:var(--t1);margin-bottom:8px;letter-spacing:-.2px}
+.popup-summary{font-size:12.5px;color:var(--t2);line-height:1.65;font-weight:300;margin-bottom:12px}
+
+/* MINI FLOW PREVIEW */
+.flow-preview{background:var(--bg-gold);border:1px solid var(--border-gold);border-radius:8px;padding:10px 12px;margin-bottom:14px}
+.fp-label{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--gold);margin-bottom:8px}
+.fp-chips{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.chip{font-size:10px;font-family:'DM Mono',monospace;padding:3px 9px;border-radius:5px;background:#fff;border:1px solid var(--border-gold);color:var(--gold);white-space:nowrap}
+.chip.bold{background:var(--gold);color:#fff}
+.chip.danger{background:var(--bg-red);border-color:var(--border-red);color:var(--red)}
+.chip-arrow{font-size:11px;color:var(--gold);opacity:.6;flex-shrink:0}
+
+.popup-actions{display:flex;gap:7px}
+.btn-deep{flex:1;background:#111;color:#fff;border:none;border-radius:8px;padding:9px 14px;font-size:12px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;transition:background .15s}
+.btn-deep:hover{background:#333}
+.btn-rem{background:#f0f0ee;color:var(--t2);border:1px solid var(--border);border-radius:8px;padding:9px 14px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer}
+
+/* FLOWCHART */
+.badge-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.badge{font-size:9px;font-family:'DM Mono',monospace;padding:2px 8px;border-radius:4px}
+.b-teal{background:var(--bg-teal);color:var(--teal);border:1px solid var(--border-teal)}
+.b-navy{background:var(--bg-navy);color:var(--navy);border:1px solid var(--border-navy)}
+.b-red{background:var(--bg-red);color:var(--red);border:1px solid var(--border-red)}
+.b-green{background:var(--bg-green);color:var(--green);border:1px solid var(--border-green)}
+
+.flowchart{display:flex;flex-direction:column;align-items:center;gap:0}
+.node{border-radius:10px;padding:9px 14px;text-align:center;line-height:1.35}
+.n-title{font-size:12px;font-weight:500;margin-bottom:2px}
+.n-sub{font-size:10px;font-family:'DM Mono',monospace;color:var(--t3)}
+.n-start{background:#f5f4f0;border:1.5px solid var(--border-mid);min-width:200px}
+.n-teal{background:var(--bg-teal);border:1.5px solid var(--border-teal)} .n-teal .n-title{color:var(--teal)}
+.n-navy{background:var(--bg-navy);border:1.5px solid var(--border-navy)} .n-navy .n-title{color:var(--navy)}
+.n-red{background:var(--bg-red);border:1.5px solid var(--border-red)} .n-red .n-title{color:var(--red)}
+.n-green{background:var(--bg-green);border:1.5px solid var(--border-green)} .n-green .n-title{color:var(--green)}
+.n-gold{background:var(--bg-gold);border:1.5px solid var(--border-gold);min-width:200px} .n-gold .n-title{color:var(--gold)}
+.n-gold .n-sub{color:#9a7840}
+
+.v-conn{display:flex;flex-direction:column;align-items:center}
+.v-line{width:1.5px;height:14px;background:var(--border-gold)}
+.v-arr{font-size:9px;color:var(--border-gold);line-height:1;margin-top:-2px}
+
+.branch-row{display:flex;justify-content:space-around;width:100%;gap:10px}
+.branch-col{display:flex;flex-direction:column;align-items:center;flex:1}
+.branch-label{font-size:9px;font-family:'DM Mono',monospace;color:var(--t3);text-align:center;margin-bottom:3px;text-transform:uppercase;letter-spacing:.08em}
+
+.flow-note{font-size:10px;font-family:'DM Mono',monospace;color:var(--t3);margin-top:14px;padding-top:10px;border-top:1px solid var(--border);line-height:1.6}
+.src-tag{display:inline-block;margin-top:14px;font-size:9px;font-family:'DM Mono',monospace;color:var(--t3);background:#f5f4f0;border:1px solid var(--border);border-radius:4px;padding:2px 8px}
+
+.src-notes{background:#f5f4f0;border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-top:12px}
+.src-note-label{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--t3);margin-bottom:10px}
+.src-note-item{font-size:11px;color:var(--t2);line-height:1.65;font-weight:300;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.src-note-item:last-child{margin-bottom:0;padding-bottom:0;border-bottom:none}
+.src-node-tag{display:inline-block;font-size:9px;font-family:'DM Mono',monospace;padding:2px 7px;border-radius:4px;margin-right:6px;border:1px solid}
+.sn-teal{background:var(--bg-teal);border-color:var(--border-teal);color:var(--teal)}
+.sn-navy{background:var(--bg-blue);border-color:var(--border-blue);color:var(--blue)}
+.sn-red{background:var(--bg-red);border-color:var(--border-red);color:var(--red)}
+.src-link{color:var(--blue);font-size:10px;font-family:'DM Mono',monospace;text-decoration:none}
+.src-link:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo">Ambi</div><div class="tb-div"></div>
+  <div class="tb-ctx">Chen Lab × Tobin Center · Heat / preterm birth · CT adaptation pitch</div>
+  <div class="tb-pill"><div class="dot-live"></div><span>Listening</span></div>
+</div>
+<div class="body">
+  <div class="left">
+    <div class="left-hd"><div class="left-hd-label">Insights Feed</div><div class="count-badge">5</div></div>
+    <div class="feed">
+      <div class="fc t-reactive" onclick="sel(this,'reactive')"><div class="fc-type"><span class="fc-dot"></span>Reactive</div><div class="fc-title">Effect sizes by trimester -- which numbers are safe to anchor on</div><div class="fc-trigger">"…still working through a confounder around AC access…"</div></div>
+      <div class="fc t-reactive" onclick="sel(this,'reactive')"><div class="fc-type"><span class="fc-dot"></span>Reactive</div><div class="fc-title">Dose-response curves diverge sharply by income -- directionality holds</div><div class="fc-trigger">"…around 1.4 relative risk…even if AC shaves that down…"</div></div>
+      <div class="fc sel-diagram t-diagram" onclick="sel(this,'diagram')"><div class="fc-type"><span class="fc-dot"></span>Diagram Suggested</div><div class="fc-title">CT stakeholder sign-off pathway maps to a branching flowchart</div><div class="fc-trigger">"…adaptation office reports to DEEP, funding runs through OPM…"</div></div>
+      <div class="fc t-caution" onclick="sel(this,'caution')"><div class="fc-type"><span class="fc-dot"></span>Caution</div><div class="fc-title">Bridgeport data is thinner -- citing both cities risks credibility</div><div class="fc-trigger">"…the preprint title reads 'New Haven and Bridgeport'…"</div></div>
+      <div class="fc t-proactive" onclick="sel(this,'proactive')"><div class="fc-type"><span class="fc-dot"></span>Proactive</div><div class="fc-title">DEEP heat mapping publishes this spring -- before the June session</div><div class="fc-trigger">Neither party has mentioned it · Ambi noticed</div></div>
+    </div>
+  </div>
+
+  <div class="center">
+    <div class="c-eye">Diagram Suggested · Ambi identified a flow worth visualizing</div>
+    <div class="c-title">CT stakeholder sign-off pathway maps to a branching flowchart -- three parallel tracks</div>
+    <div class="c-body">James just described a multi-agency approval structure -- policy sign-off through DEEP, capital funding through OPM, and data authorization through DPH -- that doesn't run in sequence. Ambi suggests visualizing this before Thursday so the critical path is visible.</div>
+
+    <div class="trig-box">
+      <div class="trig-label">Triggered by</div>
+      <div class="trig-text">James Okafor: "The adaptation office reports to DEEP, but the funding for cool corridors probably runs through OPM -- and we'd need DPH sign-off to use the maternal outcomes data in any public-facing materials. This could get complicated fast."</div>
+    </div>
+
+    <!-- COLLAPSED POPUP -->
+    <div class="state-label">Popup -- collapsed state</div>
+    <div class="popup-card">
+      <div class="popup-header">
+        <div class="popup-header-left"><div class="popup-icon">↗</div><span class="popup-htitle">Diagram Suggested</span></div>
+        <button class="popup-x">✕</button>
+      </div>
+      <div class="popup-trigger">
+        <div class="popup-trigger-label">Triggered by</div>
+        <div class="popup-trigger-text">"…adaptation office reports to DEEP, funding runs through OPM -- and we'd need DPH sign-off to use the maternal outcomes data publicly."</div>
+      </div>
+      <div class="popup-body">
+        <div class="popup-headline">CT stakeholder sign-off pathway -- DEEP, OPM, and DPH don't run in sequence</div>
+        <div class="popup-summary">A visual comparison or diagram would help clarify the branching approval structure James just described. Confirm to expand it.</div>
+        <div class="flow-preview">
+          <div class="fp-label">Suggested flow</div>
+          <div class="fp-chips">
+            <span class="chip bold">Tobin pitch</span>
+            <span class="chip-arrow">→</span>
+            <span class="chip">DEEP</span>
+            <span class="chip-arrow">⤵</span>
+            <span class="chip">OPM (funding)</span>
+            <span class="chip-arrow">+</span>
+            <span class="chip danger">DPH (data auth)</span>
+          </div>
+        </div>
+        <div class="popup-actions">
+          <button class="btn-deep" onclick="expand()">Open in Deep Dive →</button>
+          <button class="btn-rem">Remove</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXPANDED -->
+    <div class="state-label" id="exp-label" style="display:none">Popup -- expanded state (Deep Dive)</div>
+    <div id="exp-view" style="display:none">
+      <div class="badge-row">
+        <span class="badge b-teal">● DEEP (policy)</span>
+        <span class="badge b-navy">● OPM (funding)</span>
+        <span class="badge b-red">● DPH (data auth)</span>
+        <span class="badge b-green">● Pilot launch</span>
+      </div>
+
+      <div class="flowchart">
+        <div class="node n-start"><div class="n-title">Tobin Center pitch</div><div class="n-sub">June session window</div></div>
+        <div class="v-conn"><div class="v-line"></div><div class="v-arr">▼</div></div>
+        <div class="node n-teal" style="min-width:220px"><div class="n-title">CT Climate Adaptation Office</div><div class="n-sub">reports to DEEP · concept approval</div></div>
+        <div class="v-conn"><div class="v-line"></div><div class="v-arr">▼</div></div>
+        <div class="node n-gold"><div class="n-title">Parallel tracks required</div><div class="n-sub">funding + data auth run concurrently</div></div>
+
+        <svg width="100%" height="26" viewBox="0 0 100 26" preserveAspectRatio="none" style="display:block">
+          <line x1="50" y1="0" x2="22" y2="26" stroke="#e0c878" stroke-width="1.5"/>
+          <line x1="50" y1="0" x2="78" y2="26" stroke="#e0c878" stroke-width="1.5"/>
+        </svg>
+
+        <div class="branch-row">
+          <div class="branch-col">
+            <div class="branch-label">Funding track</div>
+            <div class="node n-navy" style="width:100%"><div class="n-title">OPM</div><div class="n-sub">cool corridor capital · budget review</div></div>
+            <div class="v-conn"><div class="v-line"></div><div class="v-arr">▼</div></div>
+            <div class="node n-navy" style="width:100%;font-size:11px"><div class="n-title">Governor's Office</div><div class="n-sub">climate budget authorization</div></div>
+          </div>
+          <div class="branch-col">
+            <div class="branch-label">Data auth track</div>
+            <div class="node n-red" style="width:100%"><div class="n-title">CT DPH</div><div class="n-sub">maternal outcomes · public use auth</div></div>
+            <div class="v-conn"><div class="v-line"></div><div class="v-arr">▼</div></div>
+            <div class="node n-red" style="width:100%;font-size:11px"><div class="n-title">IRB / data agreement</div><div class="n-sub">Chen Lab YSPH · data sharing MOU</div></div>
+          </div>
+        </div>
+
+        <svg width="100%" height="26" viewBox="0 0 100 26" preserveAspectRatio="none" style="display:block">
+          <line x1="22" y1="0" x2="50" y2="26" stroke="#e0c878" stroke-width="1.5"/>
+          <line x1="78" y1="0" x2="50" y2="26" stroke="#e0c878" stroke-width="1.5"/>
+        </svg>
+
+        <div class="node n-gold"><div class="n-title">Both tracks cleared?</div><div class="n-sub">funding + data auth both required to proceed</div></div>
+        <div class="v-conn"><div class="v-line"></div><div class="v-arr">▼</div></div>
+        <div class="node n-green" style="min-width:220px"><div class="n-title">New Haven pilot launch</div><div class="n-sub">cool corridor program · geographically targeted</div></div>
+      </div>
+
+      <div class="flow-note">Ambi generated from conversation context · DEEP = CT Dept. of Energy & Environmental Protection · OPM = Office of Policy & Management · DPH = CT Dept. of Public Health · <strong>Critical path note:</strong> DPH data-sharing MOU with YSPH typically takes 6–10 weeks -- likely the longest lead-time item</div>
+      <div class="src-notes">
+        <div class="src-note-label">Sources backing each pathway node</div>
+        <div class="src-note-item"><span class="src-node-tag sn-teal">DEEP -- policy track</span> CT Executive Order 21-3 (Dec 2021) directs DEEP to lead climate adaptation planning and establishes the CT Climate Adaptation Office within DEEP's authority. DEEP administers the Climate Resilience Fund and serves as the primary policy approver for cool corridor and urban heat programs. <a class="src-link" href="https://portal.ct.gov/connecticutclimateaction/executive-order/executive-order-no-21-3" target="_blank">portal.ct.gov -- EO 21-3</a></div>
+        <div class="src-note-item"><span class="src-node-tag sn-navy">OPM -- funding track</span> The CT Office of Policy and Management administers the Urban Act Grant Program (CGS 4-66c), which funds capital infrastructure projects including community resilience and cooling programs in designated urban centers such as New Haven. OPM receives and reviews funding requests and routes them to implementing agencies. <a class="src-link" href="https://portal.ct.gov/DECD/Content/Community-Development/03_Funding_Opportunities/Capital-Infrastructure-Grants/Urban-Act-Grant-Program" target="_blank">portal.ct.gov -- Urban Act</a> The DCRF (DEEP Climate Resilience Fund) has explicitly funded cool corridor planning in Connecticut -- Groundwork Bridgeport received $249,816 in the 2023 inaugural round specifically to identify cool corridors in urban tracts. <a class="src-link" href="https://portal.ct.gov/deep/news-releases/news-releases---2023/governor-lamont-announces-8-8-m-in-state-funding-to-support-21-climate-plans-and-project-grants" target="_blank">DCRF Round 1 press release</a></div>
+        <div class="src-note-item"><span class="src-node-tag sn-red">DPH -- data auth track</span> CT DPH controls the Vital Records Registry, birth certificate data, and the CT-LLoVE longitudinal linkage dataset (mothers linked to birth outcomes 2010-2020). Access to maternal outcomes data for public-facing use requires a Data Use Agreement executed with the CT Office of Health Strategy and DPH's Human Investigations Committee (IRB). The process involves a multi-step application, Data Release Committee review, HIPAA compliance verification, and signed agreement before data release. <a class="src-link" href="https://portal.ct.gov/healthscorect/data-request" target="_blank">CT OHS data request process</a></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function sel(el,type){document.querySelectorAll('.fc').forEach(c=>c.className=c.className.replace(/\bsel-\w+/g,'').trim());el.classList.add('sel-'+type)}
+function expand(){
+  document.getElementById('exp-label').style.display='block';
+  document.getElementById('exp-view').style.display='block';
+  document.getElementById('exp-view').scrollIntoView({behavior:'smooth',block:'start'});
+}
+</script>
+</body>
+</html>

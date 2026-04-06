@@ -928,6 +928,29 @@ h1 em {
 .ev-body { flex:1; min-height:0; padding:24px 28px; display:flex; flex-direction:column; gap:20px; overflow-y:auto; background:var(--bg-card); }
 .ev-section-label { font-size:11px; color:var(--text-tertiary); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:12px; }
 
+/* ── Caution source list ── */
+.caution-sources { background:var(--bg-subtle); border:1px solid var(--border); border-radius:8px; padding:10px 12px; }
+.cs-label { font-size:8px; font-family:'DM Mono',monospace; text-transform:uppercase; letter-spacing:.1em; color:var(--text-tertiary); margin-bottom:7px; }
+.cs-item { display:flex; align-items:flex-start; gap:8px; margin-bottom:7px; padding-bottom:7px; border-bottom:1px solid var(--border); }
+.cs-item:last-child { margin-bottom:0; padding-bottom:0; border-bottom:none; }
+.cs-num { font-size:8px; font-family:'DM Mono',monospace; color:#b8291c; background:#fdf2f0; border:1px solid #eeb8b0; border-radius:3px; padding:1px 5px; flex-shrink:0; margin-top:2px; }
+.cs-text { font-size:10px; color:var(--text-secondary); line-height:1.5; font-weight:300; }
+.cs-text strong { color:var(--text-primary); font-weight:500; display:block; margin-bottom:1px; font-size:10px; }
+.cs-link { color:#185FA5; font-size:9px; font-family:'DM Mono',monospace; text-decoration:none; display:block; margin-top:2px; }
+.cs-link:hover { text-decoration:underline; }
+
+/* ── Diagram source notes ── */
+.src-notes { background:var(--bg-subtle); border:1px solid var(--border); border-radius:8px; padding:10px 12px; }
+.src-note-label { font-size:8px; font-family:'DM Mono',monospace; text-transform:uppercase; letter-spacing:.1em; color:var(--text-tertiary); margin-bottom:7px; }
+.src-note-item { font-size:10px; color:var(--text-secondary); line-height:1.5; font-weight:300; margin-bottom:7px; padding-bottom:7px; border-bottom:1px solid var(--border); }
+.src-note-item:last-child { margin-bottom:0; padding-bottom:0; border-bottom:none; }
+.src-node-tag { display:inline-block; font-size:8px; font-family:'DM Mono',monospace; padding:1px 6px; border-radius:4px; margin-right:5px; border:1px solid; }
+.sn-teal { background:var(--dl-teal-bg); border-color:var(--dl-teal-mid); color:var(--dl-teal); }
+.sn-navy { background:var(--bg-blue,#EEF5FD); border-color:var(--border-blue,#b5d4f4); color:#185FA5; }
+.sn-red  { background:#fdf2f0; border-color:#eeb8b0; color:#b8291c; }
+.src-link { color:#185FA5; font-size:9px; font-family:'DM Mono',monospace; text-decoration:none; }
+.src-link:hover { text-decoration:underline; }
+
 /* Caution banner */
 .caution-banner { background:#fff5f5; border:1px solid rgba(239,68,68,0.45); border-radius:10px; padding:14px 16px; animation:slidein-popup 0.3s ease forwards; box-shadow:0 0 14px rgba(239,68,68,0.25); }
 .caution-banner-head { display:flex; align-items:center; gap:8px; margin-bottom:7px; }

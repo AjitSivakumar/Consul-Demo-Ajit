@@ -40,7 +40,7 @@ const demoTriggers: Array<{
  detect: (text) =>
  (text.includes('extreme covers voice') || text.includes('go supports photo') || text.includes('go! handles photos')),
  detectAssist: (text) =>
- (text.includes('extreme') && text.includes('voice')) ||
+ text.includes('extreme') ||
  (text.includes('go') && text.includes('photo')),
  needs: [
  {
@@ -98,8 +98,7 @@ const demoTriggers: Array<{
  detect: (text) =>
  (text.includes('that chart is the answer') || text.includes('ninety-four versus seventy-one') || text.includes('94') && text.includes('71') && text.includes('percent')),
  detectAssist: (text) =>
- (text.includes('chart') && text.includes('answer')) ||
- (text.includes('94') || text.includes('ninety-four')),
+ text.includes('ninety-four') || text.includes('94') || text.includes('chart'),
  needs: [
  {
   category: 'metric' as InformationNeed['category'],
@@ -135,7 +134,7 @@ const demoTriggers: Array<{
  text.includes('passive') &&
  (text.includes('solo') || text.includes('content') || text.includes('differentiator')),
  detectAssist: (text) =>
- text.includes('passive') && text.includes('content'),
+ text.includes('passive'),
  needs: [
  {
   category: 'metric' as InformationNeed['category'],
@@ -175,8 +174,7 @@ const demoTriggers: Array<{
  (text.includes('primary device') && text.includes('go')) ||
  (text.includes('go!') && text.includes('primary') && text.includes('backup')),
  detectAssist: (text) =>
- (text.includes('lead with') && text.includes('go')) ||
- (text.includes('primary') && text.includes('go')),
+ text.includes('lead with') || (text.includes('primary') && text.includes('go')),
  needs: [
  {
   category: 'correction' as InformationNeed['category'],
@@ -213,8 +211,10 @@ const demoTriggers: Array<{
  detect: (text) =>
  text.includes('confounder around ac') || text.includes('working through a confounder'),
  detectAssist: (text) =>
- (text.includes('confounder') && text.includes('ac')) ||
- text.includes('effect size'),
+ text.includes('confounder') || text.includes('effect size') ||
+ text.includes('ac access') || text.includes('air conditioning') ||
+ text.includes('preprint') || text.includes('preliminary') ||
+ text.includes('estimate') || text.includes('in flux') || text.includes('peer review'),
  needs: [
  {
   category: 'metric' as InformationNeed['category'],
@@ -260,7 +260,7 @@ const demoTriggers: Array<{
    name: '3rd Trim · Q2-Q3',
    badge: '✓ Anchor',
    subtitle: 'Mid income · p=0.0003',
-   isPrimary: false,
+   isPrimary: true,
    features: [
    { name: 'RR', val: '1.18', kind: 'yes' as const },
    { name: '95% CI', val: '1.09 – 1.28', kind: 'neu' as const },
@@ -289,8 +289,9 @@ const demoTriggers: Array<{
  detect: (text) =>
  text.includes('1.4 relative risk') || text.includes('directionality is stable'),
  detectAssist: (text) =>
- (text.includes('relative risk') || text.includes('1.4')) &&
- (text.includes('stable') || text.includes('directionality')),
+ text.includes('1.4') || text.includes('relative risk') || text.includes('directionality') ||
+ text.includes('stable') || text.includes('low income') || text.includes('dose') ||
+ text.includes('exposure') || text.includes('stratum') || text.includes('association'),
  needs: [
  {
   category: 'metric' as InformationNeed['category'],
@@ -328,7 +329,9 @@ const demoTriggers: Array<{
  detect: (text) =>
  text.includes('reports to deep') || (text.includes('runs through opm') && text.includes('dph')),
  detectAssist: (text) =>
- text.includes('deep') && text.includes('opm') && text.includes('dph'),
+ text.includes('opm') || text.includes('dph') ||
+ text.includes('adaptation') || text.includes('sign-off') ||
+ text.includes('stakeholder') || text.includes('pathway') || text.includes('approval'),
  needs: [
  {
   category: 'comparison' as InformationNeed['category'],
@@ -344,7 +347,10 @@ const demoTriggers: Array<{
   verification: 'inferred' as const,
   explainWhyNow: 'James named three separate agencies (DEEP, OPM, DPH) with distinct non-sequential roles',
   attributions: [
-  { sourceId: 'ct-stakeholder-context', sourceType: 'web' as const, title: 'CT DEEP · OPM · DPH stakeholder pathway', freshnessScore: 0.85, trustScore: 0.88 },
+  { sourceId: 'ct-exec-order-21-3', sourceType: 'web' as const, title: 'CT Executive Order 21-3 (Dec 2021)', url: 'https://portal.ct.gov/connecticutclimateaction/executive-order/executive-order-no-21-3', snippet: 'CT Executive Order 21-3 directs DEEP to lead climate adaptation planning and establishes the CT Climate Adaptation Office within DEEP\'s authority. DEEP administers the Climate Resilience Fund and serves as the primary policy approver for cool corridor and urban heat programs.', freshnessScore: 0.9, trustScore: 0.95 },
+  { sourceId: 'ct-opm-urban-act', sourceType: 'web' as const, title: 'CT OPM Urban Act Grant Program (CGS 4-66c)', url: 'https://portal.ct.gov/DECD/Content/Community-Development/03_Funding_Opportunities/Capital-Infrastructure-Grants/Urban-Act-Grant-Program', snippet: 'The CT Office of Policy and Management administers the Urban Act Grant Program, which funds capital infrastructure including community resilience and cooling programs in designated urban centers such as New Haven.', freshnessScore: 0.88, trustScore: 0.92 },
+  { sourceId: 'ct-dcrf-2023', sourceType: 'web' as const, title: 'DCRF Round 1 Press Release (2023)', url: 'https://portal.ct.gov/deep/news-releases/news-releases---2023/governor-lamont-announces-8-8-m-in-state-funding-to-support-21-climate-plans-and-project-grants', snippet: 'The DCRF has explicitly funded cool corridor planning in Connecticut. Groundwork Bridgeport received $249,816 in the 2023 inaugural round specifically to identify cool corridors in urban tracts.', freshnessScore: 0.87, trustScore: 0.90 },
+  { sourceId: 'ct-ohs-data-request', sourceType: 'web' as const, title: 'CT Office of Health Strategy Data Request Process', url: 'https://portal.ct.gov/healthscorect/data-request', snippet: 'CT DPH controls Vital Records and the CT-LLoVE longitudinal dataset. Access to maternal outcomes data requires a Data Use Agreement with CT OHS and DPH\'s Human Investigations Committee, involving multi-step application, Data Release Committee review, and HIPAA compliance verification.', freshnessScore: 0.88, trustScore: 0.91 },
   ],
   richFlowDiagram: {
   chips: [],
@@ -376,8 +382,9 @@ const demoTriggers: Array<{
  detect: (text) =>
  text.includes('bridgeport is thinner') || (text.includes('bridgeport') && text.includes('credibility problem')),
  detectAssist: (text) =>
- text.includes('bridgeport') &&
- (text.includes('thin') || text.includes('credib')),
+ text.includes('bridgeport') || text.includes('thinner') ||
+ text.includes('sample size') || text.includes('data quality') ||
+ text.includes('both cities') || text.includes('coverage') || text.includes('credibility'),
  needs: [
  {
   category: 'correction' as InformationNeed['category'],
@@ -393,7 +400,10 @@ const demoTriggers: Array<{
   verification: 'verified' as const,
   explainWhyNow: 'Sarah explicitly flagged that Bridgeport sample sizes are thinner while the preprint title implies equal data quality',
   attributions: [
-  { sourceId: 'chen-lab-effect-sizes', sourceType: 'internal_structured' as const, title: 'ambi_data_effect_sizes.json', freshnessScore: 0.9, trustScore: 0.93 },
+  { sourceId: 'chen-lab-effect-sizes', sourceType: 'internal_structured' as const, title: 'Chen Lab preprint v2 · ambi_data_effect_sizes.json', snippet: 'Effect size estimates by trimester and income stratum for New Haven and Bridgeport census tracts. Uploaded 2026-03-18.', freshnessScore: 0.9, trustScore: 0.93 },
+  { sourceId: 'ctdatahaven-bridgeport', sourceType: 'web' as const, title: 'DataHaven CT City Neighborhood Profiles', url: 'https://ctdatahaven.org/profiles/bridgeport/', snippet: 'Bridgeport has fewer census tracts and smaller per-tract birth populations than New Haven. Both cities are ~135-148K residents, but New Haven\'s denser footprint generates more births per census tract, giving the Chen Lab data more statistical power per tract and reducing uncertainty in effect estimates.', freshnessScore: 0.85, trustScore: 0.88 },
+  { sourceId: 'ctdatahaven-newhaven', sourceType: 'web' as const, title: 'DataHaven New Haven Equity Profile (2021)', url: 'https://ctdatahaven.org/sites/ctdatahaven/files/new_haven_profile_v1.pdf', snippet: "Bridgeport's Q4 income quartile has very few births relative to its lower-income tracts, making income-stratified estimates especially unstable at the upper end. Bridgeport's income distribution is heavily skewed toward lower-income tracts, meaning Q4 estimates are based on a very small number of births — precisely the stratum flagged as most at risk in the preprint.", freshnessScore: 0.82, trustScore: 0.87 },
+  { sourceId: 'ct-dph-mch-hrsa', sourceType: 'web' as const, title: 'CT DPH MCH Data Capacity — HRSA 2023', url: 'https://mchb.tvisdata.hrsa.gov/Narratives/Other%20MCH%20Data%20Capacity%20Efforts/403b9776-0fb7-432c-8b16-8e10a15cfbcc', snippet: "CT DPH's surveillance data acknowledges sample suppression in smaller geographic units. The CT-LLoVE longitudinal dataset notes small cell sizes in specific census tracts require suppression to prevent re-identification, particularly for preterm birth in specific income-heat exposure combinations. This applies more acutely to Bridgeport, where tract-level birth counts in specific exposure quintiles fall near or below standard suppression thresholds.", freshnessScore: 0.9, trustScore: 0.92 },
   ],
   richCorrectionBlock: {
   wrong: { label: '❌ Current framing', text: '"New Haven and Bridgeport" implies equivalent data quality across both cities' },
@@ -414,7 +424,9 @@ const demoTriggers: Array<{
  detect: (text) =>
  text.includes('new haven is the anchor') || text.includes('build the deck that way'),
  detectAssist: (text) =>
- text.includes('new haven') && text.includes('anchor'),
+ text.includes('anchor') || text.includes('new haven') ||
+ text.includes('pilot') || text.includes('june') ||
+ text.includes('build the deck') || text.includes('adaptation office'),
  needs: [
  {
   category: 'metric' as InformationNeed['category'],
