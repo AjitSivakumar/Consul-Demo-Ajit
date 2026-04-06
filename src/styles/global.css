@@ -779,6 +779,8 @@ h1 em {
 .controls-strip .ctrl-btn:hover { background:var(--bg-subtle); }
 .controls-strip .ctrl-btn-danger { border-color:rgba(239,68,68,0.4); color:#ef4444; }
 .controls-strip .ctrl-btn-danger:hover { background:rgba(239,68,68,0.06); }
+.controls-strip .ctrl-btn-fire { border-color:var(--dl-teal-mid); color:var(--dl-teal); }
+.controls-strip .ctrl-btn-fire:hover { background:var(--dl-teal-bg); }
 .ctrl-divider { width:1px; height:24px; background:var(--border); flex-shrink:0; }
 .ctrl-label { font-size:11px; color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.06em; }
 .ctrl-stat { font-size:12px; color:var(--text-primary); }

@@ -28,7 +28,9 @@ export interface MeetingState {
   notes: Record<string, string>;
   // Preset replay: transcript queued for step-by-step playback on Start
   presetTranscript: TranscriptEvent[] | null;
-  // Script-assist: preset loaded + mic mode — disables auto-timer, uses looser trigger matching
+  // When true, auto-timer always runs regardless of mode (no script-assist)
+  presetAutoPlay: boolean;
+  // Script-assist: preset loaded + recall-bot mode — disables auto-timer, uses looser trigger matching
   scriptAssistMode: boolean;
 }
 
@@ -47,7 +49,7 @@ export type MeetingAction =
   | { type: 'ADD_RESOLVED_EVIDENCE'; payload: EvidenceCard }
   | { type: 'SET_GENERATING'; payload: boolean }
   | { type: 'SET_GENERATED_CONTENT'; payload: GeneratedDeliverables }
-  | { type: 'LOAD_PRESET'; payload: { context: MeetingContext; transcript: TranscriptEvent[] } }
+  | { type: 'LOAD_PRESET'; payload: { context: MeetingContext; transcript: TranscriptEvent[]; autoPlay?: boolean } }
   | { type: 'CLEAR_PRESET_TRANSCRIPT' }
   | { type: 'SET_SCRIPT_ASSIST'; payload: boolean }
   | { type: 'SET_NOTE'; payload: { key: string; text: string } }
@@ -77,6 +79,7 @@ export const initialMeetingState: MeetingState = {
   isGenerating: false,
   notes: {},
   presetTranscript: null,
+  presetAutoPlay: false,
   scriptAssistMode: false,
 };
 
@@ -154,6 +157,7 @@ export function meetingReducer(state: MeetingState, action: MeetingAction): Meet
     case 'LOAD_PRESET': {
       return {
         ...initialMeetingState,
+        presetAutoPlay: action.payload.autoPlay ?? false,
         context: { ...initialMeetingState.context, ...action.payload.context },
         presetTranscript: action.payload.transcript,
         liveStatus: 'paused',

@@ -56,13 +56,13 @@ export function useTranscriptRunner(): {
     stateRef.current = state;
   }, [state]);
 
-  // Script-assist: preset loaded + recall-bot = disable auto-timer, use loose triggers
+  // Script-assist: preset loaded + recall-bot + not autoPlay = disable auto-timer, use loose triggers
   useEffect(() => {
-    const isAssist = state.presetTranscript !== null && mode === 'recall-bot';
+    const isAssist = state.presetTranscript !== null && mode === 'recall-bot' && !state.presetAutoPlay;
     if (isAssist !== state.scriptAssistMode) {
       dispatch({ type: 'SET_SCRIPT_ASSIST', payload: isAssist });
     }
-  }, [state.presetTranscript, mode, state.scriptAssistMode, dispatch]);
+  }, [state.presetTranscript, mode, state.scriptAssistMode, state.presetAutoPlay, dispatch]);
 
   const makeEvent = (speaker: string, text: string): TranscriptEvent => {
     eventCounterRef.current += 1;
