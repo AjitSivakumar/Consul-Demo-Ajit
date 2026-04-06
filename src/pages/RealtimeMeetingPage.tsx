@@ -64,6 +64,27 @@ export function RealtimeMeetingPage(): React.JSX.Element {
     [state.evidence]
   );
 
+  // Script Guide: full preset transcript snapshot (captured when preset loads)
+  const scriptGuideEventsRef = useRef<Array<{ id: string; segmentId: string; speaker: string; text: string }>>([]);
+  const prevPresetRef = useRef(state.presetTranscript);
+  if (state.presetTranscript !== null && prevPresetRef.current !== state.presetTranscript) {
+    scriptGuideEventsRef.current = state.presetTranscript;
+  }
+  prevPresetRef.current = state.presetTranscript;
+
+  // Count how many demo-triggered needs have fired so far (each = one script line done)
+  const firedDemoCount = useMemo(
+    () => state.needs.filter((n) => n.demoEvidence !== undefined).length,
+    [state.needs]
+  );
+
+  const handleManualTrigger = (evt: { id: string; segmentId: string; speaker: string; text: string }): void => {
+    dispatch({
+      type: 'PROCESS_EVENT',
+      payload: { ...evt, timestampIso: new Date().toISOString() },
+    });
+  };
+
   const SOURCE_TYPE_LABEL: Record<string, string> = {
     web: 'Web',
     internal_structured: 'Internal data',
@@ -289,6 +310,35 @@ export function RealtimeMeetingPage(): React.JSX.Element {
             ))}
           </div>
           </div>
+
+          {/* Script Guide — visible only in script-assist mode */}
+          {runner.scriptAssistMode && scriptGuideEventsRef.current.length > 0 && (
+            <div className="script-guide">
+              <div className="script-guide-header">
+                <span>Script Guide</span>
+                <span className="script-guide-badge">◎ Assist mode</span>
+              </div>
+              {scriptGuideEventsRef.current.map((evt, idx) => {
+                const isDone = idx < firedDemoCount;
+                const isCurrent = idx === firedDemoCount;
+                const lineClass = isDone ? 'done' : isCurrent ? 'current' : 'upcoming';
+                return (
+                  <div
+                    key={evt.id}
+                    className={`script-line ${lineClass}`}
+                    onClick={() => !isDone && handleManualTrigger(evt)}
+                    title={!isDone ? 'Click to fire this trigger manually' : undefined}
+                  >
+                    <span className="script-line-status">
+                      {isDone ? '✓' : isCurrent ? '→' : '·'}
+                    </span>
+                    <span className="script-line-speaker">{evt.speaker}</span>
+                    <span className="script-line-text">{evt.text}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           {/* Ambi Agent Panel */}
           <div className="agent-panel">

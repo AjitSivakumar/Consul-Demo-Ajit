@@ -146,8 +146,8 @@ export function useAmbientMeetingAI(): {
     if (state.liveStatus !== 'listening' || state.transcript.length === 0) {
       return;
     }
-    // Skip AI inference/suggestions during preset replay — demo triggers handle everything
-    if (state.presetTranscript !== null) return;
+    // Skip AI inference/suggestions during auto preset replay — but allow in script-assist mode
+    if (state.presetTranscript !== null && !state.scriptAssistMode) return;
 
     const latest = state.transcript[state.transcript.length - 1];
     if (latest.id === lastTranscriptIdRef.current) {
@@ -213,7 +213,7 @@ export function useAmbientMeetingAI(): {
         }
       }
     })();
-  }, [dispatch, state.ambientSuggestions, state.liveStatus, state.transcript, state.presetTranscript]);
+  }, [dispatch, state.ambientSuggestions, state.liveStatus, state.transcript, state.presetTranscript, state.scriptAssistMode]);
 
   useEffect(() => {
     if (state.liveStatus !== 'ending' || state.transcript.length === 0 || autoEndStartedRef.current) {

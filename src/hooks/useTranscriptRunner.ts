@@ -26,6 +26,7 @@ export function useTranscriptRunner(): {
   micInterimText: string;
   micSpeaker: string;
   setMicSpeaker: (speaker: string) => void;
+  scriptAssistMode: boolean;
   // Recall.ai bot
   recallBotId: string | null;
   recallBotStatus: string;
@@ -180,11 +181,22 @@ export function useTranscriptRunner(): {
     return () => window.clearInterval(timer);
   }, [dispatch, mode, state.liveStatus]);
 
+  // ── Script-assist: detect preset + microphone combination, dispatch mode flag ──
+  useEffect(() => {
+    const isAssist = state.presetTranscript !== null && mode === 'microphone';
+    if (isAssist !== state.scriptAssistMode) {
+      dispatch({ type: 'SET_SCRIPT_ASSIST', payload: isAssist });
+    }
+  }, [state.presetTranscript, mode, state.scriptAssistMode, dispatch]);
+
   // ── Preset replay: fire stored transcript events one-by-one when Start is pressed ──
   useEffect(() => {
     if (state.liveStatus !== 'listening' || !state.presetTranscript || state.presetTranscript.length === 0) {
       return;
     }
+
+    // Script-assist mode: user speaks the script via mic — skip auto-timer
+    if (state.scriptAssistMode) return;
 
     presetCursorRef.current = 0;
     const events = state.presetTranscript;
@@ -201,7 +213,7 @@ export function useTranscriptRunner(): {
     }, 2500);
 
     return () => window.clearInterval(timer);
-  }, [dispatch, state.liveStatus, state.presetTranscript]);
+  }, [dispatch, state.liveStatus, state.presetTranscript, state.scriptAssistMode]);
 
   useEffect(() => {
     if (mode !== 'microphone') {
@@ -505,6 +517,7 @@ export function useTranscriptRunner(): {
     micInterimText,
     micSpeaker,
     setMicSpeaker,
+    scriptAssistMode: state.scriptAssistMode,
     // Recall.ai bot
     recallBotId,
     recallBotStatus,

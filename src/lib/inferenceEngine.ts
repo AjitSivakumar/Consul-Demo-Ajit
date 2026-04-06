@@ -32,12 +32,16 @@ export function updateMeetingContext(context: MeetingContext, event: TranscriptE
 
 const demoTriggers: Array<{
   detect: (text: string) => boolean;
+  detectAssist?: (text: string) => boolean;
   needs: Array<{ category: InformationNeed['category']; prompt: string; triggerPhrase: string; demoEvidence: DemoEvidence; isProactiveDemoTrigger?: boolean; proactiveHeadline?: string; proactiveImportance?: number; }>;
 }> = [
   // Trigger A: Comparison table — Extreme vs GO! feature breakdown
   {
     detect: (text) =>
       (text.includes('extreme covers voice') || text.includes('go supports photo') || text.includes('go! handles photos')),
+    detectAssist: (text) =>
+      (text.includes('extreme') && text.includes('voice')) ||
+      (text.includes('go') && text.includes('photo')),
     needs: [
       {
         category: 'metric' as InformationNeed['category'],
@@ -93,6 +97,9 @@ const demoTriggers: Array<{
   {
     detect: (text) =>
       (text.includes('that chart is the answer') || text.includes('ninety-four versus seventy-one') || text.includes('94') && text.includes('71') && text.includes('percent')),
+    detectAssist: (text) =>
+      (text.includes('chart') && text.includes('answer')) ||
+      (text.includes('94') || text.includes('ninety-four')),
     needs: [
       {
         category: 'metric' as InformationNeed['category'],
@@ -127,6 +134,8 @@ const demoTriggers: Array<{
     detect: (text) =>
       text.includes('passive') &&
       (text.includes('solo') || text.includes('content') || text.includes('differentiator')),
+    detectAssist: (text) =>
+      text.includes('passive') && text.includes('content'),
     needs: [
       {
         category: 'metric' as InformationNeed['category'],
@@ -165,6 +174,9 @@ const demoTriggers: Array<{
       (text.includes('lead with') && (text.includes('go!') || text.includes('go!'))) ||
       (text.includes('primary device') && text.includes('go')) ||
       (text.includes('go!') && text.includes('primary') && text.includes('backup')),
+    detectAssist: (text) =>
+      (text.includes('lead with') && text.includes('go')) ||
+      (text.includes('primary') && text.includes('go')),
     needs: [
       {
         category: 'correction' as InformationNeed['category'],
@@ -200,6 +212,9 @@ const demoTriggers: Array<{
   {
     detect: (text) =>
       text.includes('confounder around ac') || text.includes('working through a confounder'),
+    detectAssist: (text) =>
+      (text.includes('confounder') && text.includes('ac')) ||
+      text.includes('effect size'),
     needs: [
       {
         category: 'metric' as InformationNeed['category'],
@@ -273,6 +288,9 @@ const demoTriggers: Array<{
   {
     detect: (text) =>
       text.includes('1.4 relative risk') || text.includes('directionality is stable'),
+    detectAssist: (text) =>
+      (text.includes('relative risk') || text.includes('1.4')) &&
+      (text.includes('stable') || text.includes('directionality')),
     needs: [
       {
         category: 'metric' as InformationNeed['category'],
@@ -309,6 +327,8 @@ const demoTriggers: Array<{
   {
     detect: (text) =>
       text.includes('reports to deep') || (text.includes('runs through opm') && text.includes('dph')),
+    detectAssist: (text) =>
+      text.includes('deep') && text.includes('opm') && text.includes('dph'),
     needs: [
       {
         category: 'comparison' as InformationNeed['category'],
@@ -355,6 +375,9 @@ const demoTriggers: Array<{
   {
     detect: (text) =>
       text.includes('bridgeport is thinner') || (text.includes('bridgeport') && text.includes('credibility problem')),
+    detectAssist: (text) =>
+      text.includes('bridgeport') &&
+      (text.includes('thin') || text.includes('credib')),
     needs: [
       {
         category: 'correction' as InformationNeed['category'],
@@ -390,6 +413,8 @@ const demoTriggers: Array<{
   {
     detect: (text) =>
       text.includes('new haven is the anchor') || text.includes('build the deck that way'),
+    detectAssist: (text) =>
+      text.includes('new haven') && text.includes('anchor'),
     needs: [
       {
         category: 'metric' as InformationNeed['category'],
@@ -428,6 +453,8 @@ const demoTriggers: Array<{
       (text.includes('picks up') && (text.includes('extreme') || text.includes('voice'))) ||
       (text.includes('passively') && text.includes('sos')) ||
       (text.includes('extreme for voice') && text.includes('go')),
+    detectAssist: (text) =>
+      text.includes('extreme') && text.includes('passive') && text.includes('sos'),
     needs: [
       {
         category: 'comparison' as InformationNeed['category'],
@@ -460,13 +487,16 @@ const demoTriggers: Array<{
   },
 ];
 
-export function inferInformationNeeds(event: TranscriptEvent): InformationNeed[] {
+export function inferInformationNeeds(event: TranscriptEvent, assistMode = false): InformationNeed[] {
   const text = event.text.toLowerCase();
   const needs: InformationNeed[] = [];
 
   // Check demo triggers — stateless, dedup is handled by applyAdditionalNeeds in the reducer
   for (const trigger of demoTriggers) {
-    if (trigger.detect(text)) {
+    const matched = assistMode && trigger.detectAssist
+      ? trigger.detectAssist(text)
+      : trigger.detect(text);
+    if (matched) {
       for (const t of trigger.needs) {
         needs.push({
           id: t.isProactiveDemoTrigger

@@ -28,6 +28,8 @@ export interface MeetingState {
   notes: Record<string, string>;
   // Preset replay: transcript queued for step-by-step playback on Start
   presetTranscript: TranscriptEvent[] | null;
+  // Script-assist: preset loaded + mic mode — disables auto-timer, uses looser trigger matching
+  scriptAssistMode: boolean;
 }
 
 export type MeetingAction =
@@ -47,6 +49,7 @@ export type MeetingAction =
   | { type: 'SET_GENERATED_CONTENT'; payload: GeneratedDeliverables }
   | { type: 'LOAD_PRESET'; payload: { context: MeetingContext; transcript: TranscriptEvent[] } }
   | { type: 'CLEAR_PRESET_TRANSCRIPT' }
+  | { type: 'SET_SCRIPT_ASSIST'; payload: boolean }
   | { type: 'SET_NOTE'; payload: { key: string; text: string } }
   | { type: 'SAVE_INSIGHT'; payload: { question: string; answer: string; source: string } }
   | { type: 'RESET' };
@@ -74,6 +77,7 @@ export const initialMeetingState: MeetingState = {
   isGenerating: false,
   notes: {},
   presetTranscript: null,
+  scriptAssistMode: false,
 };
 
 export function meetingReducer(state: MeetingState, action: MeetingAction): MeetingState {
@@ -92,8 +96,11 @@ export function meetingReducer(state: MeetingState, action: MeetingAction): Meet
           title: action.payload
         }
       };
-    case 'PROCESS_EVENT':
-      return applyTranscriptEvent(state, action.payload, state.presetTranscript !== null);
+    case 'PROCESS_EVENT': {
+      const presetMode = state.presetTranscript !== null && !state.scriptAssistMode;
+      const assistMode = state.scriptAssistMode;
+      return applyTranscriptEvent(state, action.payload, presetMode, assistMode);
+    }
     case 'ADD_AI_NEEDS':
       return applyAdditionalNeeds(state, action.payload);
     case 'ADD_AMBIENT_SUGGESTION':
@@ -154,6 +161,8 @@ export function meetingReducer(state: MeetingState, action: MeetingAction): Meet
     }
     case 'CLEAR_PRESET_TRANSCRIPT':
       return { ...state, presetTranscript: null };
+    case 'SET_SCRIPT_ASSIST':
+      return { ...state, scriptAssistMode: action.payload };
     case 'SET_NOTE':
       return { ...state, notes: { ...state.notes, [action.payload.key]: action.payload.text } };
     case 'SAVE_INSIGHT': {
@@ -179,7 +188,7 @@ export function meetingReducer(state: MeetingState, action: MeetingAction): Meet
   }
 }
 
-function applyTranscriptEvent(state: MeetingState, event: TranscriptEvent, presetMode = false): MeetingState {
+function applyTranscriptEvent(state: MeetingState, event: TranscriptEvent, presetMode = false, assistMode = false): MeetingState {
   const context = updateMeetingContext(state.context, event);
   const withTranscript = {
     ...state,
@@ -188,7 +197,7 @@ function applyTranscriptEvent(state: MeetingState, event: TranscriptEvent, prese
   };
 
   // Keep deterministic local inference as fallback when API calls are unavailable.
-  return applyAdditionalNeeds(withTranscript, inferInformationNeeds(event), presetMode);
+  return applyAdditionalNeeds(withTranscript, inferInformationNeeds(event, assistMode), presetMode);
 }
 
 function applyAdditionalNeeds(state: MeetingState, incomingNeeds: InformationNeed[], presetMode = false): MeetingState {

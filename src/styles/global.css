@@ -1838,3 +1838,72 @@ h1 em {
   .dl-slide-grid { grid-template-columns: 1fr; }
   .dl-hero, .dl-main, .dl-mock-banner, .dl-footer-note { padding-left: 1.25rem; padding-right: 1.25rem; }
 }
+
+/* ── Script Guide panel (script-assist mode) ── */
+.script-guide {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.script-guide-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 10px;
+  font-family: 'DM Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--text-tertiary);
+  position: sticky;
+  top: 0;
+  background: var(--bg-subtle);
+  z-index: 1;
+}
+.script-guide-badge {
+  background: var(--dl-teal-bg);
+  color: var(--dl-teal);
+  border: 1px solid var(--dl-teal-mid);
+  border-radius: 100px;
+  padding: 2px 8px;
+  font-size: 9px;
+}
+.script-line {
+  display: grid;
+  grid-template-columns: 14px 70px 1fr;
+  gap: 8px;
+  padding: 7px 12px;
+  align-items: flex-start;
+  border-bottom: 1px solid var(--border);
+  cursor: default;
+  transition: background .1s;
+}
+.script-line:last-child { border-bottom: none; }
+.script-line.done { opacity: .4; }
+.script-line.current {
+  background: var(--dl-teal-bg);
+  border-left: 2px solid var(--dl-teal-mid);
+}
+.script-line.upcoming:hover { background: color-mix(in srgb, var(--bg-subtle) 60%, var(--border)); cursor: pointer; }
+.script-line-status { font-size: 10px; color: var(--text-tertiary); padding-top: 1px; }
+.script-line.done .script-line-status { color: #1a7a45; }
+.script-line.current .script-line-status { color: var(--dl-teal); }
+.script-line-speaker {
+  font-size: 9px;
+  font-family: 'DM Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text-tertiary);
+  padding-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.script-line-text { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+.script-line.done .script-line-text { color: var(--text-tertiary); }
+.script-line.current .script-line-text { color: var(--text-primary); font-weight: 500; }
