@@ -295,9 +295,10 @@ const demoTriggers: Array<{
  detect: (text) =>
  text.includes('1.4 relative risk') || text.includes('directionality is stable'),
  detectAssist: (text) =>
- text.includes('1.4 relative risk') ||
- text.includes('around 1.4') ||
- text.includes('directionality is stable'),
+ text.includes('conservative assumptions') ||
+ text.includes('low-income tracts') ||
+ text.includes('third trimester') ||
+ (text.includes('lower-bound') && text.includes('estimate')),
  needs: [
  {
   category: 'metric' as InformationNeed['category'],
