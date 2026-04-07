@@ -30,6 +30,8 @@ export interface MeetingState {
   presetTranscript: TranscriptEvent[] | null;
   // True for the entire session once a preset is loaded — blocks AI inference
   presetActive: boolean;
+  // ID of the loaded preset — used to scope demo triggers to the right preset
+  activePresetId: string | null;
   // When true, auto-timer always runs regardless of mode (no script-assist)
   presetAutoPlay: boolean;
   // Script-assist: preset loaded + recall-bot mode — disables auto-timer, uses looser trigger matching
@@ -51,7 +53,7 @@ export type MeetingAction =
   | { type: 'ADD_RESOLVED_EVIDENCE'; payload: EvidenceCard }
   | { type: 'SET_GENERATING'; payload: boolean }
   | { type: 'SET_GENERATED_CONTENT'; payload: GeneratedDeliverables }
-  | { type: 'LOAD_PRESET'; payload: { context: MeetingContext; transcript: TranscriptEvent[]; autoPlay?: boolean } }
+  | { type: 'LOAD_PRESET'; payload: { id: string; context: MeetingContext; transcript: TranscriptEvent[]; autoPlay?: boolean } }
   | { type: 'CLEAR_PRESET_TRANSCRIPT' }
   | { type: 'SET_SCRIPT_ASSIST'; payload: boolean }
   | { type: 'SET_NOTE'; payload: { key: string; text: string } }
@@ -82,6 +84,7 @@ export const initialMeetingState: MeetingState = {
   notes: {},
   presetTranscript: null,
   presetActive: false,
+  activePresetId: null,
   presetAutoPlay: false,
   scriptAssistMode: false,
 };
@@ -105,7 +108,7 @@ export function meetingReducer(state: MeetingState, action: MeetingAction): Meet
     case 'PROCESS_EVENT': {
       const presetMode = state.presetTranscript !== null && !state.scriptAssistMode;
       const assistMode = state.scriptAssistMode;
-      return applyTranscriptEvent(state, action.payload, presetMode, assistMode, state.presetActive);
+      return applyTranscriptEvent(state, action.payload, presetMode, assistMode, state.presetActive, state.activePresetId);
     }
     case 'ADD_AI_NEEDS':
       return applyAdditionalNeeds(state, action.payload);
@@ -161,6 +164,7 @@ export function meetingReducer(state: MeetingState, action: MeetingAction): Meet
       return {
         ...initialMeetingState,
         presetActive: true,
+        activePresetId: action.payload.id,
         presetAutoPlay: action.payload.autoPlay ?? false,
         context: { ...initialMeetingState.context, ...action.payload.context },
         presetTranscript: action.payload.transcript,
@@ -196,7 +200,7 @@ export function meetingReducer(state: MeetingState, action: MeetingAction): Meet
   }
 }
 
-function applyTranscriptEvent(state: MeetingState, event: TranscriptEvent, presetMode = false, assistMode = false, presetActive = false): MeetingState {
+function applyTranscriptEvent(state: MeetingState, event: TranscriptEvent, presetMode = false, assistMode = false, presetActive = false, activePresetId: string | null = null): MeetingState {
   const context = updateMeetingContext(state.context, event);
   const withTranscript = {
     ...state,
@@ -205,7 +209,7 @@ function applyTranscriptEvent(state: MeetingState, event: TranscriptEvent, prese
   };
 
   // Keep deterministic local inference as fallback when API calls are unavailable.
-  return applyAdditionalNeeds(withTranscript, inferInformationNeeds(event, assistMode, presetActive), presetMode || presetActive);
+  return applyAdditionalNeeds(withTranscript, inferInformationNeeds(event, assistMode, presetActive, activePresetId), presetMode || presetActive);
 }
 
 function applyAdditionalNeeds(state: MeetingState, incomingNeeds: InformationNeed[], presetMode = false): MeetingState {

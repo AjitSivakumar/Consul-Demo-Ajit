@@ -34,6 +34,7 @@ function loadState(): MeetingState {
       notes: parsed.notes ?? {},
       presetTranscript: null, // always reset — never replay a stale preset on refresh
       presetActive: false,
+      activePresetId: null,
       presetAutoPlay: false,
       scriptAssistMode: false, // always reset on refresh
     };

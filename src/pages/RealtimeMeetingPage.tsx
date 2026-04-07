@@ -183,7 +183,7 @@ export function RealtimeMeetingPage(): React.JSX.Element {
           value=""
           onChange={(e) => {
             const preset = meetingPresets.find((p) => p.id === e.target.value);
-            if (preset) dispatch({ type: 'LOAD_PRESET', payload: { context: preset.context, transcript: preset.transcript, autoPlay: preset.autoPlay } });
+            if (preset) dispatch({ type: 'LOAD_PRESET', payload: { id: preset.id, context: preset.context, transcript: preset.transcript, autoPlay: preset.autoPlay } });
           }}
         >
           <option value="" disabled>Load preset…</option>

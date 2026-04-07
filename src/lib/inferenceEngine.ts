@@ -31,12 +31,14 @@ export function updateMeetingContext(context: MeetingContext, event: TranscriptE
 // ── Demo triggers: fire specific insights for known conversation segments ──
 
 const demoTriggers: Array<{
+ presetId: string;
  detect: (text: string) => boolean;
  detectAssist?: (text: string) => boolean;
  needs: Array<{ category: InformationNeed['category']; prompt: string; triggerPhrase: string; demoEvidence: DemoEvidence; isProactiveDemoTrigger?: boolean; proactiveHeadline?: string; proactiveImportance?: number; }>;
 }> = [
  // Trigger A: Comparison table Extreme vs GO! feature breakdown
  {
+ presetId: 'gtc-iridium',
  detect: (text) =>
  (text.includes('extreme covers voice') || text.includes('go supports photo') || text.includes('go! handles photos')),
  detectAssist: (text) =>
@@ -95,6 +97,7 @@ const demoTriggers: Array<{
  },
  // Trigger B: Bar graph dual vs single device content delivery
  {
+ presetId: 'gtc-iridium',
  detect: (text) =>
  (text.includes('that chart is the answer') || text.includes('ninety-four versus seventy-one') || text.includes('94') && text.includes('71') && text.includes('percent')),
  detectAssist: (text) =>
@@ -130,6 +133,7 @@ const demoTriggers: Array<{
  },
  // Trigger 1: Proactive passive setup + content delivery
  {
+ presetId: 'gtc-iridium',
  detect: (text) =>
  text.includes('passive') &&
  (text.includes('solo') || text.includes('content') || text.includes('differentiator')),
@@ -169,6 +173,7 @@ const demoTriggers: Array<{
  },
  // Trigger 3: Caution leading with GO! as primary
  {
+ presetId: 'gtc-iridium',
  detect: (text) =>
  (text.includes('lead with') && (text.includes('go!') || text.includes('go!'))) ||
  (text.includes('primary device') && text.includes('go')) ||
@@ -208,6 +213,7 @@ const demoTriggers: Array<{
  },
  // Trigger CT-R1: Effect size table fires on Chen Lab confounder mention
  {
+ presetId: 'chen-tobin-heat',
  detect: (text) =>
  text.includes('confounder around ac') || text.includes('working through a confounder'),
  detectAssist: (text) =>
@@ -285,6 +291,7 @@ const demoTriggers: Array<{
  },
  // Trigger CT-R2: Dose-response chart fires on RR 1.4 / directionality mention
  {
+ presetId: 'chen-tobin-heat',
  detect: (text) =>
  text.includes('1.4 relative risk') || text.includes('directionality is stable'),
  detectAssist: (text) =>
@@ -325,6 +332,7 @@ const demoTriggers: Array<{
  },
  // Trigger CT-DG: CT stakeholder diagram fires on DEEP/OPM/DPH agency mention
  {
+ presetId: 'chen-tobin-heat',
  detect: (text) =>
  text.includes('reports to deep') || (text.includes('runs through opm') && text.includes('dph')),
  detectAssist: (text) =>
@@ -379,6 +387,7 @@ const demoTriggers: Array<{
  },
  // Trigger CT-CA: Bridgeport caution fires on Bridgeport data limitation mention
  {
+ presetId: 'chen-tobin-heat',
  detect: (text) =>
  text.includes('bridgeport is thinner') || (text.includes('bridgeport') && text.includes('credibility problem')),
  detectAssist: (text) =>
@@ -421,6 +430,7 @@ const demoTriggers: Array<{
  },
  // Trigger CT-PR: DEEP heat mapping proactive fires on New Haven anchor / deck build mention
  {
+ presetId: 'chen-tobin-heat',
  detect: (text) =>
  text.includes('new haven is the anchor') || text.includes('build the deck that way'),
  detectAssist: (text) =>
@@ -461,6 +471,7 @@ const demoTriggers: Array<{
  },
  // Trigger (Iridium): Diagram device decision flow
  {
+ presetId: 'gtc-iridium',
  detect: (text) =>
  (text.includes('picks up') && (text.includes('extreme') || text.includes('voice'))) ||
  (text.includes('passively') && text.includes('sos')) ||
@@ -499,12 +510,14 @@ const demoTriggers: Array<{
  },
 ];
 
-export function inferInformationNeeds(event: TranscriptEvent, assistMode = false, presetActive = false): InformationNeed[] {
+export function inferInformationNeeds(event: TranscriptEvent, assistMode = false, presetActive = false, activePresetId: string | null = null): InformationNeed[] {
  const text = event.text.toLowerCase();
  const needs: InformationNeed[] = [];
 
  // Check demo triggers stateless, dedup is handled by applyAdditionalNeeds in the reducer
  for (const trigger of demoTriggers) {
+ // Only fire triggers belonging to the active preset — prevents cross-preset bleed
+ if (activePresetId && trigger.presetId !== activePresetId) continue;
  const matched = assistMode && trigger.detectAssist
  ? trigger.detectAssist(text)
  : trigger.detect(text);
