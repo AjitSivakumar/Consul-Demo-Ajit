@@ -295,9 +295,9 @@ const demoTriggers: Array<{
  detect: (text) =>
  text.includes('1.4 relative risk') || text.includes('directionality is stable'),
  detectAssist: (text) =>
- text.includes('directionality is stable') ||
- text.includes('justify a pilot') ||
- text.includes('strong enough to justify'),
+ text.includes('1.4 relative risk') ||
+ text.includes('around 1.4') ||
+ text.includes('directionality is stable'),
  needs: [
  {
   category: 'metric' as InformationNeed['category'],
