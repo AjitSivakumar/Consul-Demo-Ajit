@@ -1,7 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import { ActionList } from '../components/deliverables/ActionList';
+import { ChenLabDeliverable } from '../components/deliverables/ChenLabDeliverable';
 import { QASection } from '../components/deliverables/QASection';
 import { ResearchCard } from '../components/deliverables/ResearchCard';
+import { SlideGrid } from '../components/deliverables/SlideGrid';
 import { useMeetingStore } from '../state/MeetingStore';
 
 export function DeliverablesPage(): React.JSX.Element {
@@ -17,7 +19,8 @@ export function DeliverablesPage(): React.JSX.Element {
     navigate('/realtime');
   };
   const g = state.generatedContent;
-  const hasContent = Boolean(g.research || g.qa || g.actions);
+  const isChenLabPreset = state.activePresetId === 'chen-tobin-heat' || state.activePresetId === 'chen-tobin-heat-auto';
+  const hasContent = Boolean(g.research || g.qa || g.actions) || (isChenLabPreset && state.liveStatus === 'ended');
 
   const handleDownloadPDF = (): void => {
     window.print();
@@ -62,7 +65,9 @@ export function DeliverablesPage(): React.JSX.Element {
 
       {/* ── Deliverables Body ── */}
       <div className="dl-body">
-        {!hasContent ? (
+        {isChenLabPreset && state.liveStatus === 'ended' ? (
+          <div className="dl-main"><ChenLabDeliverable /></div>
+        ) : !hasContent ? (
           <div className="dl-empty">
             <div className="dl-empty-title">No deliverables generated yet</div>
             <p className="dl-empty-sub">
@@ -93,7 +98,11 @@ export function DeliverablesPage(): React.JSX.Element {
               </div>
             )}
 
-
+            {g.slides && g.slides.slides.length > 0 && (
+              <div className="dl-section">
+                <SlideGrid data={g.slides} />
+              </div>
+            )}
           </div>
         )}
       </div>

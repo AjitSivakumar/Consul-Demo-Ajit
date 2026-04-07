@@ -13,6 +13,8 @@ import { extractRelevantChunks, getAllDocuments } from '../services/documentServ
 import { useMeetingStore } from '../state/MeetingStore';
 import type { EvidenceCard, InformationNeed } from '../types/domain';
 
+const CHEN_LAB_PRESET_IDS = new Set(['chen-tobin-heat', 'chen-tobin-heat-auto']);
+
 const GENERATION_TIMEOUT_MS = 30000;
 
 function buildEvidenceFromResult(
@@ -235,6 +237,14 @@ export function useAmbientMeetingAI(): {
 
     dispatch({ type: 'END_MEETING' });
     dispatch({ type: 'SET_GENERATING', payload: true });
+
+    // Inject hardcoded deliverable for Chen Lab presets — component is self-contained
+    if (state.activePresetId && CHEN_LAB_PRESET_IDS.has(state.activePresetId)) {
+      setTimeout(() => {
+        dispatch({ type: 'SET_GENERATED_CONTENT', payload: { generatedAt: new Date().toISOString() } });
+      }, 1800);
+      return;
+    }
 
     const transcriptText = state.transcript
       .map((segment) => `${segment.speaker}: ${segment.text}`)
