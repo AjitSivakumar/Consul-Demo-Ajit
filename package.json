@@ -11,6 +11,7 @@
   },
   "type": "module",
   "dependencies": {
+    "@supabase/supabase-js": "^2.103.0",
     "@upstash/redis": "^1.37.0",
     "cors": "^2.8.5",
     "express": "^5.1.0",

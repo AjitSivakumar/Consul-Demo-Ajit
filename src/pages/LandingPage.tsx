@@ -13,15 +13,13 @@ export function LandingPage(): React.JSX.Element {
       </header>
 
       <div className="lp-body">
-        <div className="lp-eyebrow">Real-time meeting intelligence</div>
-
         <h1 className="lp-headline">
           Your meeting&apos;s<br />
           <em className="lp-headline-em">second brain</em>
         </h1>
 
         <p className="lp-sub">
-          Ambi listens, surfaces evidence gaps, and delivers<br />
+          Ambi listens, surfaces evidence gaps, and delivers
           research-backed insights live, as the conversation unfolds.
         </p>
 
@@ -32,13 +30,17 @@ export function LandingPage(): React.JSX.Element {
         >
           Open Meeting Room →
         </button>
-
-        <div className="lp-chips">
-          <span className="lp-chip">Live transcription</span>
-          <span className="lp-chip">Auto gap-fill</span>
-          <span className="lp-chip">Post-meeting deliverables</span>
-        </div>
       </div>
+
+      <footer className="lp-footer">
+        <div className="lp-footer-left">
+          <img src="/logo-grey.svg" alt="Ambi" className="lp-footer-logo" />
+          <span className="lp-footer-wordmark">ambi</span>
+        </div>
+        <div className="lp-footer-right">
+          © {new Date().getFullYear()} Ambi. All rights reserved.
+        </div>
+      </footer>
     </main>
   );
 }
