@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ambi — Data Flow & Security Architecture</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;700&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #ffffff;
+    color: #0a0a0a;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 32px;
+  }
+
+  .page {
+    width: 1100px;
+    max-width: 100%;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 44px;
+  }
+
+  .header-left { display: flex; flex-direction: column; gap: 6px; }
+
+  .eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: #A529F3;
+    background: #EDE9FE;
+    border: 1px solid rgba(165,41,243,0.25);
+    border-radius: 100px;
+    padding: 3px 12px;
+    align-self: flex-start;
+  }
+
+  .title {
+    font-size: 26px;
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    color: #0a0a0a;
+  }
+
+  .title strong { font-weight: 700; }
+
+  .legend {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: #6b6b6b;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+  }
+
+  .legend-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+  }
+
+  /* Diagram grid */
+  .diagram {
+    display: grid;
+    grid-template-columns: 180px 40px 200px 40px 200px 40px 200px 40px 160px;
+    grid-template-rows: auto;
+    align-items: start;
+    gap: 0;
+    position: relative;
+  }
+
+  /* Column headers */
+  .col-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #9a9790;
+    text-align: center;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #e8e6e0;
+    margin-bottom: 20px;
+    grid-row: 1;
+  }
+
+  .arrow-col { grid-row: 1; }
+
+  /* Boxes */
+  .box {
+    border-radius: 10px;
+    padding: 14px 14px 12px;
+    border: 1px solid;
+    position: relative;
+  }
+
+  .box-title {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    line-height: 1.3;
+  }
+
+  .box-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: #6b6b6b;
+    line-height: 1.6;
+  }
+
+  .box-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 2px 7px;
+    border-radius: 100px;
+    border: 1px solid;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 8px;
+  }
+
+  /* Color variants */
+  .box-input {
+    background: #F7F7F7;
+    border-color: #e0ddd6;
+  }
+  .box-input .box-title { color: #2a2a2a; }
+
+  .box-gateway {
+    background: #EDE9FE;
+    border-color: rgba(165,41,243,0.35);
+  }
+  .box-gateway .box-title { color: #5B21B6; }
+  .box-gateway .box-tag { background: rgba(165,41,243,0.12); border-color: rgba(165,41,243,0.3); color: #7A1DB8; }
+
+  .box-process {
+    background: #E6F1FB;
+    border-color: #b5d4f4;
+  }
+  .box-process .box-title { color: #185FA5; }
+  .box-process .box-tag { background: #dbeafe; border-color: #93c5fd; color: #1e3a8a; }
+
+  .box-store {
+    background: #F0FDF4;
+    border-color: #86efac;
+  }
+  .box-store .box-title { color: #15803d; }
+  .box-store .box-tag { background: #dcfce7; border-color: #86efac; color: #15803d; }
+
+  .box-delivery {
+    background: #FFF7ED;
+    border-color: #fed7aa;
+  }
+  .box-delivery .box-title { color: #c2410c; }
+  .box-delivery .box-tag { background: #ffedd5; border-color: #fdba74; color: #c2410c; }
+
+  /* Security badge */
+  .sec-badge {
+    position: absolute;
+    top: -10px;
+    right: 10px;
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    background: #0a0a0a;
+    color: #ffffff;
+    padding: 2px 8px;
+    border-radius: 100px;
+  }
+
+  /* Arrows */
+  .arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 20px;
+  }
+
+  .arrow-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .arrow-line {
+    width: 2px;
+    flex: 1;
+    background: #d0cdc6;
+    min-height: 24px;
+  }
+
+  .arrow-h {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 40px;
+  }
+
+  .arrow-h-line {
+    flex: 1;
+    height: 1.5px;
+    background: #c0bdb6;
+  }
+
+  .arrow-h-head {
+    width: 0;
+    height: 0;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 7px solid #c0bdb6;
+  }
+
+  .arrow-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    color: #A529F3;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    text-align: center;
+  }
+
+  /* Stack of boxes in a column */
+  .col-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* Connector lines between stacked items going right */
+  .connector-group {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 10px;
+    padding-top: 20px;
+  }
+
+  /* Footer */
+  .footer {
+    margin-top: 40px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .footer-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    background: #fafaf8;
+    border: 1px solid #e8e6e0;
+    border-radius: 8px;
+    padding: 10px 14px;
+    flex: 1;
+    min-width: 180px;
+  }
+
+  .footer-icon {
+    font-size: 16px;
+    line-height: 1;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .footer-text { display: flex; flex-direction: column; gap: 2px; }
+
+  .footer-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #0a0a0a;
+  }
+
+  .footer-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: #6b6b6b;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <span class="eyebrow">Security Architecture</span>
+      <h1 class="title">Ambi — <strong>Data Flow & Routing</strong></h1>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#9ca3af"></div>Input</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#A529F3"></div>Auth / Gateway</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#185FA5"></div>Processing</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#15803d"></div>Storage</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#c2410c"></div>Delivery</div>
+    </div>
+  </div>
+
+  <!-- Diagram -->
+  <div style="display:flex; gap:0; align-items:flex-start;">
+
+    <!-- Col 1: Input sources -->
+    <div style="width:185px; flex-shrink:0;">
+      <div class="col-label" style="text-align:center;">Input Sources</div>
+      <div class="col-stack">
+        <div class="box box-input">
+          <div class="box-title">Microphone</div>
+          <div class="box-sub">Web Speech API · browser-native · no audio leaves device</div>
+        </div>
+        <div class="box box-input">
+          <div class="box-title">Google Meet</div>
+          <div class="box-sub">Chrome extension · intercepts caption stream · postMessage relay</div>
+        </div>
+        <div class="box box-input">
+          <div class="box-title">Recall.ai Bot</div>
+          <div class="box-sub">Bot joins call · webhook push · server-side receipt only</div>
+        </div>
+        <div class="box box-input">
+          <div class="box-title">Document Upload</div>
+          <div class="box-sub">PDF / TXT · chunked client-side · encrypted before transit</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Arrow 1 -->
+    <div style="width:52px; flex-shrink:0; display:flex; flex-direction:column; padding-top:36px; gap:10px;">
+      <div class="arrow-h" style="margin-top:4px;"><div class="arrow-h-line"></div><div class="arrow-h-head"></div></div>
+      <div class="arrow-h" style="margin-top:18px;"><div class="arrow-h-line"></div><div class="arrow-h-head"></div></div>
+      <div class="arrow-h" style="margin-top:18px;"><div class="arrow-h-line"></div><div class="arrow-h-head"></div></div>
+      <div class="arrow-h" style="margin-top:18px;"><div class="arrow-h-line"></div><div class="arrow-h-head"></div></div>
+    </div>
+
+    <!-- Col 2: Gateway / Auth -->
+    <div style="width:200px; flex-shrink:0;">
+      <div class="col-label" style="text-align:center;">Auth &amp; Gateway</div>
+      <div class="col-stack">
+        <div class="box box-gateway" style="position:relative;">
+          <span class="sec-badge">TLS 1.3</span>
+          <div class="box-title">API Gateway</div>
+          <div class="box-sub">Rate limiting · request validation · origin enforcement</div>
+          <span class="box-tag">⬡ Encrypted transit</span>
+        </div>
+        <div class="box box-gateway">
+          <div class="box-title">Auth Service</div>
+          <div class="box-sub">JWT validation · session scoping · role verification</div>
+          <span class="box-tag">⬡ Zero trust</span>
+        </div>
+        <div class="box box-gateway">
+          <div class="box-title">Secret Vault</div>
+          <div class="box-sub">API keys server-only · never exposed to browser · rotated on schedule</div>
+          <span class="box-tag">⬡ Key isolation</span>
+        </div>
+        <div class="box box-gateway">
+          <div class="box-title">Webhook Receiver</div>
+          <div class="box-sub">Validated signature · HMAC-verified · bot events only</div>
+          <span class="box-tag">⬡ Signed payloads</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Arrow 2 -->
+    <div style="width:52px; flex-shrink:0; display:flex; flex-direction:column; padding-top:36px; gap:10px;">
+      <div class="arrow-h" style="margin-top:4px;"><div class="arrow-h-line"></div><div class="arrow-h-head"></div></div>
+      <div class="arrow-h" style="margin-top:18px;"><div class="arrow-h-line"></div><div class="arrow-h-head"></div></div>
+      <div class="arrow-h" style="margin-top:18px;"><div class="arrow-h-line"></div><div class="arrow-h-head"></div></div>
+      <div class="arrow-h" style="margin-top:18px;"><div class="arrow-h-line"></div><div class="arrow-h-head"></div></div>
+    </div>
+
+    <!-- Col 3: Processing -->
+    <div style="width:205px; flex-shrink:0;">
+      <div class="col-label" style="text-align:center;">Processing Layer</div>
+      <div class="col-stack">
+        <div class="box box-process">
+          <div class="box-title">Transcript Normalizer</div>
+          <div class="box-sub">Unified event schema · speaker tagging · session-scoped buffer</div>
+          <span class="box-tag">⬡ Isolated per session</span>
+        </div>
+        <div class="box box-process">
+          <div class="box-title">Dual-Track AI Engine</div>
+          <div class="box-sub">Track A: proactive ambient · Track B: gap detection · parallel inference</div>
+          <span class="box-tag">⬡ No PII to LLM</span>
+        </div>
+        <div class="box box-process">
+          <div class="box-title">Vector Search</div>
+          <div class="box-sub">Semantic chunk retrieval · session-scoped index · in-memory only</div>
+          <span class="box-tag">⬡ Ephemeral index</span>
+        </div>
+        <div class="box box-process">
+          <div class="box-title">LLM Proxy</div>
+          <div class="box-sub">Structured prompt · zero data retention · response parsed + validated</div>
+          <span class="box-tag">⬡ Zero retention</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Arrow 3 -->
+    <div style="width:52px; flex-shrink:0; display:flex; flex-direction:column; padding-top:36px; gap:10px;">
+      <div class="arrow-h" style="margin-top:4px;"><div class="arrow-h-line"></div><div class="arrow-h-head"></div></div>
+      <div class="arrow-h" style="margin-top:18px;"><div class="arrow-h-line"></div><div class="arrow-h-head"></div></div>
+      <div class="arrow-h" style="margin-top:18px;"><div class="arrow-h-line"></div><div class="arrow-h-head"></div></div>
+      <div class="arrow-h" style="margin-top:18px;"><div class="arrow-h-line"></div><div class="arrow-h-head"></div></div>
+    </div>
+
+    <!-- Col 4: Storage -->
+    <div style="width:200px; flex-shrink:0;">
+      <div class="col-label" style="text-align:center;">Secure Storage</div>
+      <div class="col-stack">
+        <div class="box box-store">
+          <div class="box-title">Evidence Store</div>
+          <div class="box-sub">Resolved gaps · confidence scores · source attributions · session-scoped</div>
+          <span class="box-tag">⬡ AES-256</span>
+        </div>
+        <div class="box box-store">
+          <div class="box-title">Document Store</div>
+          <div class="box-sub">Uploaded docs · chunked · encrypted at rest · purged on session end</div>
+          <span class="box-tag">⬡ Encrypted at rest</span>
+        </div>
+        <div class="box box-store">
+          <div class="box-title">Session State</div>
+          <div class="box-sub">Transcript · needs · suggestions · scoped to authenticated session ID</div>
+          <span class="box-tag">⬡ Scoped isolation</span>
+        </div>
+        <div class="box box-store">
+          <div class="box-title">Audit Log</div>
+          <div class="box-sub">Immutable event log · who, what, when · no content stored</div>
+          <span class="box-tag">⬡ Metadata only</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Arrow 4 -->
+    <div style="width:52px; flex-shrink:0; display:flex; flex-direction:column; padding-top:36px; gap:10px;">
+      <div class="arrow-h" style="margin-top:4px;"><div class="arrow-h-line"></div><div class="arrow-h-head"></div></div>
+      <div class="arrow-h" style="margin-top:18px;"><div class="arrow-h-line"></div><div class="arrow-h-head"></div></div>
+      <div class="arrow-h" style="margin-top:18px;"><div class="arrow-h-line"></div><div class="arrow-h-head"></div></div>
+      <div class="arrow-h" style="margin-top:18px;"><div class="arrow-h-line"></div><div class="arrow-h-head"></div></div>
+    </div>
+
+    <!-- Col 5: Delivery -->
+    <div style="width:165px; flex-shrink:0;">
+      <div class="col-label" style="text-align:center;">Delivery</div>
+      <div class="col-stack">
+        <div class="box box-delivery">
+          <div class="box-title">SSE Stream</div>
+          <div class="box-sub">Real-time push · session-authenticated · TLS encrypted</div>
+          <span class="box-tag">⬡ Auth token</span>
+        </div>
+        <div class="box box-delivery">
+          <div class="box-title">Insights Feed</div>
+          <div class="box-sub">Read-only render · no raw data exposed · client-side only</div>
+        </div>
+        <div class="box box-delivery">
+          <div class="box-title">Deliverables</div>
+          <div class="box-sub">Generated on session end · exported PDF · not stored server-side</div>
+          <span class="box-tag">⬡ Ephemeral</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer security callouts -->
+  <div class="footer">
+    <div class="footer-item">
+      <div class="footer-icon">🔒</div>
+      <div class="footer-text">
+        <div class="footer-title">End-to-End Encryption</div>
+        <div class="footer-sub">TLS 1.3 on all transit paths · AES-256 at rest · keys never client-side</div>
+      </div>
+    </div>
+    <div class="footer-item">
+      <div class="footer-icon">🪪</div>
+      <div class="footer-text">
+        <div class="footer-title">Zero Trust Auth</div>
+        <div class="footer-sub">JWT on every request · session-scoped isolation · no shared state between users</div>
+      </div>
+    </div>
+    <div class="footer-item">
+      <div class="footer-icon">🧹</div>
+      <div class="footer-text">
+        <div class="footer-title">Zero Data Retention</div>
+        <div class="footer-sub">LLM calls carry no PII · meeting data purged on session end · audit log is metadata only</div>
+      </div>
+    </div>
+    <div class="footer-item">
+      <div class="footer-icon">🔑</div>
+      <div class="footer-text">
+        <div class="footer-title">Secret Isolation</div>
+        <div class="footer-sub">All API keys server-side only · credential vault · HMAC-signed webhooks</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
