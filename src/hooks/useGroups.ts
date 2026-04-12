@@ -18,11 +18,17 @@ export interface GroupMember {
 
 export interface MeetingSession {
   id: string;
+  group_id: string;
   title: string | null;
   started_at: string;
   ended_at: string | null;
   created_by: string;
   state_snapshot: Record<string, unknown> | null;
+}
+
+export interface RecentSession extends MeetingSession {
+  group_name: string;
+  duration_min: number | null;
 }
 
 export function useGroups() {
@@ -122,4 +128,63 @@ export function useGroupDetail(groupId: string) {
   };
 
   return { group, members, sessions, loading, inviteByEmail, removeMember, refetch: fetchAll };
+}
+
+export interface MeetingStats {
+  total: number;
+  totalMinutes: number;
+  thisWeek: number;
+}
+
+export function useRecentSessions() {
+  const { user } = useAuth();
+  const [sessions, setSessions] = useState<RecentSession[]>([]);
+  const [stats, setStats] = useState<MeetingStats>({ total: 0, totalMinutes: 0, thisWeek: 0 });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      // Get all group IDs the user belongs to
+      const { data: memberships } = await supabase
+        .from('group_members')
+        .select('group_id, groups(name)')
+        .eq('user_id', user.id);
+      if (!memberships?.length) { setLoading(false); return; }
+
+      const groupMap = new Map<string, string>(
+        (memberships as unknown as Array<{ group_id: string; groups: { name: string } }>)
+          .map((m) => [m.group_id, m.groups?.name ?? 'Unknown'])
+      );
+      const groupIds = [...groupMap.keys()];
+
+      const { data } = await supabase
+        .from('meeting_sessions')
+        .select('*')
+        .in('group_id', groupIds)
+        .order('started_at', { ascending: false })
+        .limit(20);
+
+      if (!data) { setLoading(false); return; }
+
+      const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      let totalMin = 0;
+      let thisWeek = 0;
+
+      const enriched: RecentSession[] = data.map((s) => {
+        const dur = s.ended_at && s.started_at
+          ? Math.round((new Date(s.ended_at).getTime() - new Date(s.started_at).getTime()) / 60000)
+          : null;
+        if (dur) totalMin += dur;
+        if (new Date(s.started_at).getTime() > weekAgo) thisWeek++;
+        return { ...s, group_name: groupMap.get(s.group_id) ?? 'Unknown', duration_min: dur };
+      });
+
+      setSessions(enriched);
+      setStats({ total: data.length, totalMinutes: totalMin, thisWeek });
+      setLoading(false);
+    })();
+  }, [user]);
+
+  return { sessions, stats, loading };
 }

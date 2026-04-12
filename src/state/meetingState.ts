@@ -36,6 +36,8 @@ export interface MeetingState {
   presetAutoPlay: boolean;
   // Script-assist: preset loaded + recall-bot mode — disables auto-timer, uses looser trigger matching
   scriptAssistMode: boolean;
+  // Group this session is associated with
+  groupId: string | null;
 }
 
 export type MeetingAction =
@@ -58,6 +60,7 @@ export type MeetingAction =
   | { type: 'SET_SCRIPT_ASSIST'; payload: boolean }
   | { type: 'SET_NOTE'; payload: { key: string; text: string } }
   | { type: 'SAVE_INSIGHT'; payload: { question: string; answer: string; source: string } }
+  | { type: 'SET_GROUP'; payload: string | null }
   | { type: 'RESET' };
 
 export const initialMeetingState: MeetingState = {
@@ -87,6 +90,7 @@ export const initialMeetingState: MeetingState = {
   activePresetId: null,
   presetAutoPlay: false,
   scriptAssistMode: false,
+  groupId: null,
 };
 
 export function meetingReducer(state: MeetingState, action: MeetingAction): MeetingState {
@@ -193,6 +197,8 @@ export function meetingReducer(state: MeetingState, action: MeetingAction): Meet
       }
       return { ...state, generatedContent: { ...state.generatedContent, qa: updatedQA } };
     }
+    case 'SET_GROUP':
+      return { ...state, groupId: action.payload };
     case 'RESET':
       return initialMeetingState;
     default:
