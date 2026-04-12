@@ -61,6 +61,7 @@ export type MeetingAction =
   | { type: 'SET_NOTE'; payload: { key: string; text: string } }
   | { type: 'SAVE_INSIGHT'; payload: { question: string; answer: string; source: string } }
   | { type: 'SET_GROUP'; payload: string | null }
+  | { type: 'SET_MEETING_CONTEXT'; payload: { title: string; groupId: string | null; accountContext: string } }
   | { type: 'RESET' };
 
 export const initialMeetingState: MeetingState = {
@@ -199,6 +200,12 @@ export function meetingReducer(state: MeetingState, action: MeetingAction): Meet
     }
     case 'SET_GROUP':
       return { ...state, groupId: action.payload };
+    case 'SET_MEETING_CONTEXT':
+      return {
+        ...state,
+        groupId: action.payload.groupId,
+        context: { ...state.context, title: action.payload.title, accountContext: action.payload.accountContext },
+      };
     case 'RESET':
       return initialMeetingState;
     default:

@@ -35,7 +35,7 @@ export function LandingPage(): React.JSX.Element {
 
           <div className="lp-hero-bottom">
             <p className="lp-sub">
-            <span style={{ color: '#a855f7' }}>Ambi</span> transforms collaboration with proactive intelligence that integrates with your systems
+            <span style={{ color: '#a855f7', fontWeight: 700 }}>ambi</span> transforms collaboration with proactive intelligence that integrates with your systems
             </p>
             <div className="lp-hero-actions">
               <button type="button" className="lp-cta" onClick={goApp}>

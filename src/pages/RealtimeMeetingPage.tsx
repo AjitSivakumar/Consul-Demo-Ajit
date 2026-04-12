@@ -4,6 +4,7 @@ import { NavBar } from '../components/common/NavBar';
 import { InsightsFeed } from '../components/realtime/ConversationFlowPanel';
 import { DeepDivePanel } from '../components/realtime/DeepDivePanel';
 import { BotSettingsModal } from '../components/realtime/BotSettingsModal';
+import { PreMeetingModal } from '../components/realtime/PreMeetingModal';
 import { useAmbientMeetingAI } from '../hooks/useAmbientMeetingAI';
 import { useAuth } from '../hooks/useAuth';
 import { useBotSettings } from '../hooks/useBotSettings';
@@ -30,6 +31,7 @@ export function RealtimeMeetingPage(): React.JSX.Element {
   const [transcriptVisible, setTranscriptVisible] = useState(true);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [showBotSettings, setShowBotSettings] = useState(false);
+  const [showPreMeeting, setShowPreMeeting] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resetKey, setResetKey] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -123,6 +125,12 @@ export function RealtimeMeetingPage(): React.JSX.Element {
     const content = await extractTextFromFile(file);
     await uploadDocument(file.name, content, file.name.endsWith('.pdf') ? 'pdf' : 'text');
     setDocs(getAllDocuments());
+  };
+
+  const handlePreMeetingStart = (title: string, gId: string | null, context: string): void => {
+    dispatch({ type: 'SET_MEETING_CONTEXT', payload: { title, groupId: gId, accountContext: context } });
+    setShowPreMeeting(false);
+    runner.start();
   };
 
   const commitTitle = (): void => {
@@ -222,7 +230,7 @@ export function RealtimeMeetingPage(): React.JSX.Element {
         )}
 
         <div className="ctrl-divider" />
-        <button type="button" className="ctrl-btn" onClick={runner.start}>Start</button>
+        <button type="button" className="ctrl-btn" onClick={() => setShowPreMeeting(true)}>Start</button>
         {showResetConfirm ? (
           <>
             <span className="ctrl-label" style={{ color: 'var(--danger)' }}>Confirm reset?</span>
@@ -399,6 +407,16 @@ export function RealtimeMeetingPage(): React.JSX.Element {
           settings={botSettings}
           onSave={saveBotSettings}
           onClose={() => setShowBotSettings(false)}
+        />
+      )}
+
+      {showPreMeeting && (
+        <PreMeetingModal
+          groups={groups}
+          currentGroupId={state.groupId}
+          currentTitle={state.context.title}
+          onStart={handlePreMeetingStart}
+          onClose={() => setShowPreMeeting(false)}
         />
       )}
     </main>

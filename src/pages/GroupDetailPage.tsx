@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useGroupDetail } from '../hooks/useGroups';
 import { NavBar } from '../components/common/NavBar';
+import { DriveIntegrationPanel } from '../components/groups/DriveIntegrationPanel';
 
 export function GroupDetailPage(): React.JSX.Element {
   const { id } = useParams<{ id: string }>();
@@ -104,6 +105,12 @@ export function GroupDetailPage(): React.JSX.Element {
             {inviteStatus && <p className="grp-invite-status">{inviteStatus}</p>}
           </section>
         )}
+
+        {/* Drive Integration */}
+        <section className="grp-section">
+          <h2 className="grp-section-title">Knowledge Base</h2>
+          <DriveIntegrationPanel groupId={id!} />
+        </section>
 
         {/* Danger zone */}
         {isOwner && (

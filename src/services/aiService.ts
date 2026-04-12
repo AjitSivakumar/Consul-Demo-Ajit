@@ -447,13 +447,15 @@ export interface ProactiveSuggestion {
 
 export async function generateAmbientSuggestion(
   transcript: string,
-  previousHeadlines: string[]
+  previousHeadlines: string[],
+  meetingContext?: string
 ): Promise<ProactiveSuggestion | null> {
   try {
     const prevContext =
       previousHeadlines.length > 0
         ? `\n\nAlready surfaced (avoid repeating these topics):\n${previousHeadlines.slice(-3).join('\n')}`
         : '';
+    const contextLine = meetingContext ? `\n\nMeeting context: ${meetingContext}` : '';
 
     const response = await client.chat.completions.create({
       model: 'gpt-4o-mini',
@@ -469,7 +471,7 @@ export async function generateAmbientSuggestion(
         {
           role: 'user',
           content: `Latest transcript segment:
-${transcript}${prevContext}
+${transcript}${contextLine}${prevContext}
 
 Return JSON with exactly these fields (or {"skip": true} if nothing worth surfacing):
 {

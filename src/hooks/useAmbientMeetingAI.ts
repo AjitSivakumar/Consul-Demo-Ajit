@@ -10,6 +10,8 @@ import {
   resolveGapFromInternet,
 } from '../services/aiService';
 import { extractRelevantChunks, getAllDocuments } from '../services/documentService';
+import { fetchDocumentContent, loadGroupKnowledge, searchByEntities, searchByTags, semanticSearch } from '../services/knowledgeService';
+import type { KnowledgeDoc } from '../services/knowledgeService';
 import { useMeetingStore } from '../state/MeetingStore';
 import type { EvidenceCard, InformationNeed } from '../types/domain';
 
@@ -53,8 +55,15 @@ export function useAmbientMeetingAI(): {
   const lastTranscriptIdRef = useRef<string | null>(null);
   const autoEndStartedRef = useRef(false);
   const autoResolveQueue = useRef<Set<string>>(new Set());
+  const groupKnowledgeRef = useRef<KnowledgeDoc[]>([]);
   const lastInferenceTimeRef = useRef<number>(0);
   const eventsSinceLastInference = useRef<number>(0);
+
+  // Load group knowledge docs when groupId is set
+  useEffect(() => {
+    if (!state.groupId) { groupKnowledgeRef.current = []; return; }
+    loadGroupKnowledge(state.groupId).then((docs) => { groupKnowledgeRef.current = docs; }).catch(() => {});
+  }, [state.groupId]);
 
   // Cooldown: require at least 35s AND 7 transcript events between AI inferences
   const AI_INFERENCE_COOLDOWN_MS = 35_000;
@@ -128,7 +137,43 @@ export function useAmbientMeetingAI(): {
             }
           }
 
-          // 2) Fallback: try internet (GPT general knowledge)
+          // 2) Try group knowledge base (indexed Drive docs)
+          const knowledgeDocs = groupKnowledgeRef.current;
+          if (knowledgeDocs.length > 0) {
+            // Fast local search first (entity + tag), then semantic if needed
+            const localMatches = [
+              ...searchByEntities(need.prompt, knowledgeDocs),
+              ...searchByTags(need.prompt, knowledgeDocs),
+            ].sort((a, b) => b.score - a.score).slice(0, 2);
+
+            const semanticMatches = state.groupId
+              ? await semanticSearch(need.prompt, state.groupId).catch(() => [])
+              : [];
+
+            const topMatches = [...localMatches, ...semanticMatches]
+              .filter((m, i, arr) => arr.findIndex((x) => x.doc.id === m.doc.id) === i)
+              .sort((a, b) => b.score - a.score)
+              .slice(0, 2);
+
+            if (topMatches.length > 0) {
+              const contents = await Promise.all(
+                topMatches.map((m) => fetchDocumentContent(m.doc.id))
+              );
+              const knowledgeCtx = topMatches
+                .map((m, i) => `[Source: ${m.doc.name}]\n${contents[i]?.slice(0, 2000) ?? m.doc.summary}`)
+                .join('\n\n---\n\n');
+
+              const knowledgeResult = await resolveGapFromDocuments(need.prompt, knowledgeCtx);
+              if (knowledgeResult.confidence >= 0.65) {
+                const evidence = buildEvidenceFromResult(need, knowledgeResult, 'internal_document');
+                dispatch({ type: 'ADD_RESOLVED_EVIDENCE', payload: evidence });
+                dispatch({ type: 'UPDATE_NEED_STATUS', payload: { needId: need.id, status: 'resolved' } });
+                return;
+              }
+            }
+          }
+
+          // 3) Fallback: try internet (GPT general knowledge)
           const internetResult = await resolveGapFromInternet(need.prompt, transcriptContext);
           if (internetResult.confidence >= 0.65) {
             const evidence = buildEvidenceFromResult(need, internetResult, 'web');
@@ -166,7 +211,7 @@ export function useAmbientMeetingAI(): {
       if (wordCount >= 15 && ambientElapsed >= AMBIENT_SUGGESTION_COOLDOWN_MS) {
         lastAmbientTsRef.current = Date.now();
         const previousHeadlines = state.ambientSuggestions.map((s) => s.headline);
-        const suggestion = await generateAmbientSuggestion(latest.text, previousHeadlines);
+        const suggestion = await generateAmbientSuggestion(latest.text, previousHeadlines, state.context.accountContext || undefined);
         if (suggestion) {
           const needId = `proactive-${Date.now()}`;
           const need: InformationNeed = {
