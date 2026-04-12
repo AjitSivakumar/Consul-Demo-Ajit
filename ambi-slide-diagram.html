@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Ambi Security Architecture</title>
+<title>Ambi - make Data Flow Diagram</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&display=swap');
 
@@ -26,436 +26,366 @@
     flex-shrink: 0;
   }
 
+  /* Bars */
   .bar-top {
     position: absolute;
     top: 0; left: 0; right: 0;
-    height: 64px;
+    height: 68px;
     background: #C9AEE8;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 44px;
+    padding: 0 40px;
   }
 
   .bar-bottom {
     position: absolute;
     bottom: 0; left: 0; right: 0;
-    height: 56px;
+    height: 60px;
     background: #C9AEE8;
   }
 
-  .bar-label {
-    font-size: 12px;
+  .slide-eyebrow {
+    font-size: 13px;
     font-weight: 900;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     color: #ffffff;
   }
 
   .logo-a {
-    font-size: 36px;
+    font-size: 38px;
     font-weight: 900;
     color: #5B1FAA;
     line-height: 1;
   }
 
-  /* ── Content ── */
+  /* Content */
   .content {
     position: absolute;
-    top: 74px;
-    left: 44px;
-    right: 44px;
-    bottom: 66px;
+    top: 80px;
+    left: 56px;
+    right: 56px;
+    bottom: 72px;
     display: flex;
     flex-direction: column;
-    gap: 18px;
   }
 
   .headline {
-    font-size: 22px;
+    font-size: 26px;
     font-weight: 900;
     color: #1a1a1a;
     letter-spacing: -0.02em;
-    line-height: 1.1;
-    flex-shrink: 0;
+    margin-bottom: 32px;
+    line-height: 1.15;
   }
 
   .headline-accent { color: #8844CC; }
 
-  /* ── Top pipeline ── */
-  .pipeline {
+  /* ── Main diagram ── */
+  .diagram {
+    flex: 1;
     display: flex;
-    align-items: stretch;
-    flex-shrink: 0;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* Top rail: primary data path */
+  .rail-top {
+    display: flex;
+    align-items: center;
     gap: 0;
   }
 
-  .step {
+  /* Bottom rail: AI internals */
+  .rail-bottom {
     display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: 14px 18px;
-    border-radius: 14px;
-    border: 1.5px solid;
-    gap: 4px;
-    flex-shrink: 0;
+    align-items: stretch;
+    gap: 0;
+    padding-left: 0;
   }
 
-  .step-label {
+  /* Box styles */
+  .box {
+    border-radius: 16px;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    position: relative;
+  }
+
+  .box-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    opacity: 0.6;
+  }
+
+  .box-title {
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .box-sub {
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.55;
+    opacity: 0.75;
+    margin-top: 3px;
+  }
+
+  /* Variants */
+  .box-input {
+    background: #F3EAF9;
+    border: 1.5px solid #C9AEE8;
+    width: 210px;
+    flex-shrink: 0;
+  }
+  .box-input .box-label { color: #8844CC; }
+  .box-input .box-title { color: #5B1FAA; }
+  .box-input .box-sub   { color: #5B1FAA; }
+
+  .box-server {
+    background: #fafafa;
+    border: 1.5px solid #e0ddd6;
+    width: 190px;
+    flex-shrink: 0;
+  }
+  .box-server .box-label { color: #888; }
+  .box-server .box-title { color: #1a1a1a; }
+  .box-server .box-sub   { color: #555; }
+
+  .box-ai {
+    background: #8844CC;
+    border: 1.5px solid #7733BB;
+    flex: 1;
+    flex-shrink: 0;
+  }
+  .box-ai .box-label { color: rgba(255,255,255,0.6); }
+  .box-ai .box-title { color: #ffffff; }
+  .box-ai .box-sub   { color: rgba(255,255,255,0.75); }
+
+  .box-output {
+    background: #fafafa;
+    border: 1.5px solid #e0ddd6;
+    width: 210px;
+    flex-shrink: 0;
+  }
+  .box-output .box-label { color: #888; }
+  .box-output .box-title { color: #1a1a1a; }
+  .box-output .box-sub   { color: #555; }
+
+  /* AI sub-boxes in bottom rail */
+  .ai-internals {
+    flex: 1;
+    display: flex;
+    gap: 8px;
+  }
+
+  .ai-sub {
+    flex: 1;
+    border-radius: 12px;
+    padding: 16px 18px;
+    border: 1.5px solid;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .ai-sub-label {
     font-size: 9px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.1em;
   }
 
-  .step-title {
+  .ai-sub-title {
     font-size: 15px;
     font-weight: 700;
     line-height: 1.2;
   }
 
-  .step-sub {
-    font-size: 10.5px;
+  .ai-sub-body {
+    font-size: 12px;
     font-weight: 400;
-    line-height: 1.5;
-    margin-top: 2px;
-    opacity: 0.72;
+    line-height: 1.55;
+    margin-top: 3px;
   }
 
-  .step-input {
+  .sub-gap {
     background: #F3EAF9;
     border-color: #C9AEE8;
-    width: 152px;
   }
-  .step-input .step-label { color: #8844CC; }
-  .step-input .step-title { color: #5B1FAA; }
-  .step-input .step-sub   { color: #5B1FAA; }
+  .sub-gap .ai-sub-label { color: #8844CC; }
+  .sub-gap .ai-sub-title { color: #5B1FAA; }
+  .sub-gap .ai-sub-body  { color: #6B3AAA; }
 
-  .step-mid {
-    background: #fafafa;
-    border-color: #e0ddd6;
-    width: 148px;
+  .sub-resolve {
+    background: #F3EAF9;
+    border-color: #C9AEE8;
   }
-  .step-mid .step-label { color: #999; }
-  .step-mid .step-title { color: #1a1a1a; }
-  .step-mid .step-sub   { color: #555; }
+  .sub-resolve .ai-sub-label { color: #8844CC; }
+  .sub-resolve .ai-sub-title { color: #5B1FAA; }
+  .sub-resolve .ai-sub-body  { color: #6B3AAA; }
 
-  /* Ambi Core */
-  .step-core {
-    flex: 1;
+  .sub-proactive {
     background: #8844CC;
     border-color: #7733BB;
-    position: relative;
   }
-  .step-core .step-label { color: rgba(255,255,255,0.55); }
-  .step-core .step-title { color: #ffffff; font-size: 19px; }
-  .step-core .step-sub   { color: rgba(255,255,255,0.72); font-size: 11.5px; }
+  .sub-proactive .ai-sub-label { color: rgba(255,255,255,0.6); }
+  .sub-proactive .ai-sub-title { color: #ffffff; }
+  .sub-proactive .ai-sub-body  { color: rgba(255,255,255,0.75); }
 
-  .core-badge {
+  /* Arrows */
+  .arr {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    width: 44px;
+  }
+
+  .arr svg { width: 100%; }
+
+  /* Spacers to align bottom rail with AI box */
+  .spacer { flex-shrink: 0; }
+
+  /* Badge on AI box */
+  .ai-badge {
     position: absolute;
     top: -11px;
-    left: 24px;
+    left: 50%;
+    transform: translateX(-50%);
     background: #8844CC;
     color: #fff;
     font-size: 8px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.1em;
     padding: 2px 12px;
     border-radius: 100px;
     border: 2px solid #fff;
     white-space: nowrap;
   }
-
-  .step-output {
-    background: #fafafa;
-    border-color: #e0ddd6;
-    width: 162px;
-  }
-  .step-output .step-label { color: #999; }
-  .step-output .step-title { color: #1a1a1a; font-size: 14px; }
-  .step-output .step-sub   { color: #555; }
-
-  /* Arrows */
-  .h-arr {
-    display: flex;
-    align-items: center;
-    flex-direction: column;
-    justify-content: center;
-    width: 36px;
-    flex-shrink: 0;
-    position: relative;
-  }
-  .h-arr svg { width: 100%; }
-
-  /* Protocol label on arrow */
-  .arr-tag {
-    font-size: 7.5px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #8844CC;
-    white-space: nowrap;
-    margin-bottom: 3px;
-    background: #F3EAF9;
-    border: 1px solid #C9AEE8;
-    border-radius: 4px;
-    padding: 1px 5px;
-  }
-
-  /* ── Security layer divider ── */
-  .sec-divider {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-shrink: 0;
-  }
-
-  .sec-divider-line {
-    flex: 1;
-    height: 1px;
-    background: #e0ddd6;
-  }
-
-  .sec-divider-label {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 9.5px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: #8844CC;
-    white-space: nowrap;
-  }
-
-  /* ── Security pillars ── */
-  .sec-row {
-    display: flex;
-    gap: 12px;
-    flex: 0 0 auto;
-  }
-
-  .sec-box {
-    flex: 1;
-    border-radius: 14px;
-    border: 1.5px solid;
-    padding: 12px 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .sec-label {
-    font-size: 9px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-  }
-
-  .sec-icon {
-    font-size: 18px;
-    line-height: 1;
-  }
-
-  .sec-title {
-    font-size: 16px;
-    font-weight: 700;
-    line-height: 1.2;
-    margin-top: 2px;
-  }
-
-  .sec-body {
-    font-size: 11.5px;
-    font-weight: 400;
-    line-height: 1.55;
-    margin-top: 2px;
-  }
-
-  .sec-tag {
-    display: inline-block;
-    margin-top: 4px;
-    font-size: 9px;
-    font-weight: 700;
-    font-family: 'DM Mono', 'Courier New', monospace;
-    letter-spacing: 0.04em;
-    padding: 2px 8px;
-    border-radius: 100px;
-    border: 1px solid;
-    width: fit-content;
-  }
-
-  /* Box variants */
-  .sec-tls {
-    background: #F3EAF9;
-    border-color: #C9AEE8;
-  }
-  .sec-tls .sec-label { color: #8844CC; }
-  .sec-tls .sec-title { color: #5B1FAA; }
-  .sec-tls .sec-body  { color: #6B3AAA; }
-  .sec-tls .sec-tag   { background: #e8d8f8; border-color: #C9AEE8; color: #8844CC; }
-
-  .sec-hmac {
-    background: #8844CC;
-    border-color: #7733BB;
-  }
-  .sec-hmac .sec-label { color: rgba(255,255,255,0.55); }
-  .sec-hmac .sec-title { color: #ffffff; }
-  .sec-hmac .sec-body  { color: rgba(255,255,255,0.75); }
-  .sec-hmac .sec-tag   { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.3); color: #fff; }
-
-  .sec-cred {
-    background: #F3EAF9;
-    border-color: #C9AEE8;
-  }
-  .sec-cred .sec-label { color: #8844CC; }
-  .sec-cred .sec-title { color: #5B1FAA; }
-  .sec-cred .sec-body  { color: #6B3AAA; }
-  .sec-cred .sec-tag   { background: #e8d8f8; border-color: #C9AEE8; color: #8844CC; }
-
-  .sec-eph {
-    background: #8844CC;
-    border-color: #7733BB;
-  }
-  .sec-eph .sec-label { color: rgba(255,255,255,0.55); }
-  .sec-eph .sec-title { color: #ffffff; }
-  .sec-eph .sec-body  { color: rgba(255,255,255,0.75); }
-  .sec-eph .sec-tag   { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.3); color: #fff; }
 </style>
 </head>
 <body>
 <div class="slide">
 
   <div class="bar-top">
-    <span class="bar-label">Security Architecture</span>
+    <span class="slide-eyebrow">How It Works</span>
     <span class="logo-a">A</span>
   </div>
   <div class="bar-bottom"></div>
 
   <div class="content">
-
     <div class="headline">
-      <span class="headline-accent">ambi.</span> built secure from the ground up, at every layer
+      <span class="headline-accent">ambi.</span> from live call to proactive insight automatically
     </div>
 
-    <!-- Pipeline row -->
-    <div class="pipeline">
+    <div class="diagram">
 
-      <!-- Recall.ai -->
-      <div class="step step-input">
-        <div class="step-label">Input</div>
-        <div class="step-title">Recall.ai Bot</div>
-        <div class="step-sub">Authenticated session bot. Isolated per call.</div>
+      <!-- ── Top rail: primary data path ── -->
+      <div class="rail-top">
+
+        <div class="box box-input">
+          <div class="box-label">Input</div>
+          <div class="box-title">Recall.ai Bot</div>
+          <div class="box-sub">Joins the call silently, captures audio &amp; captions in real time</div>
+        </div>
+
+        <div class="arr">
+          <svg height="20" viewBox="0 0 44 20" fill="none">
+            <line x1="0" y1="10" x2="36" y2="10" stroke="#C9AEE8" stroke-width="2"/>
+            <polygon points="36,5 44,10 36,15" fill="#8844CC"/>
+          </svg>
+        </div>
+
+        <div class="box box-server">
+          <div class="box-label">Ingestion</div>
+          <div class="box-title">Secure Webhook</div>
+          <div class="box-sub">HMAC-signed events received by Express server</div>
+        </div>
+
+        <div class="arr">
+          <svg height="20" viewBox="0 0 44 20" fill="none">
+            <line x1="0" y1="10" x2="36" y2="10" stroke="#C9AEE8" stroke-width="2"/>
+            <polygon points="36,5 44,10 36,15" fill="#8844CC"/>
+          </svg>
+        </div>
+
+        <div class="box box-server">
+          <div class="box-label">Streaming</div>
+          <div class="box-title">Transcript Stream</div>
+          <div class="box-sub">Events pushed to client via SSE in real time</div>
+        </div>
+
+        <div class="arr">
+          <svg height="20" viewBox="0 0 44 20" fill="none">
+            <line x1="0" y1="10" x2="36" y2="10" stroke="#C9AEE8" stroke-width="2"/>
+            <polygon points="36,5 44,10 36,15" fill="#8844CC"/>
+          </svg>
+        </div>
+
+        <div class="box box-ai" style="flex:1; position:relative;">
+          <div class="ai-badge">Ambi Core</div>
+          <div class="box-label">Intelligence</div>
+          <div class="box-title">Dual-Track AI Engine</div>
+          <div class="box-sub">Two models run in parallel on every new transcript segment no user prompt needed</div>
+        </div>
+
+        <div class="arr">
+          <svg height="20" viewBox="0 0 44 20" fill="none">
+            <line x1="0" y1="10" x2="36" y2="10" stroke="#C9AEE8" stroke-width="2"/>
+            <polygon points="36,5 44,10 36,15" fill="#8844CC"/>
+          </svg>
+        </div>
+
+        <div class="box box-output">
+          <div class="box-label">Delivery</div>
+          <div class="box-title">Live Insights &amp; Deliverables</div>
+          <div class="box-sub">Cards surfaced mid-meeting. Brief, Q&amp;A, slides on session end.</div>
+        </div>
+
       </div>
 
-      <div class="h-arr">
-        <div class="arr-tag">TLS 1.3</div>
-        <svg height="16" viewBox="0 0 36 16" fill="none">
-          <line x1="0" y1="8" x2="28" y2="8" stroke="#C9AEE8" stroke-width="2"/>
-          <polygon points="28,3 36,8 28,13" fill="#8844CC"/>
-        </svg>
-      </div>
+      <!-- ── Bottom rail: AI internals ── -->
+      <div class="rail-bottom">
 
-      <!-- Webhook -->
-      <div class="step step-mid">
-        <div class="step-label">Ingestion</div>
-        <div class="step-title">Verified Webhook</div>
-        <div class="step-sub">HMAC-SHA256 signature checked server-side on every event.</div>
-      </div>
+        <div class="spacer" style="width: 210px;"></div>
+        <div class="spacer" style="width: 44px;"></div>
+        <div class="spacer" style="width: 190px;"></div>
+        <div class="spacer" st
+        yle="width: 44px;"></div>
+        <div class="spacer" style="width: 190px;"></div>
+        <div class="spacer" style="width: 44px;"></div>
 
-      <div class="h-arr">
-        <div class="arr-tag">HMAC</div>
-        <svg height="16" viewBox="0 0 36 16" fill="none">
-          <line x1="0" y1="8" x2="28" y2="8" stroke="#C9AEE8" stroke-width="2"/>
-          <polygon points="28,3 36,8 28,13" fill="#8844CC"/>
-        </svg>
-      </div>
+        <div class="ai-internals">
+          <div class="ai-sub sub-gap">
+            <div class="ai-sub-label">Track A</div>
+            <div class="ai-sub-title">Gap Detection</div>
+            <div class="ai-sub-body">Spots unanswered questions and unsupported claims in real time</div>
+          </div>
+          <div class="ai-sub sub-resolve">
+            <div class="ai-sub-label">Track A → Resolution</div>
+            <div class="ai-sub-title">Auto-Resolution</div>
+            <div class="ai-sub-body">Pulls answers from your docs, then the web automatically</div>
+          </div>
+          <div class="ai-sub sub-proactive">
+            <div class="ai-sub-label">Track B</div>
+            <div class="ai-sub-title">Proactive Suggestions</div>
+            <div class="ai-sub-body">Surfaces what hasn't been said yet before anyone asks</div>
+          </div>
+        </div>
 
-      <!-- Stream -->
-      <div class="step step-mid">
-        <div class="step-label">Delivery</div>
-        <div class="step-title">SSE Stream</div>
-        <div class="step-sub">Events pushed to client over HTTPS. No polling third-party APIs from browser.</div>
-      </div>
+        <div class="spacer" style="width: 44px;"></div>
+        <div class="spacer" style="width: 210px;"></div>
 
-      <div class="h-arr">
-        <div class="arr-tag">HTTPS</div>
-        <svg height="16" viewBox="0 0 36 16" fill="none">
-          <line x1="0" y1="8" x2="28" y2="8" stroke="#C9AEE8" stroke-width="2"/>
-          <polygon points="28,3 36,8 28,13" fill="#8844CC"/>
-        </svg>
-      </div>
-
-      <!-- Ambi Core -->
-      <div class="step step-core">
-        <div class="core-badge">Ambi Core</div>
-        <div class="step-label">Intelligence</div>
-        <div class="step-title">Isolated AI Engine</div>
-        <div class="step-sub">Keys scoped server-side. No raw transcripts leave the session boundary.</div>
-      </div>
-
-      <div class="h-arr">
-        <div class="arr-tag">TLS 1.3</div>
-        <svg height="16" viewBox="0 0 36 16" fill="none">
-          <line x1="0" y1="8" x2="28" y2="8" stroke="#C9AEE8" stroke-width="2"/>
-          <polygon points="28,3 36,8 28,13" fill="#8844CC"/>
-        </svg>
-      </div>
-
-      <!-- Output -->
-      <div class="step step-output">
-        <div class="step-label">Surface</div>
-        <div class="step-title">Client Only. No Writes.</div>
-        <div class="step-sub">Insights rendered in-browser. Nothing persisted to a database.</div>
-      </div>
-
-    </div>
-
-    <!-- Security layer divider -->
-    <div class="sec-divider">
-      <div class="sec-divider-line"></div>
-      <div class="sec-divider-label">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-          <path d="M6 1L1.5 3V6.5C1.5 9 6 11 6 11C6 11 10.5 9 10.5 6.5V3L6 1Z" stroke="#8844CC" stroke-width="1.3" fill="none"/>
-        </svg>
-        Security Principles
-      </div>
-      <div class="sec-divider-line"></div>
-    </div>
-
-    <!-- Security pillars -->
-    <div class="sec-row">
-
-      <div class="sec-box sec-tls">
-        <div class="sec-label">Transport</div>
-        <div class="sec-title">Encrypted in Transit</div>
-        <div class="sec-body">All channels including webhook receipt, SSE delivery, and AI API calls run exclusively over TLS 1.3. No unencrypted paths exist in the pipeline.</div>
-        <div class="sec-tag">TLS 1.3</div>
-      </div>
-
-      <div class="sec-box sec-hmac">
-        <div class="sec-label">Integrity</div>
-        <div class="sec-title">Webhook Verification</div>
-        <div class="sec-body">Every Recall.ai event carries an HMAC-SHA256 signature. The server rejects any event that fails signature validation before it enters the pipeline.</div>
-        <div class="sec-tag">HMAC-SHA256</div>
-      </div>
-
-      <div class="sec-box sec-cred">
-        <div class="sec-label">Access Control</div>
-        <div class="sec-title">Credential Isolation</div>
-        <div class="sec-body">All third-party API keys live exclusively in server-side environment variables. Nothing sensitive is bundled into the client or exposed to the browser.</div>
-        <div class="sec-tag">Server-Side Only</div>
-      </div>
-
-      <div class="sec-box sec-eph">
-        <div class="sec-label">Data Handling</div>
-        <div class="sec-title">Zero Persistence</div>
-        <div class="sec-body">Transcript data is held in-memory for the duration of the session only. No database writes occur. All session data is cleared automatically on disconnect.</div>
-        <div class="sec-tag">Ephemeral Memory</div>
       </div>
 
     </div>
-
   </div>
 
 </div>
