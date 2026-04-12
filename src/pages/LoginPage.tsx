@@ -18,7 +18,7 @@ export function LoginPage(): React.JSX.Element {
       <div className="lp-body">
         <h1 className="lp-headline">
           Sign in to<br />
-          <em className="lp-headline-em">ambi</em>
+          <span className="lp-headline-em">ambi</span>
         </h1>
 
         <p className="lp-sub">

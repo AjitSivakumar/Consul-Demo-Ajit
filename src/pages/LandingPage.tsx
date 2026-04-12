@@ -35,9 +35,7 @@ export function LandingPage(): React.JSX.Element {
 
           <div className="lp-hero-bottom">
             <p className="lp-sub">
-              Ambi joins your meeting, transcribes in real time, and instantly
-              surfaces the facts, research, and answers your team needs —
-              before anyone has to ask.
+            <span style={{ color: '#a855f7' }}>Ambi</span> transforms collaboration with proactive intelligence that integrates with your systems
             </p>
             <div className="lp-hero-actions">
               <button type="button" className="lp-cta" onClick={goApp}>
@@ -51,43 +49,34 @@ export function LandingPage(): React.JSX.Element {
           <div className="lp-integrations">
             <span className="lp-int-label">Works with</span>
 
-            {/* Google Meet — simple-icons path */}
             <span className="lp-int-chip">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="#00897B">
-                <path d="M5.53 2.13 0 7.75h5.53zm.398 0v5.62h7.608v3.65l5.47-4.45c-.014-1.22.031-2.25-.025-3.46-.148-1.09-1.287-1.47-2.236-1.36zM23.1 4.32c-.802.295-1.358.995-2.047 1.49-2.506 2.05-4.982 4.12-7.468 6.19 3.025 2.59 6.04 5.18 9.065 7.76 1.218.671 1.428-.814 1.328-1.64v-13a.828.828 0 0 0-.877-.825zM.038 8.15v7.7h5.53v-7.7zm13.577 8.1H6.008v5.62c3.864-.006 7.737.011 11.58-.009 1.02-.07 1.618-1.12 1.468-2.07v-2.51l-5.47-4.68v3.65zm-13.577 0c.02 1.44-.041 2.88.033 4.31.162.948 1.158 1.43 2.047 1.31h3.464v-5.62z"/>
-              </svg>
+              <img src="/icons/googlemeet.svg" width="16" height="16" alt="Google Meet" />
               Google Meet
             </span>
 
-            {/* Zoom — simple-icons path */}
             <span className="lp-int-chip">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="#0B5CFF">
-                <path d="M5.033 14.649H.743a.74.74 0 0 1-.686-.458.74.74 0 0 1 .16-.808L3.19 10.41H1.06A1.06 1.06 0 0 1 0 9.35h3.957c.301 0 .57.18.686.458a.74.74 0 0 1-.161.808L1.51 13.59h2.464c.585 0 1.06.475 1.06 1.06zM24 11.338c0-1.14-.927-2.066-2.066-2.066-.61 0-1.158.265-1.537.686a2.061 2.061 0 0 0-1.536-.686c-1.14 0-2.066.926-2.066 2.066v3.311a1.06 1.06 0 0 0 1.06-1.06v-2.251a1.004 1.004 0 0 1 2.013 0v2.251c0 .586.474 1.06 1.06 1.06v-3.311a1.004 1.004 0 0 1 2.012 0v2.251c0 .586.475 1.06 1.06 1.06zM16.265 12a2.728 2.728 0 1 1-5.457 0 2.728 2.728 0 0 1 5.457 0zm-1.06 0a1.669 1.669 0 1 0-3.338 0 1.669 1.669 0 0 0 3.338 0zm-4.82 0a2.728 2.728 0 1 1-5.458 0 2.728 2.728 0 0 1 5.457 0zm-1.06 0a1.669 1.669 0 1 0-3.338 0 1.669 1.669 0 0 0 3.338 0z"/>
-              </svg>
+              <img src="/icons/zoom.svg" width="16" height="16" alt="Zoom" />
               Zoom
             </span>
 
-            {/* Microsoft Teams — official logo */}
             <span className="lp-int-chip">
-              <svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path d="M20.25 7.5h-5.5a.75.75 0 0 0-.75.75v4.5c0 .69.31 1.31.8 1.73A4.48 4.48 0 0 1 13 18v1.5h-1.5A2.25 2.25 0 0 0 9.25 21.75v.75h7.5v-.75a2.25 2.25 0 0 0-2.25-2.25H13V18a4.5 4.5 0 0 0 4.5-4.5V9h2.75a.75.75 0 0 0 0-1.5z" fill="#5059C9"/>
-                <circle cx="18.75" cy="4.5" r="1.75" fill="#5059C9"/>
-                <circle cx="11.5" cy="3.5" r="2.5" fill="#7B83EB"/>
-                <rect x="1" y="7" width="13" height="13" rx="1.75" fill="#7B83EB"/>
-                <path d="M10.5 10.5H8v6H6.5v-6H4V9h6.5v1.5z" fill="#fff"/>
-              </svg>
+              <img src="/icons/microsoftteams.svg" width="16" height="16" alt="Teams" />
               Teams
             </span>
 
-            {/* Microphone */}
             <span className="lp-int-chip">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="9" y="2" width="6" height="11" rx="3"/>
-                <path d="M5 10a7 7 0 0 0 14 0"/>
-                <line x1="12" y1="19" x2="12" y2="22"/>
-                <line x1="8" y1="22" x2="16" y2="22"/>
-              </svg>
-              Microphone
+              <img src="/icons/googledrive.svg" width="16" height="16" alt="Google Drive" />
+              Google Drive
+            </span>
+
+            <span className="lp-int-chip">
+              <img src="/icons/microsoftsharepoint.svg" width="16" height="16" alt="SharePoint" />
+              SharePoint
+            </span>
+
+            <span className="lp-int-chip">
+              <img src="/icons/microsoftonedrive.svg" width="16" height="16" alt="OneDrive" />
+              OneDrive
             </span>
           </div>
         </div>
