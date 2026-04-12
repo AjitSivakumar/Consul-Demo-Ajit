@@ -2728,3 +2728,306 @@ h1 em {
   color: #9a9790;
   letter-spacing: 0.04em;
 }
+
+/* ── Group pages ── */
+.grp-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.grp-nav-btn {
+  font-family: 'Work Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.grp-nav-btn:hover { background: var(--bg-subtle); }
+
+.grp-nav-btn-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-secondary);
+}
+
+.grp-nav-btn-ghost:hover { background: var(--bg-subtle); }
+
+.grp-back-btn {
+  font-family: 'Work Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.grp-back-btn:hover { color: var(--text-primary); }
+
+.grp-page {
+  flex: 1;
+  max-width: 720px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 48px 24px 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.grp-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.grp-title {
+  font-family: 'Work Sans', sans-serif;
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 6px;
+}
+
+.grp-sub {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.grp-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-subtle);
+}
+
+.grp-input {
+  font-family: 'Work Sans', sans-serif;
+  font-size: 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  outline: none;
+  width: 100%;
+}
+
+.grp-input:focus { border-color: var(--dl-teal-mid); }
+
+.grp-form-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.grp-cancel-btn {
+  font-family: 'Work Sans', sans-serif;
+  font-size: 13px;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.grp-empty {
+  font-size: 14px;
+  color: var(--text-tertiary);
+  padding: 24px 0;
+}
+
+.grp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.grp-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-card);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: border-color 0.1s, box-shadow 0.1s;
+}
+
+.grp-card:hover {
+  border-color: var(--dl-teal-mid);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.grp-card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--dl-teal-bg);
+  color: var(--dl-teal-mid);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.grp-card-info { flex: 1; }
+
+.grp-card-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.grp-card-meta {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+.grp-card-arrow {
+  font-size: 16px;
+  color: var(--text-tertiary);
+}
+
+/* Group detail */
+.grp-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.grp-section-title {
+  font-family: 'Work Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+  margin: 0;
+}
+
+.grp-member-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.grp-member-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+}
+
+.grp-member-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.grp-member-info { flex: 1; }
+
+.grp-member-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.grp-member-email {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.grp-member-role {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dl-teal-mid);
+  background: var(--dl-teal-bg);
+  padding: 2px 8px;
+  border-radius: 100px;
+}
+
+.grp-remove-btn {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+
+.grp-remove-btn:hover { color: #c0392b; border-color: #c0392b; }
+
+.grp-invite-form {
+  display: flex;
+  gap: 10px;
+}
+
+.grp-invite-status {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.grp-session-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.grp-session-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+}
+
+.grp-session-info { flex: 1; }
+
+.grp-session-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.grp-session-meta {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}

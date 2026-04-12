@@ -1,7 +1,9 @@
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 
 export function LandingPage(): React.JSX.Element {
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
 
   return (
     <main className="lp-wrap">
@@ -10,6 +12,12 @@ export function LandingPage(): React.JSX.Element {
           <img src="/logo.svg" alt="Ambi" className="lp-logo" />
           <span className="lp-wordmark">ambi</span>
         </div>
+        {user && (
+          <div className="grp-nav-right">
+            <button type="button" className="grp-nav-btn" onClick={() => navigate('/groups')}>My Groups</button>
+            <button type="button" className="grp-nav-btn grp-nav-btn-ghost" onClick={signOut}>Sign out</button>
+          </div>
+        )}
       </header>
 
       <div className="lp-body">
@@ -26,9 +34,9 @@ export function LandingPage(): React.JSX.Element {
         <button
           type="button"
           className="lp-cta"
-          onClick={() => navigate('/realtime')}
+          onClick={() => user ? navigate('/realtime') : navigate('/login')}
         >
-          Open Meeting Room →
+          {user ? 'Open Meeting Room →' : 'Get Started →'}
         </button>
       </div>
 
