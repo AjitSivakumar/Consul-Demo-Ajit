@@ -9,17 +9,21 @@ export function GroupsPage(): React.JSX.Element {
   const [newName, setNewName] = useState('');
   const [creating, setCreating] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim()) return;
     setCreating(true);
-    const group = await createGroup(newName.trim());
+    setCreateError(null);
+    const { group, error } = await createGroup(newName.trim());
     setCreating(false);
     if (group) {
       setNewName('');
       setShowForm(false);
       navigate(`/groups/${group.id}`);
+    } else {
+      setCreateError(error ?? 'Something went wrong');
     }
   };
 
@@ -50,8 +54,9 @@ export function GroupsPage(): React.JSX.Element {
               <button type="submit" className="lp-cta" disabled={creating}>
                 {creating ? 'Creating…' : 'Create Group'}
               </button>
-              <button type="button" className="grp-cancel-btn" onClick={() => setShowForm(false)}>Cancel</button>
+              <button type="button" className="grp-cancel-btn" onClick={() => { setShowForm(false); setCreateError(null); }}>Cancel</button>
             </div>
+            {createError && <p className="grp-form-error">{createError}</p>}
           </form>
         )}
 
