@@ -3533,6 +3533,26 @@ h1 em {
   gap: 10px;
 }
 
+.grp-danger-zone { border-color: rgba(180,30,30,0.15); }
+.grp-danger-zone .grp-section-title { color: #b41e1e; }
+.grp-delete-btn {
+  font-family: 'Work Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #b41e1e;
+  background: none;
+  border: 1px solid rgba(180,30,30,0.3);
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.grp-delete-btn:hover:not(:disabled) { background: rgba(180,30,30,0.05); border-color: #b41e1e; }
+.grp-delete-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.grp-delete-confirm { display: flex; flex-direction: column; gap: 12px; max-width: 480px; }
+.grp-delete-warning { font-size: 13px; color: #777; line-height: 1.6; margin: 0; }
+.grp-delete-warning strong { color: var(--text-primary); }
+.grp-form-error { font-size: 12px; color: #b41e1e; margin: 0; }
+
 .grp-cancel-btn {
   font-family: 'Work Sans', sans-serif;
   font-size: 13px;

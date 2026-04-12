@@ -97,7 +97,7 @@ export function NavBar({
 
   return (
     <header className={headerClassName}>
-      <div className="dash-nav-left">
+      <div className="dash-nav-left" style={{ cursor: 'pointer' }} onClick={() => navigate('/')}>
         <img src="/logo.svg" alt="Ambi" className="lp-logo" />
         <span className="lp-wordmark">ambi</span>
       </div>

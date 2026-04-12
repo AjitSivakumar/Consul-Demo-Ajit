@@ -129,7 +129,13 @@ export function useGroupDetail(groupId: string) {
     await fetchAll();
   };
 
-  return { group, members, sessions, loading, inviteByEmail, removeMember, refetch: fetchAll };
+  const deleteGroup = async (): Promise<{ error: string | null }> => {
+    const { error } = await supabase.rpc('delete_group', { target_group_id: groupId });
+    if (error) return { error: error.message };
+    return { error: null };
+  };
+
+  return { group, members, sessions, loading, inviteByEmail, removeMember, deleteGroup, refetch: fetchAll };
 }
 
 export interface MeetingStats {

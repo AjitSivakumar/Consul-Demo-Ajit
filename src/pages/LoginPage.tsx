@@ -42,12 +42,16 @@ export function LoginPage(): React.JSX.Element {
       </div>
 
       <footer className="lp-footer">
-        <div className="lp-footer-left">
-          <img src="/logo-grey.svg" alt="Ambi" className="lp-footer-logo" />
-          <span className="lp-footer-wordmark">ambi</span>
-        </div>
-        <div className="lp-footer-right">
-          © {new Date().getFullYear()} Ambi. All rights reserved.
+        <div className="lp-footer-meta">
+          <div className="lp-footer-brand">
+            <img src="/logo.svg" alt="Ambi" className="lp-footer-logo" />
+            <span className="lp-footer-wordmark">ambi</span>
+          </div>
+          <div className="lp-footer-right">
+            <span className="lp-footer-copy">© {new Date().getFullYear()} Ambi</span>
+            <span className="lp-footer-sep">·</span>
+            <span className="lp-footer-copy">All rights reserved</span>
+          </div>
         </div>
       </footer>
     </main>

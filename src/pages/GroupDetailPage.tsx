@@ -8,10 +8,23 @@ export function GroupDetailPage(): React.JSX.Element {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { group, members, sessions, loading, inviteByEmail, removeMember } = useGroupDetail(id!);
+  const { group, members, sessions, loading, inviteByEmail, removeMember, deleteGroup } = useGroupDetail(id!);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteStatus, setInviteStatus] = useState<string | null>(null);
   const [inviting, setInviting] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const handleDelete = async () => {
+    if (deleteConfirm !== group?.name) return;
+    setDeleting(true);
+    const { error } = await deleteGroup();
+    setDeleting(false);
+    if (error) { setDeleteError(error); return; }
+    navigate('/groups');
+  };
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,6 +102,45 @@ export function GroupDetailPage(): React.JSX.Element {
               </button>
             </form>
             {inviteStatus && <p className="grp-invite-status">{inviteStatus}</p>}
+          </section>
+        )}
+
+        {/* Danger zone */}
+        {isOwner && (
+          <section className="grp-section grp-danger-zone">
+            <h2 className="grp-section-title">Danger Zone</h2>
+            {!showDelete ? (
+              <button type="button" className="grp-delete-btn" onClick={() => setShowDelete(true)}>
+                Delete this group
+              </button>
+            ) : (
+              <div className="grp-delete-confirm">
+                <p className="grp-delete-warning">
+                  This will permanently delete <strong>{group?.name}</strong>, all its members, sessions, and invites. Type the group name to confirm.
+                </p>
+                <input
+                  className="grp-input"
+                  type="text"
+                  placeholder={group?.name}
+                  value={deleteConfirm}
+                  onChange={(e) => setDeleteConfirm(e.target.value)}
+                />
+                <div className="grp-form-actions">
+                  <button
+                    type="button"
+                    className="grp-delete-btn"
+                    onClick={handleDelete}
+                    disabled={deleteConfirm !== group?.name || deleting}
+                  >
+                    {deleting ? 'Deleting…' : 'Confirm Delete'}
+                  </button>
+                  <button type="button" className="grp-cancel-btn" onClick={() => { setShowDelete(false); setDeleteConfirm(''); setDeleteError(null); }}>
+                    Cancel
+                  </button>
+                </div>
+                {deleteError && <p className="grp-form-error">{deleteError}</p>}
+              </div>
+            )}
           </section>
         )}
 
