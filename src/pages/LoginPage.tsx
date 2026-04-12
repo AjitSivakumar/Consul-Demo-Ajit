@@ -1,23 +1,19 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { NavBar } from '../components/common/NavBar';
 
 export function LoginPage(): React.JSX.Element {
   const { user, loading, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && user) navigate('/', { replace: true });
+    if (!loading && user) navigate('/dashboard', { replace: true });
   }, [user, loading, navigate]);
 
   return (
     <main className="lp-wrap">
-      <header className="lp-nav">
-        <div className="lp-nav-left">
-          <img src="/logo.svg" alt="Ambi" className="lp-logo" />
-          <span className="lp-wordmark">ambi</span>
-        </div>
-      </header>
+      <NavBar headerClassName="lp-nav" />
 
       <div className="lp-body">
         <h1 className="lp-headline">

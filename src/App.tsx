@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthCallbackPage } from './pages/AuthCallbackPage';
+import { DashboardPage } from './pages/DashboardPage';
 import { DeliverablesPage } from './pages/DeliverablesPage';
 import { GroupDetailPage } from './pages/GroupDetailPage';
 import { GroupsPage } from './pages/GroupsPage';
@@ -25,6 +26,7 @@ export default function App(): React.JSX.Element {
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/auth/callback" element={<AuthCallbackPage />} />
+            <Route path="/dashboard" element={<RequireAuth><DashboardPage /></RequireAuth>} />
             <Route path="/groups" element={<RequireAuth><GroupsPage /></RequireAuth>} />
             <Route path="/groups/:id" element={<RequireAuth><GroupDetailPage /></RequireAuth>} />
             <Route path="/realtime" element={<RequireAuth><RealtimeMeetingPage /></RequireAuth>} />

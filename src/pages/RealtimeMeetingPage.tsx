@@ -1,11 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { NavBar } from '../components/common/NavBar';
 import { InsightsFeed } from '../components/realtime/ConversationFlowPanel';
 import { DeepDivePanel } from '../components/realtime/DeepDivePanel';
 import { BotSettingsModal } from '../components/realtime/BotSettingsModal';
 import { useAmbientMeetingAI } from '../hooks/useAmbientMeetingAI';
+import { useAuth } from '../hooks/useAuth';
 import { useBotSettings } from '../hooks/useBotSettings';
+import { useGroups } from '../hooks/useGroups';
 import { useTranscriptRunner } from '../hooks/useTranscriptRunner';
+import { supabase } from '../lib/supabase';
 import { extractTextFromFile, getAllDocuments, uploadDocument, UploadedDocument } from '../services/documentService';
 import { meetingPresets } from '../mock-data/presets';
 import { useMeetingStore } from '../state/MeetingStore';
@@ -15,6 +19,8 @@ export function RealtimeMeetingPage(): React.JSX.Element {
   const runner = useTranscriptRunner();
   const ambientAI = useAmbientMeetingAI();
   const { settings: botSettings, save: saveBotSettings } = useBotSettings();
+  const { user } = useAuth();
+  const { groups } = useGroups();
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [docs, setDocs] = useState<UploadedDocument[]>(() => getAllDocuments());
@@ -54,6 +60,20 @@ export function RealtimeMeetingPage(): React.JSX.Element {
   useEffect(() => {
     if (state.liveStatus === 'ended') navigate('/deliverables');
   }, [navigate, state.liveStatus]);
+
+  // Save session to Supabase when meeting ends
+  useEffect(() => {
+    if (state.liveStatus !== 'ended' || !user || !state.groupId) return;
+    supabase.from('meeting_sessions').insert({
+      group_id: state.groupId,
+      created_by: user.id,
+      title: state.context.title || 'Untitled Meeting',
+      ended_at: new Date().toISOString(),
+      state_snapshot: state.generatedContent,
+    }).then(({ error }) => {
+      if (error) console.error('[meeting] failed to save session:', error.message);
+    });
+  }, [state.liveStatus]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!isEditingTitle) setTitleDraft(state.context.title);
@@ -119,14 +139,11 @@ export function RealtimeMeetingPage(): React.JSX.Element {
   return (
     <main className="db-wrap">
       {/* ── Top Navigation ── */}
-      <header className="topnav">
-        <div className="nav-left">
-          <img src="/logo.svg" alt="Ambi" className="nav-logo" />
-          <span className="wordmark">ambi</span>
-        </div>
-
-        <div className="nav-center">
-          {isEditingTitle ? (
+      <NavBar
+        headerClassName="topnav"
+        active="realtime"
+        centerSlot={
+          isEditingTitle ? (
             <input
               className="title-edit-input"
               value={titleDraft}
@@ -143,31 +160,31 @@ export function RealtimeMeetingPage(): React.JSX.Element {
               <div className="meeting-title">{state.context.title || 'New Meeting'}</div>
               <button type="button" className="title-edit-btn">Edit</button>
             </div>
-          )}
-          <div className="meeting-sub">{state.context.discussedThemes.slice(0, 3).join(' · ') || 'Meeting in progress'}</div>
-        </div>
-
-        <div className="nav-right">
-          <div className={`live-pill ${livePillClass}`}>
-            <div className="live-dot" />
-            {liveBadgeText}
-          </div>
-          <span className="timer">{formatTime(elapsedSeconds)}</span>
-          <button type="button" className="pause-btn" onClick={runner.pause}>
-            <div className="pause-icon"><div className="pause-bar" /><div className="pause-bar" /></div>
-            Pause
-          </button>
-          <Link to="/deliverables" className="nav-btn deliver">Deliverables</Link>
-          <button
-            type="button"
-            className="nav-btn end"
-            disabled={state.isGenerating || state.liveStatus === 'ending' || state.liveStatus === 'ended'}
-            onClick={() => void ambientAI.endMeeting()}
-          >
-            {state.isGenerating ? 'Generating…' : 'End meeting'}
-          </button>
-        </div>
-      </header>
+          )
+        }
+        rightSlot={
+          <>
+            <div className={`live-pill ${livePillClass}`}>
+              <div className="live-dot" />
+              {liveBadgeText}
+            </div>
+            <span className="timer">{formatTime(elapsedSeconds)}</span>
+            <button type="button" className="pause-btn" onClick={runner.pause}>
+              <div className="pause-icon"><div className="pause-bar" /><div className="pause-bar" /></div>
+              Pause
+            </button>
+            <button type="button" className="nav-btn deliver" onClick={() => navigate('/deliverables')}>Deliverables</button>
+            <button
+              type="button"
+              className="nav-btn end"
+              disabled={state.isGenerating || state.liveStatus === 'ending' || state.liveStatus === 'ended'}
+              onClick={() => void ambientAI.endMeeting()}
+            >
+              {state.isGenerating ? 'Generating…' : 'End meeting'}
+            </button>
+          </>
+        }
+      />
 
       {/* ── Controls Strip ── */}
       <div className="controls-strip">
@@ -189,6 +206,20 @@ export function RealtimeMeetingPage(): React.JSX.Element {
           <option value="" disabled>Load preset…</option>
           {meetingPresets.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
         </select>
+
+        {groups.length > 0 && (
+          <>
+            <div className="ctrl-divider" />
+            <span className="ctrl-label">Group</span>
+            <select
+              value={state.groupId ?? ''}
+              onChange={(e) => dispatch({ type: 'SET_GROUP', payload: e.target.value || null })}
+            >
+              <option value="">None</option>
+              {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+            </select>
+          </>
+        )}
 
         <div className="ctrl-divider" />
         <button type="button" className="ctrl-btn" onClick={runner.start}>Start</button>

@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { NavBar } from '../components/common/NavBar';
 import { ActionList } from '../components/deliverables/ActionList';
 import { ChenLabDeliverable } from '../components/deliverables/ChenLabDeliverable';
 import { QASection } from '../components/deliverables/QASection';
@@ -31,37 +32,30 @@ export function DeliverablesPage(): React.JSX.Element {
   return (
     <main className="db-wrap">
       {/* ── Top Navigation ── */}
-      <header className="topnav">
-        <div className="nav-left">
-          <img src="/logo.svg" alt="Ambi" className="nav-logo" />
-          <span className="wordmark">ambi</span>
-        </div>
-
-        <div className="nav-center">
-          <div className="meeting-title">{state.context.title || 'Post-Meeting Deliverables'}</div>
-          <div className="meeting-sub">{participants || 'Meeting summary'}</div>
-        </div>
-
-        <div className="nav-right">
-          <div className={`live-pill idle`}>
-            <div className="live-dot" />
-            {hasContent ? 'Ready' : 'Pending'}
-          </div>
-          <button type="button" className="nav-btn" onClick={handleBack}>
-            ← Back
-          </button>
-          {hasContent && (
-            <button type="button" className="nav-btn dl-pdf-btn" onClick={handleDownloadPDF}>
-              ↓ Download PDF
-            </button>
-          )}
-          {hasContent && (
-            <button type="button" className="nav-btn end" onClick={handleNewMeeting}>
-              New Meeting
-            </button>
-          )}
-        </div>
-      </header>
+      <NavBar
+        headerClassName="topnav"
+        centerSlot={
+          <>
+            <div className="meeting-title">{state.context.title || 'Post-Meeting Deliverables'}</div>
+            <div className="meeting-sub">{participants || 'Meeting summary'}</div>
+          </>
+        }
+        rightSlot={
+          <>
+            <div className="live-pill idle">
+              <div className="live-dot" />
+              {hasContent ? 'Ready' : 'Pending'}
+            </div>
+            <button type="button" className="nav-btn" onClick={handleBack}>← Back</button>
+            {hasContent && (
+              <button type="button" className="nav-btn dl-pdf-btn" onClick={handleDownloadPDF}>↓ PDF</button>
+            )}
+            {hasContent && (
+              <button type="button" className="nav-btn end" onClick={handleNewMeeting}>New Meeting</button>
+            )}
+          </>
+        }
+      />
 
       {/* ── Deliverables Body ── */}
       <div className="dl-body">

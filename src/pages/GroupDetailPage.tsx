@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useGroupDetail } from '../hooks/useGroups';
+import { NavBar } from '../components/common/NavBar';
 
 export function GroupDetailPage(): React.JSX.Element {
   const { id } = useParams<{ id: string }>();
@@ -27,22 +28,23 @@ export function GroupDetailPage(): React.JSX.Element {
 
   const isOwner = group?.owner_id === user?.id;
 
-  if (loading) return <main className="lp-wrap"><div className="lp-body"><p className="lp-sub">Loading…</p></div></main>;
+  if (loading) {
+    return (
+      <main className="dash-wrap">
+        <NavBar active="groups" />
+        <div className="lp-body"><p className="lp-sub">Loading…</p></div>
+      </main>
+    );
+  }
 
   return (
-    <main className="lp-wrap">
-      <header className="lp-nav">
-        <div className="lp-nav-left">
-          <button type="button" className="grp-back-btn" onClick={() => navigate('/groups')}>← Groups</button>
-        </div>
-        <div className="grp-nav-right">
-          <button type="button" className="grp-nav-btn" onClick={() => navigate('/realtime')}>Meeting Room</button>
-        </div>
-      </header>
+    <main className="dash-wrap">
+      <NavBar active="groups" />
 
       <div className="grp-page">
         <div className="grp-header">
           <div>
+            <button type="button" className="grp-back-btn" onClick={() => navigate('/groups')}>← Groups</button>
             <h1 className="grp-title">{group?.name ?? 'Group'}</h1>
             <p className="grp-sub">{members.length} member{members.length !== 1 ? 's' : ''}</p>
           </div>

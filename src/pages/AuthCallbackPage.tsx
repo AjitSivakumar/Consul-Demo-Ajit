@@ -24,7 +24,7 @@ export function AuthCallbackPage(): React.JSX.Element {
             console.log('[auth-callback] setSession result:', { session: !!session, error });
             if (session && !error) {
               setStatus('Success! Redirecting…');
-              window.location.replace('/');
+              window.location.replace('/dashboard');
             } else {
               setStatus(`Error: ${error?.message ?? 'no session returned'}`);
             }

@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
 import { useGroups } from '../hooks/useGroups';
+import { NavBar } from '../components/common/NavBar';
 
 export function GroupsPage(): React.JSX.Element {
-  const { signOut } = useAuth();
   const { groups, loading, createGroup } = useGroups();
   const navigate = useNavigate();
   const [newName, setNewName] = useState('');
@@ -25,17 +24,8 @@ export function GroupsPage(): React.JSX.Element {
   };
 
   return (
-    <main className="lp-wrap">
-      <header className="lp-nav">
-        <div className="lp-nav-left">
-          <img src="/logo.svg" alt="Ambi" className="lp-logo" />
-          <span className="lp-wordmark">ambi</span>
-        </div>
-        <div className="grp-nav-right">
-          <button type="button" className="grp-nav-btn" onClick={() => navigate('/realtime')}>Meeting Room</button>
-          <button type="button" className="grp-nav-btn grp-nav-btn-ghost" onClick={signOut}>Sign out</button>
-        </div>
-      </header>
+    <main className="dash-wrap">
+      <NavBar active="groups" />
 
       <div className="grp-page">
         <div className="grp-header">
