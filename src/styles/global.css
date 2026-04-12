@@ -48,6 +48,7 @@ html, body {
   overflow: hidden;
 }
 
+
 body {
   margin: 0;
   font-family: 'Work Sans', sans-serif;
@@ -3064,7 +3065,7 @@ h1 em {
 .lp-footer-sep { color: #ddd; font-size: 11px; }
 /* ── Dashboard ── */
 .dash-wrap {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   background: var(--bg);
