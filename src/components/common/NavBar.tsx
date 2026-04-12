@@ -94,6 +94,7 @@ export function NavBar({
   headerClassName = 'dash-nav',
 }: NavBarProps): React.JSX.Element {
   const { user, loading } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <header className={headerClassName}>
