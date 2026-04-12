@@ -68,17 +68,36 @@ export function useGroups() {
     }
   }, [user, fetchGroups, acceptPendingInvites]);
 
-  const createGroup = async (name: string): Promise<Group | null> => {
-    if (!user) return null;
+  const createGroup = async (name: string): Promise<{ group: Group | null; error: string | null }> => {
+    if (!user) return { group: null, error: 'Not signed in' };
+
+    // Ensure profile exists (required by FK on groups.owner_id)
+    await supabase.from('profiles').upsert({
+      id: user.id,
+      email: user.email,
+      display_name: user.user_metadata?.full_name ?? null,
+      avatar_url: user.user_metadata?.avatar_url ?? null,
+    }, { onConflict: 'id' });
+
     const { data: group, error } = await supabase
       .from('groups')
       .insert({ name, owner_id: user.id })
       .select()
       .single();
-    if (error || !group) return null;
-    await supabase.from('group_members').insert({ group_id: group.id, user_id: user.id, role: 'owner' });
+
+    if (error || !group) {
+      console.error('createGroup error:', error);
+      return { group: null, error: error?.message ?? 'Failed to create group' };
+    }
+
+    const { error: memberError } = await supabase
+      .from('group_members')
+      .insert({ group_id: group.id, user_id: user.id, role: 'owner' });
+
+    if (memberError) console.error('group_members insert error:', memberError);
+
     await fetchGroups();
-    return group;
+    return { group, error: null };
   };
 
   return { groups, loading, createGroup, refetch: fetchGroups };
