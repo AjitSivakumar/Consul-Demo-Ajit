@@ -8,6 +8,7 @@ import {
   inferNeedsWithAI,
   resolveGapFromDocuments,
   resolveGapFromInternet,
+  type MeetingContextPacket,
 } from '../services/aiService';
 import { extractRelevantChunks, getAllDocuments } from '../services/documentService';
 import { fetchDocumentContent, loadGroupKnowledge, searchByEntities, searchByTags, semanticSearch } from '../services/knowledgeService';
@@ -205,13 +206,35 @@ export function useAmbientMeetingAI(): {
     eventsSinceLastInference.current += 1;
 
     void (async () => {
+      // Build context packet shared across both AI calls in this tick
+      const startTime = state.transcript[0]
+        ? Math.round((Date.now() - new Date(state.transcript[0].timestampIso).getTime()) / 60000)
+        : 0;
+      const ctxPacket: MeetingContextPacket = {
+        meetingTitle: state.context.title || '',
+        accountContext: state.context.accountContext || '',
+        detectedThemes: state.context.discussedThemes ?? [],
+        resolvedTopics: state.evidence.map((e) => e.title),
+        unresolvedQuestions: state.context.unresolvedQuestions ?? [],
+        recentTranscript: state.transcript
+          .slice(-10)
+          .map((s) => `${s.speaker}: ${s.text}`)
+          .join('\n'),
+        elapsedMinutes: startTime,
+      };
+
       // Only call ambient suggestion if: enough time has passed AND enough words spoken
       const wordCount = latest.text.trim().split(/\s+/).length;
       const ambientElapsed = Date.now() - lastAmbientTsRef.current;
       if (wordCount >= 15 && ambientElapsed >= AMBIENT_SUGGESTION_COOLDOWN_MS) {
         lastAmbientTsRef.current = Date.now();
         const previousHeadlines = state.ambientSuggestions.map((s) => s.headline);
-        const suggestion = await generateAmbientSuggestion(latest.text, previousHeadlines, state.context.accountContext || undefined);
+        // Pass last 2-3 turns as the recentSegments string
+        const recentSegments = state.transcript
+          .slice(-3)
+          .map((s) => `${s.speaker}: ${s.text}`)
+          .join('\n');
+        const suggestion = await generateAmbientSuggestion(recentSegments, previousHeadlines, ctxPacket);
         if (suggestion) {
           const needId = `proactive-${Date.now()}`;
           const need: InformationNeed = {
@@ -239,17 +262,11 @@ export function useAmbientMeetingAI(): {
       lastInferenceTimeRef.current = now;
       eventsSinceLastInference.current = 0;
 
-      // Build context from the batch of recent events since last inference
-      const previousContext = state.transcript
-        .slice(-8)
-        .map((segment) => `${segment.speaker}: ${segment.text}`)
-        .join('\n');
-
       // Don't add more gaps if already at the cap
       const activeGaps = state.needs.filter((n) => n.status !== 'dismissed').length;
       if (activeGaps >= MAX_ACTIVE_GAPS) return;
 
-      const aiNeeds = await inferNeedsWithAI(latest.text, previousContext);
+      const aiNeeds = await inferNeedsWithAI(latest.text, ctxPacket);
       if (aiNeeds.length > 0) {
         // Only keep critical needs (p1 only, high confidence)
         const filtered = aiNeeds
@@ -260,7 +277,7 @@ export function useAmbientMeetingAI(): {
         }
       }
     })();
-  }, [dispatch, state.ambientSuggestions, state.liveStatus, state.transcript, state.presetActive]);
+  }, [dispatch, state.ambientSuggestions, state.liveStatus, state.transcript, state.presetActive, state.evidence, state.context]);
 
   useEffect(() => {
     if (state.liveStatus !== 'ending' || state.transcript.length === 0 || autoEndStartedRef.current) {
@@ -305,11 +322,12 @@ export function useAmbientMeetingAI(): {
       .map((n) => ({ label: n.category, missingQuestion: n.prompt }));
 
     try {
+      const accountContext = state.context.accountContext || '';
       const [research, qa, actions, slides] = await Promise.all([
-        generateResearchSummary(transcriptText, state.evidence, docContext),
-        generateQAAnswers(transcriptText, state.evidence, docContext),
-        generateActionItems(transcriptText, openGaps, docContext),
-        generateSlideDeck(transcriptText, state.evidence, docContext)
+        generateResearchSummary(transcriptText, state.evidence, docContext, accountContext),
+        generateQAAnswers(transcriptText, state.evidence, docContext, accountContext),
+        generateActionItems(transcriptText, openGaps, docContext, accountContext),
+        generateSlideDeck(transcriptText, state.evidence, docContext, accountContext)
       ]);
 
       dispatch({

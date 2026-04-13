@@ -6,65 +6,98 @@ const apiKey = import.meta.env.VITE_OPENAI_API_KEY || '';
 
 const client = new OpenAI({
   apiKey,
-  dangerouslyAllowBrowser: true, // For demo only — use backend in production
+  dangerouslyAllowBrowser: true,
 });
 
+// ── Meeting context packet ───────────────────────────────────────────────────
+// Assembled from state on every AI call so each prompt has full awareness of
+// what's already been covered, detected, and resolved.
+
+export interface MeetingContextPacket {
+  meetingTitle: string;
+  accountContext: string;       // from pre-meeting modal
+  detectedThemes: string[];     // from inferenceEngine
+  resolvedTopics: string[];     // titles of evidence already surfaced
+  unresolvedQuestions: string[];
+  recentTranscript: string;     // last 10 turns, formatted
+  elapsedMinutes: number;
+}
+
+function buildContextBlock(ctx: MeetingContextPacket): string {
+  const lines: string[] = [];
+  if (ctx.meetingTitle) lines.push(`Meeting: ${ctx.meetingTitle}`);
+  if (ctx.accountContext) lines.push(`Context: ${ctx.accountContext}`);
+  if (ctx.elapsedMinutes > 0) lines.push(`Elapsed: ${ctx.elapsedMinutes} min`);
+  if (ctx.detectedThemes.length) lines.push(`Themes discussed: ${ctx.detectedThemes.join(', ')}`);
+  if (ctx.resolvedTopics.length) lines.push(`Already surfaced: ${ctx.resolvedTopics.join(', ')}`);
+  if (ctx.unresolvedQuestions.length) lines.push(`Open questions: ${ctx.unresolvedQuestions.slice(0, 3).join(' | ')}`);
+  return lines.join('\n');
+}
+
+// Compress long transcripts to stay within token limits for deliverable generation
+function compressTranscript(transcriptText: string, maxChars = 12000): string {
+  if (transcriptText.length <= maxChars) return transcriptText;
+  const lines = transcriptText.split('\n').filter(Boolean);
+  // Keep first 20% and last 60% — opening context + recent conversation
+  const headCount = Math.floor(lines.length * 0.2);
+  const tailCount = Math.floor(lines.length * 0.6);
+  const head = lines.slice(0, headCount);
+  const tail = lines.slice(lines.length - tailCount);
+  return [...head, '\n[... earlier conversation compressed ...]\n', ...tail].join('\n');
+}
+
+// ── Real-time inference ──────────────────────────────────────────────────────
+
 /**
- * Extract information needs from a transcript segment using LLM
+ * Detect critical information gaps from the latest transcript segment.
+ * Low temperature (0.2) for precise, reliable gap detection with minimal hallucination.
  */
 export async function inferNeedsWithAI(
-  transcript: string,
-  previousContext: string
+  latestSegment: string,
+  ctx: MeetingContextPacket
 ): Promise<InformationNeed[]> {
   try {
+    const contextBlock = buildContextBlock(ctx);
+
     const response = await client.chat.completions.create({
       model: 'gpt-4o-mini',
-      temperature: 0.7,
-      max_tokens: 1024,
+      temperature: 0.2,
+      max_tokens: 512,
       response_format: { type: 'json_object' },
       messages: [
         {
-          role: 'user',
-          content: `You are a highly selective meeting intelligence assistant for tech sales. Only surface critical information gaps or factual errors.
+          role: 'system',
+          content: `You are a deal intelligence engine for B2B sales. Your job is to catch ONLY the gaps that could directly lose a deal.
 
-Meeting context so far:
-${previousContext}
+Return JSON: { "needs": [...] } or { "needs": [] }
 
-Latest transcript segment:
-${transcript}
-
-Identify 0-1 CRITICAL information needs from this segment. Apply very strict criteria:
-- Only flag if missing this information could directly lose the deal, or if a factually incorrect statement was just made
-- Use category "correction" ONLY when someone stated something that is demonstrably factually wrong or misleading — not just uncertain or incomplete
-- Must be a specific, answerable question — not a theme or observation
-- Skip anything already covered, small talk, generic industry topics, or low-stakes details
-- Only p1 (deal-critical) items — no p2 or p3
-- Confidence must be >= 0.80 — if you have any doubt it's a real gap or error, return empty
-
-Return as JSON:
+Each need:
 {
-  "needs": [
-    {
-      "category": "comparison|risk|pricing|objection|decision|correction",
-      "prompt": "What specific information should be researched?",
-      "priority": "p1|p2",
-      "confidence": 0.6-1.0,
-      "rationale": "Why this matters for the deal",
-      "triggerPhrase": "the exact 1-4 word phrase from the transcript that triggered this"
-    }
-  ]
+  "category": "comparison|risk|pricing|objection|decision|correction",
+  "prompt": "Specific, answerable research question",
+  "priority": "p1",
+  "confidence": 0.80-1.0,
+  "rationale": "One sentence: why this matters for the deal right now",
+  "triggerPhrase": "exact 1-4 word phrase from the latest segment"
 }
 
-If nothing critical, return {"needs": []}.`,
+Strict rules:
+- 0 or 1 needs only. Never more.
+- Only trigger on CUSTOMER speech — what the prospect/buyer says carries 3x more weight than the seller
+- Skip if the topic was already surfaced (check "Already surfaced" list)
+- Skip small talk, general discussion, soft objections
+- correction category ONLY for demonstrably false factual claims, not uncertainty
+- confidence must be >= 0.85 — if in doubt, return empty`,
+        },
+        {
+          role: 'user',
+          content: `${contextBlock}\n\nRecent conversation:\n${ctx.recentTranscript}\n\nLatest segment:\n${latestSegment}`,
         },
       ],
     });
 
     const content = response.choices[0].message.content;
-    if (!content) {
-      return [];
-    }
-
+    if (!content) return [];
     const parsed = JSON.parse(content);
     return Array.isArray(parsed.needs)
       ? parsed.needs.map((need: any, idx: number) => ({
@@ -75,7 +108,7 @@ If nothing critical, return {"needs": []}.`,
           triggerPhrase: need.triggerPhrase || undefined,
           triggeredBySegmentId: `segment-${Date.now()}`,
           confidence: need.confidence ?? 0.7,
-          priority: need.priority || 'p2',
+          priority: 'p1' as const,
           status: 'new' as const,
         }))
       : [];
@@ -85,71 +118,217 @@ If nothing critical, return {"needs": []}.`,
   }
 }
 
+// ── Ambient / proactive suggestions ─────────────────────────────────────────
+
+export interface ProactiveSuggestion {
+  headline: string;
+  prompt: string;
+  rationale: string;
+  category: 'comparison' | 'risk' | 'pricing' | 'objection' | 'claim' | 'decision' | 'metric';
+  importance: number;
+}
+
 /**
- * Generate a structured research summary from transcript + evidence
+ * Proactively surface insights the rep should know RIGHT NOW.
+ * Uses the last 3 segments + full meeting context for arc awareness.
+ */
+export async function generateAmbientSuggestion(
+  recentSegments: string,   // last 2-3 transcript turns joined
+  previousHeadlines: string[],
+  ctx: MeetingContextPacket
+): Promise<ProactiveSuggestion | null> {
+  try {
+    const contextBlock = buildContextBlock(ctx);
+    const prevBlock = previousHeadlines.length > 0
+      ? `\nDo NOT repeat these already-surfaced topics:\n${previousHeadlines.slice(-5).join('\n')}`
+      : '';
+
+    const response = await client.chat.completions.create({
+      model: 'gpt-4o-mini',
+      temperature: 0.3,
+      max_tokens: 250,
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content: `You are a real-time sales copilot. Surface a suggestion ONLY if it would give the rep a concrete, immediate advantage right now.
+
+Qualify: specific stat, competitive differentiator, pricing data point, risk the rep should address, or direct answer to something the CUSTOMER just implied.
+
+Disqualify: generic observations, topics already covered, rep-side statements, soft topics without a clear action.
+
+Return: { "headline": "max 8 words", "prompt": "specific research question", "rationale": "one sentence", "category": "comparison|risk|pricing|objection|claim|decision|metric", "importance": 1-10 }
+Or: { "skip": true }`,
+        },
+        {
+          role: 'user',
+          content: `${contextBlock}${prevBlock}\n\nRecent conversation:\n${recentSegments}`,
+        },
+      ],
+    });
+
+    const parsed = JSON.parse(response.choices[0].message.content || '{}');
+    if (parsed.skip || !parsed.headline || !parsed.prompt) return null;
+    if (typeof parsed.importance !== 'number' || parsed.importance < 7) return null;
+    return parsed as ProactiveSuggestion;
+  } catch (err) {
+    console.error('Ambient suggestion error:', err);
+    return null;
+  }
+}
+
+// ── Gap resolution ───────────────────────────────────────────────────────────
+
+/**
+ * Answer a gap from uploaded or indexed documents.
+ */
+export async function resolveGapFromDocuments(
+  question: string,
+  documentContext: string
+): Promise<{ answer: string; source: string; confidence: number }> {
+  if (!documentContext.trim()) {
+    return { answer: 'No documents to search.', source: 'No documents', confidence: 0 };
+  }
+
+  try {
+    const response = await client.chat.completions.create({
+      model: 'gpt-4o-mini',
+      temperature: 0.1,
+      max_tokens: 800,
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content: `You are a precise document analyst. Find the exact answer using ONLY the provided excerpts.
+
+- Quote specific numbers, prices, percentages, and dates verbatim
+- Name the exact document source
+- If multiple documents contribute, cite each
+- If no clear answer exists, set found: false
+
+Return JSON: { "found": true|false, "answer": "...", "source_document": "filename", "confidence": 0.0-1.0 }`,
+        },
+        {
+          role: 'user',
+          content: `Documents:\n${documentContext}\n\nQuestion: ${question}`,
+        },
+      ],
+    });
+
+    const parsed = JSON.parse(response.choices[0].message.content || '{}');
+    return {
+      answer: parsed.answer || 'Not found in documents.',
+      source: parsed.source_document || 'Internal documents',
+      confidence: parsed.found ? (parsed.confidence ?? 0.85) : 0.1,
+    };
+  } catch (err) {
+    console.error('Document gap resolution error:', err);
+    return { answer: 'Unable to resolve — API error.', source: 'Error', confidence: 0 };
+  }
+}
+
+/**
+ * Answer a gap from GPT general knowledge.
+ * Does NOT return URLs — GPT hallucinates them.
+ */
+export async function resolveGapFromInternet(
+  question: string,
+  transcriptContext: string
+): Promise<{ answer: string; source: string; sourceUrl: string | null; confidence: number }> {
+  try {
+    const response = await client.chat.completions.create({
+      model: 'gpt-4o-mini',
+      temperature: 0.3,
+      max_tokens: 500,
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content: `You are a research analyst. Answer the question with specific, verifiable data points (3-5 sentences). Cite the type of source (e.g. "Gartner 2024 report", "company's public pricing page", "SEC filing") but do NOT invent URLs.
+
+Return JSON: { "answer": "...", "source_name": "Source description" }`,
+        },
+        {
+          role: 'user',
+          content: `Meeting context:\n${transcriptContext}\n\nQuestion: ${question}`,
+        },
+      ],
+    });
+
+    const parsed = JSON.parse(response.choices[0].message.content || '{}');
+    return {
+      answer: parsed.answer || '',
+      source: parsed.source_name || 'General research',
+      sourceUrl: null, // never generate URLs — GPT hallucinates them
+      confidence: parsed.answer ? 0.72 : 0,
+    };
+  } catch (err) {
+    console.error('Internet gap resolution error:', err);
+    return { answer: 'Unable to resolve.', source: 'Error', sourceUrl: null, confidence: 0 };
+  }
+}
+
+// ── End-of-meeting deliverables ──────────────────────────────────────────────
+// Use gpt-4o for research + Q&A — noticeably better synthesis quality.
+// Use gpt-4o-mini for action items + slides — less reasoning-heavy.
+
+/**
+ * Generate structured research summary. Uses gpt-4o for depth.
  */
 export async function generateResearchSummary(
   transcriptText: string,
   evidence: EvidenceCard[],
-  docContext: string
+  docContext: string,
+  accountContext = ''
 ): Promise<ResearchElement> {
+  const compressed = compressTranscript(transcriptText);
   const evidenceText = evidence
-    .map(
-      (e) =>
-        `[${e.verification.toUpperCase()}] ${e.title}: ${e.summary}\nSource: ${e.attributions.map((a) => a.title).join(', ')}`
-    )
+    .map((e) => `[${e.verification.toUpperCase()}] ${e.title}: ${e.summary}\nSource: ${e.attributions.map((a) => a.title).join(', ')}`)
     .join('\n\n');
+  const contextLine = accountContext ? `Account context: ${accountContext}\n\n` : '';
 
   const fallback: ResearchElement = { question: '', answer: 'Unable to generate research summary.', sources: [] };
 
   try {
     const response = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
-      temperature: 0.7,
+      model: 'gpt-4o',
+      temperature: 0.4,
       max_tokens: 2000,
       response_format: { type: 'json_object' },
       messages: [
         {
           role: 'system',
-          content: `You are a tech sales intelligence analyst. Given a meeting transcript and evidence, produce a structured research summary.
+          content: `You are a senior tech sales intelligence analyst. Produce a structured research summary grounded in what was actually discussed.
 
-Return JSON with this exact shape:
+Return JSON:
 {
-  "question": "The key question surfaced during the meeting",
-  "answer": "Full-form answer (150-250 words). Bold key phrases with **bold**.",
+  "question": "The central question or theme of the meeting",
+  "answer": "Substantive 150-250 word answer. Use **bold** for key data points and figures.",
   "comparisonTable": {
-    "columns": ["Feature", "Product A", "Product B"],
-    "rows": [["Voice calls", "✓", "✗"], ["Photo upload", "✗", "✓"]]
+    "columns": ["Feature", "Option A", "Option B"],
+    "rows": [["Row label", "✓", "✗"]]
   },
-  "barChart": [
-    { "label": "Category A", "value": 94, "style": "primary" },
-    { "label": "Category B", "value": 71, "style": "muted" }
-  ],
-  "barChartNote": "Source note for the chart data",
-  "keyFinding": {
-    "text": "Key statistic or finding with **bold** emphasis on numbers",
-    "source": "Data source attribution"
-  },
-  "sources": ["Source name 1", "Source name 2"]
+  "barChart": [{ "label": "Category", "value": 94, "style": "primary" }],
+  "barChartNote": "Source note",
+  "keyFinding": { "text": "Key stat with **bold** emphasis", "source": "Attribution" },
+  "sources": ["Source 1", "Source 2"]
 }
 
 Rules:
-- comparisonTable: Generate if the conversation involves comparing two or more products/options/approaches. Use ✓ and ✗ for boolean features. Omit if no comparison exists.
-- barChart: Generate 2-4 bars if there are quantitative metrics to visualize (rates, percentages, counts). Omit if no numeric data.
-- keyFinding: Generate if there is a notable statistic or conclusion worth highlighting. Omit if nothing stands out.
-- sources: Always include at least one source. These can be "Meeting transcript", "Internal product documentation", etc.
-- Adapt entirely to whatever the meeting was about — do NOT assume any specific products or topics.`
+- comparisonTable: only if meeting involved comparing products, vendors, or approaches
+- barChart: only if there are real quantitative metrics (2-4 bars max)
+- keyFinding: only if one finding stands out as most important
+- Answer must be grounded in the transcript — no generic filler
+- Adapt to whatever the meeting was about`,
         },
         {
           role: 'user',
-          content: `Meeting transcript:\n${transcriptText}\n\nSupporting evidence:\n${evidenceText}\n\nUploaded documents context:\n${docContext || '(none)'}`,
+          content: `${contextLine}Transcript:\n${compressed}\n\nEvidence surfaced during meeting:\n${evidenceText || '(none)'}\n\nInternal documents:\n${docContext || '(none)'}`,
         },
       ],
     });
 
-    const content = response.choices[0].message.content;
-    if (!content) return fallback;
-    const parsed = JSON.parse(content);
+    const parsed = JSON.parse(response.choices[0].message.content || '{}');
     return {
       question: parsed.question || '',
       answer: parsed.answer || '',
@@ -160,44 +339,50 @@ Rules:
       sources: Array.isArray(parsed.sources) ? parsed.sources : [],
     };
   } catch (err) {
-    console.error('Research summary generation error:', err);
+    console.error('Research summary error:', err);
     return fallback;
   }
 }
 
 /**
- * Generate structured Q&A grouped by category
+ * Generate Q&A. Uses gpt-4o for nuanced question anticipation.
  */
 export async function generateQAAnswers(
   transcriptText: string,
   evidence: EvidenceCard[],
-  docContext: string
+  docContext: string,
+  accountContext = ''
 ): Promise<QAElement> {
+  const compressed = compressTranscript(transcriptText);
   const evidenceText = evidence.map((e) => `${e.title}: ${e.summary}`).join('\n');
+  const contextLine = accountContext ? `Account context: ${accountContext}\n\n` : '';
   const fallback: QAElement = { categories: [] };
 
   try {
     const response = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
-      temperature: 0.7,
+      model: 'gpt-4o',
+      temperature: 0.4,
       max_tokens: 2500,
       response_format: { type: 'json_object' },
       messages: [
         {
           role: 'system',
-          content: `You are a tech sales expert. Based on a meeting transcript, generate proactive questions the customer is likely to ask in the next follow-up call, with prepared answers.
+          content: `You are a senior sales strategist. Generate two types of Q&A:
+1. Questions the customer ACTUALLY asked during this meeting (with better answers than were given)
+2. Questions they are LIKELY to ask in the next follow-up
 
 Return JSON:
 {
   "categories": [
     {
-      "label": "Category name (e.g. Technical, Pricing, Implementation)",
+      "label": "Category (e.g. Technical, Pricing, Implementation, Objections)",
       "items": [
         {
           "tag": "T1",
-          "question": "Specific question the customer might ask",
-          "answer": "Confident, data-backed answer (2-4 sentences). Use **bold** for key figures.",
-          "source": "Source attribution for the answer data"
+          "question": "Exact or likely question",
+          "answer": "Confident, specific 2-4 sentence answer. **Bold** key figures.",
+          "source": "Source attribution",
+          "type": "asked|anticipated"
         }
       ]
     }
@@ -205,23 +390,21 @@ Return JSON:
 }
 
 Rules:
-- Generate 2-3 categories based on what was discussed (tech, pricing, implementation, timeline, etc.)
-- 2-3 questions per category
-- Tags: Use first letter of category + number (T1, T2, P1, P2, etc.)
-- Each answer must cite a source
-- Adapt entirely to the meeting topic — do NOT assume specific products`
+- 2-3 categories based on what was discussed
+- 2-3 items per category
+- Mark items from the actual transcript as "asked", anticipated ones as "anticipated"
+- Every answer must be specific and citable
+- Adapt to the meeting topic — no generic filler`,
         },
         {
           role: 'user',
-          content: `Meeting transcript:\n${transcriptText}\n\nEvidence:\n${evidenceText}\n\nDocuments:\n${docContext || '(none)'}`,
+          content: `${contextLine}Transcript:\n${compressed}\n\nEvidence:\n${evidenceText || '(none)'}\n\nDocuments:\n${docContext || '(none)'}`,
         },
       ],
     });
 
-    const content = response.choices[0].message.content || '{}';
-    const parsed = JSON.parse(content);
-    if (!Array.isArray(parsed.categories)) return fallback;
-    return { categories: parsed.categories };
+    const parsed = JSON.parse(response.choices[0].message.content || '{}');
+    return Array.isArray(parsed.categories) ? { categories: parsed.categories } : fallback;
   } catch (err) {
     console.error('QA generation error:', err);
     return fallback;
@@ -229,26 +412,29 @@ Rules:
 }
 
 /**
- * Generate structured action items with gap tags and intel blocks
+ * Generate action items. Distinguishes seller vs buyer actions.
  */
 export async function generateActionItems(
   transcriptText: string,
   gaps: Array<{ label: string; missingQuestion: string }>,
-  docContext: string
+  docContext: string,
+  accountContext = ''
 ): Promise<ActionElement> {
+  const compressed = compressTranscript(transcriptText);
   const gapsText = gaps.map((g) => `- ${g.label}: ${g.missingQuestion}`).join('\n');
+  const contextLine = accountContext ? `Account context: ${accountContext}\n\n` : '';
   const fallback: ActionElement = { items: [] };
 
   try {
     const response = await client.chat.completions.create({
       model: 'gpt-4o-mini',
-      temperature: 0.7,
+      temperature: 0.3,
       max_tokens: 2000,
       response_format: { type: 'json_object' },
       messages: [
         {
           role: 'system',
-          content: `You are a sales operations manager. Generate specific action items from a meeting transcript.
+          content: `You are a sales ops manager. Generate specific, owner-assigned action items from this meeting.
 
 Return JSON:
 {
@@ -256,61 +442,64 @@ Return JSON:
     {
       "num": "A1",
       "title": "Short action title",
-      "description": "2-3 sentence description. Use **bold** for emphasis.",
-      "gapTags": ["Tag describing what needs to be resolved"],
+      "owner": "Seller|Buyer|Both",
+      "description": "2-3 sentences. **Bold** key details.",
+      "gapTags": ["Unresolved: pricing", "Needs: technical spec"],
       "intel": {
-        "label": "Client intelligence (auto-surfaced)",
-        "text": "Background intel relevant to this action item",
-        "source": "Source: external web research or internal docs"
+        "label": "Background intel",
+        "text": "Relevant context for this action",
+        "source": "Source"
       }
     }
   ]
 }
 
 Rules:
-- Generate 3-5 action items
-- gapTags: short pill labels for what's unresolved (e.g. "Pricing confirmation", "Client history"). Omit if not applicable.
-- intel: Include for at most 1-2 items where external research would help. Omit for others.
-- Adapt entirely to the meeting topic`
+- 3-5 actions only
+- owner field: "Seller" (rep's team), "Buyer" (prospect's team), or "Both"
+- gapTags: only for actions where something is still unresolved
+- intel: at most 2 items, only where background context genuinely helps
+- Be specific — include names, dates, and amounts mentioned in the transcript`,
         },
         {
           role: 'user',
-          content: `Meeting transcript:\n${transcriptText}\n\nOpen gaps:\n${gapsText || '(none identified)'}\n\nDocuments:\n${docContext || '(none)'}`,
+          content: `${contextLine}Transcript:\n${compressed}\n\nOpen gaps:\n${gapsText || '(none)'}\n\nDocuments:\n${docContext || '(none)'}`,
         },
       ],
     });
 
-    const content = response.choices[0].message.content || '{}';
-    const parsed = JSON.parse(content);
-    if (!Array.isArray(parsed.items)) return fallback;
-    return { items: parsed.items };
+    const parsed = JSON.parse(response.choices[0].message.content || '{}');
+    return Array.isArray(parsed.items) ? { items: parsed.items } : fallback;
   } catch (err) {
-    console.error('Action item generation error:', err);
+    console.error('Action items error:', err);
     return fallback;
   }
 }
 
 /**
- * Generate slide deck thumbnails from meeting content
+ * Generate slide deck thumbnails.
  */
 export async function generateSlideDeck(
   transcriptText: string,
   evidence: EvidenceCard[],
-  docContext: string
+  docContext: string,
+  accountContext = ''
 ): Promise<SlideElement> {
+  const compressed = compressTranscript(transcriptText);
   const evidenceText = evidence.map((e) => `${e.title}: ${e.summary}`).join('\n');
+  const contextLine = accountContext ? `Account context: ${accountContext}\n\n` : '';
   const fallback: SlideElement = { slides: [], summary: '' };
 
   try {
     const response = await client.chat.completions.create({
       model: 'gpt-4o-mini',
-      temperature: 0.7,
+      temperature: 0.4,
       max_tokens: 2000,
       response_format: { type: 'json_object' },
       messages: [
         {
           role: 'system',
-          content: `You are a sales presentation strategist. Based on the meeting discussion, generate a concise leave-behind slide deck.
+          content: `You are a sales presentation strategist. Create a tight leave-behind deck from this meeting.
 
 Return JSON:
 {
@@ -319,51 +508,42 @@ Return JSON:
       "num": 1,
       "label": "Slide 1 — Topic",
       "title": "Slide headline",
-      "bullets": ["Key point 1", "Key point 2"],
-      "chips": [
-        { "text": "Label text", "style": "teal" },
-        { "text": "Label text", "style": "blue" }
-      ],
-      "miniChart": [
-        { "label": "Metric A", "value": 94, "style": "primary" },
-        { "label": "Metric B", "value": 71, "style": "muted" }
-      ],
-      "status": "resolved",
+      "bullets": ["Key point 1", "Key point 2", "Key point 3"],
+      "chips": [{ "text": "Label", "style": "teal" }],
+      "miniChart": [{ "label": "Metric", "value": 94, "style": "primary" }],
+      "status": "resolved|pending",
       "pendingNote": null
     }
   ],
-  "summary": "Brief note about what data these slides draw from"
+  "summary": "One sentence on what data these slides draw from"
 }
 
 Rules:
-- Generate 3-5 slides
-- chips: 1-3 short colored chips per slide. Style is teal, blue, or gray. Omit if not needed.
-- miniChart: Include on at most 1-2 slides where quantitative comparison aids understanding. Omit otherwise.
-- status: "resolved" if all data is available, "pending" if the analyst needs to fill in data (e.g. pricing).
-- pendingNote: Only for "pending" slides — describe what's needed.
-- Adapt to whatever the meeting was about`
+- 3-5 slides, each covering a distinct topic from the meeting
+- chips: teal, blue, or gray only. 1-3 per slide max. Omit if not useful.
+- miniChart: max 2 slides, only for real numbers from the conversation
+- pending + pendingNote for slides where data still needs to be confirmed`,
         },
         {
           role: 'user',
-          content: `Meeting transcript:\n${transcriptText}\n\nEvidence:\n${evidenceText}\n\nDocuments:\n${docContext || '(none)'}`,
+          content: `${contextLine}Transcript:\n${compressed}\n\nEvidence:\n${evidenceText || '(none)'}\n\nDocuments:\n${docContext || '(none)'}`,
         },
       ],
     });
 
-    const content = response.choices[0].message.content || '{}';
-    const parsed = JSON.parse(content);
+    const parsed = JSON.parse(response.choices[0].message.content || '{}');
     return {
       slides: Array.isArray(parsed.slides) ? parsed.slides : [],
       summary: parsed.summary || '',
     };
   } catch (err) {
-    console.error('Slide deck generation error:', err);
+    console.error('Slide deck error:', err);
     return fallback;
   }
 }
 
 /**
- * Generate the next few transcript turns for live in-meeting streaming.
+ * Generate next live transcript turns for AI Live mode.
  */
 export async function generateLiveTranscriptTurns(params: {
   recentTranscript: string;
@@ -383,215 +563,33 @@ export async function generateLiveTranscriptTurns(params: {
       messages: [
         {
           role: 'system',
-          content:
-            'You generate realistic meeting transcript turns for a B2B technical sales call. Keep each line short and natural. Include practical objections, pricing, tradeoff, deployment, and proof questions over time.',
+          content: 'You generate realistic meeting transcript turns for a B2B technical sales call. Keep each line short and natural. Alternate between seller and buyer. Include practical objections, pricing, tradeoff, deployment, and proof questions over time.',
         },
         {
           role: 'user',
-          content: `Create the next ${turnCount} transcript turns for this meeting.
+          content: `Create the next ${turnCount} transcript turns.
 
 Account: ${params.accountContext}
 Project: ${params.projectContext}
 Participants: ${params.participants.join(', ')}
 
-Recent transcript context:
+Recent transcript:
 ${params.recentTranscript || '(meeting just started)'}
 
-Return JSON:
-{
-  "turns": [
-    { "speaker": "Participant Name", "text": "single utterance" }
-  ]
-}
-
-Rules:
-- Speaker must be one of the listed participants.
-- Each text must be 8-28 words.
-- No narration, only spoken lines.
-- Avoid repeating prior wording.
-`,
+Return JSON: { "turns": [{ "speaker": "Name", "text": "utterance" }] }
+Rules: speaker must be a listed participant. 8-28 words per turn. No narration.`,
         },
       ],
     });
 
-    const content = response.choices[0].message.content || '{}';
-    const parsed = JSON.parse(content);
-
-    if (!Array.isArray(parsed.turns)) {
-      return [];
-    }
-
+    const parsed = JSON.parse(response.choices[0].message.content || '{}');
+    if (!Array.isArray(parsed.turns)) return [];
     return parsed.turns
-      .map((turn: any) => ({
-        speaker: typeof turn.speaker === 'string' ? turn.speaker : params.participants[0] || 'Participant',
-        text: typeof turn.text === 'string' ? turn.text.trim() : '',
-      }))
-      .filter((turn: { speaker: string; text: string }) => turn.text.length > 0)
+      .map((t: any) => ({ speaker: String(t.speaker), text: String(t.text).trim() }))
+      .filter((t: { speaker: string; text: string }) => t.text.length > 0)
       .slice(0, turnCount);
   } catch (err) {
-    console.error('Live transcript generation error:', err);
+    console.error('Live transcript error:', err);
     return [];
-  }
-}
-
-/**
- * Generate ambient suggestions for real-time panel
- */
-export interface ProactiveSuggestion {
-  headline: string;
-  prompt: string;
-  rationale: string;
-  category: 'comparison' | 'risk' | 'pricing' | 'objection' | 'claim' | 'decision' | 'metric';
-  importance: number; // 1–10
-}
-
-export async function generateAmbientSuggestion(
-  transcript: string,
-  previousHeadlines: string[],
-  meetingContext?: string
-): Promise<ProactiveSuggestion | null> {
-  try {
-    const prevContext =
-      previousHeadlines.length > 0
-        ? `\n\nAlready surfaced (avoid repeating these topics):\n${previousHeadlines.slice(-3).join('\n')}`
-        : '';
-    const contextLine = meetingContext ? `\n\nMeeting context: ${meetingContext}` : '';
-
-    const response = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
-      temperature: 0.3,
-      max_tokens: 200,
-      response_format: { type: 'json_object' },
-      messages: [
-        {
-          role: 'system',
-          content:
-            'You are a real-time sales meeting assistant. Only surface a suggestion if it would materially help the salesperson right now — a specific stat, factual correction, pricing data point, or direct answer to an implied question. It must be concrete, researchable, and directly relevant to what was just said. Generic observations, vague context, or topics already covered do not qualify. If nothing is genuinely worth surfacing, return {"skip": true}.',
-        },
-        {
-          role: 'user',
-          content: `Latest transcript segment:
-${transcript}${contextLine}${prevContext}
-
-Return JSON with exactly these fields (or {"skip": true} if nothing worth surfacing):
-{
-  "headline": "short card title (max 8 words)",
-  "prompt": "specific question to research and answer for the team",
-  "rationale": "one sentence: why this is useful right now",
-  "category": "comparison|risk|pricing|objection|claim|decision|metric",
-  "importance": <integer 1-10 — how critical this is to the conversation right now>
-}`,
-        },
-      ],
-    });
-
-    const content = (response.choices[0].message.content || '').trim();
-    const parsed = JSON.parse(content);
-    if (parsed.skip || !parsed.headline || !parsed.prompt) return null;
-    if (typeof parsed.importance !== 'number' || parsed.importance < 7) return null;
-    return parsed as ProactiveSuggestion;
-  } catch (err) {
-    console.error('Ambient suggestion error:', err);
-    return null;
-  }
-}
-
-/**
- * Resolve an information gap via internet research (GPT knowledge)
- */
-export async function resolveGapFromInternet(
-  question: string,
-  transcriptContext: string
-): Promise<{ answer: string; source: string; sourceUrl: string | null; confidence: number }> {
-  try {
-    const response = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
-      temperature: 0.4,
-      max_tokens: 600,
-      response_format: { type: 'json_object' },
-      messages: [
-        {
-          role: 'system',
-          content:
-            'You are a research analyst. Answer the question concisely with specific data points where possible (2-5 sentences). Also provide the single most authoritative public URL where someone could verify this (e.g. official company page, Wikipedia, industry report, news article). Return JSON: { "answer": "...", "source_name": "Source name", "source_url": "https://..." or null }',
-        },
-        {
-          role: 'user',
-          content: `Meeting context:\n${transcriptContext}\n\nResearch question:\n${question}`,
-        },
-      ],
-    });
-
-    const raw = (response.choices[0].message.content || '').trim();
-    const parsed = JSON.parse(raw);
-    const answer = parsed.answer || raw;
-    const source = parsed.source_name || 'Internet research (AI)';
-    const sourceUrl = parsed.source_url && parsed.source_url.startsWith('http') ? parsed.source_url : null;
-    return { answer, source, sourceUrl, confidence: answer ? 0.75 : 0 };
-  } catch (err) {
-    console.error('Internet gap resolution error:', err);
-    return { answer: 'Unable to resolve — API error.', source: 'Error', sourceUrl: null, confidence: 0 };
-  }
-}
-
-/**
- * Resolve an information gap by deep-searching uploaded documents.
- * Expects pre-retrieved relevant chunks with source attribution.
- */
-export async function resolveGapFromDocuments(
-  question: string,
-  documentContext: string
-): Promise<{ answer: string; source: string; confidence: number }> {
-  if (!documentContext.trim()) {
-    return { answer: 'No documents uploaded to search.', source: 'No documents', confidence: 0 };
-  }
-
-  try {
-    const response = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
-      temperature: 0.2,
-      max_tokens: 800,
-      response_format: { type: 'json_object' },
-      messages: [
-        {
-          role: 'system',
-          content: `You are a precise document analyst for a sales meeting copilot. Your job is to find the EXACT answer to a question using ONLY the provided document excerpts.
-
-Rules:
-- Quote specific numbers, percentages, prices, and facts from the documents
-- Name the exact document you found the data in
-- If multiple documents contribute, synthesize and cite each
-- If the documents do not contain a clear answer, set found to false
-- Be detailed (3-6 sentences) and include all relevant data points
-
-Return JSON: { "found": true/false, "answer": "...", "source_document": "filename", "confidence": 0.0-1.0 }`,
-        },
-        {
-          role: 'user',
-          content: `Document excerpts:\n${documentContext}\n\nQuestion to answer from these documents:\n${question}`,
-        },
-      ],
-    });
-
-    const raw = (response.choices[0].message.content || '').trim();
-    try {
-      const parsed = JSON.parse(raw);
-      return {
-        answer: parsed.answer || raw,
-        source: parsed.source_document || 'Uploaded documents',
-        confidence: parsed.found ? (parsed.confidence ?? 0.85) : 0.1,
-      };
-    } catch {
-      // Fallback: treat as plain text answer
-      const notFound = raw.toLowerCase().includes('not found');
-      return {
-        answer: raw,
-        source: notFound ? 'Not in documents' : 'Uploaded documents',
-        confidence: notFound ? 0.1 : 0.85,
-      };
-    }
-  } catch (err) {
-    console.error('Document gap resolution error:', err);
-    return { answer: 'Unable to resolve — API error.', source: 'Error', confidence: 0 };
   }
 }

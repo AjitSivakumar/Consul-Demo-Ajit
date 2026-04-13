@@ -1431,7 +1431,7 @@ h1 em {
   color: var(--text-tertiary);
   line-height: 1.4;
 }
-.pre-meeting-modal { width: 560px; }
+.pre-meeting-modal { width: 600px; max-height: 90vh; }
 .pre-meeting-textarea {
   resize: vertical;
   min-height: 90px;
@@ -1457,6 +1457,192 @@ h1 em {
   font-size: 12px; color: var(--text-primary); line-height: 1.6; margin: 0;
   padding-left: 12px; border-left: 2px solid rgba(168,85,247,0.4);
 }
+
+/* Pre-meeting modal scrollable body */
+.pre-meeting-body {
+  max-height: 72vh;
+  overflow-y: auto;
+}
+
+/* Document selection section */
+.pmd-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+  margin-top: 4px;
+}
+.pmd-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.pmd-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+}
+.pmd-doc-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: #7c3aed;
+  background: rgba(124,58,237,0.08);
+  padding: 2px 8px;
+}
+.pmd-kb-block,
+.pmd-upload-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pmd-block-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.pmd-block-count {
+  font-weight: 400;
+  color: var(--text-tertiary);
+  margin-left: 4px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.pmd-doc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pmd-doc-row {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 8px;
+  row-gap: 1px;
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.1s;
+  align-items: start;
+}
+.pmd-doc-row:hover {
+  background: var(--bg-subtle);
+  border-color: var(--border);
+}
+.pmd-doc-row.selected {
+  background: rgba(124,58,237,0.05);
+  border-color: rgba(124,58,237,0.2);
+}
+.pmd-checkbox {
+  margin: 0;
+  margin-top: 2px;
+  accent-color: #7c3aed;
+  cursor: pointer;
+  grid-row: 1;
+  grid-column: 1;
+}
+.pmd-doc-info {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  grid-row: 1;
+  grid-column: 2;
+}
+.pmd-doc-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 260px;
+}
+.pmd-doc-category {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+}
+.pmd-doc-summary {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  line-height: 1.4;
+  grid-row: 2;
+  grid-column: 2;
+}
+.pmd-show-more {
+  background: none;
+  border: none;
+  color: #7c3aed;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-align: left;
+}
+.pmd-dropzone {
+  border: 1px dashed var(--border);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.pmd-dropzone:hover,
+.pmd-dropzone.drag-over {
+  border-color: #7c3aed;
+  background: rgba(124,58,237,0.03);
+}
+.pmd-dropzone-hint {
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+.pmd-file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.pmd-file-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+}
+.pmd-file-name {
+  font-size: 12px;
+  color: var(--text-primary);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pmd-file-remove {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.pmd-file-remove:hover { color: var(--danger); }
 
 .bot-settings-input,
 .bot-settings-select {
