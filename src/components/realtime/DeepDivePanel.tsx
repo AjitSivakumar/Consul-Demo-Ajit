@@ -6,6 +6,7 @@ import {
 } from 'recharts';
 import { resolveGapFromDocuments, resolveGapFromInternet } from '../../services/aiService';
 import { extractRelevantChunks, getAllDocuments } from '../../services/documentService';
+import { fetchDocumentContent, loadGroupKnowledge, searchByEntities, searchByTags, semanticSearch, type KnowledgeDoc } from '../../services/knowledgeService';
 import { useMeetingStore } from '../../state/MeetingStore';
 import type { EvidenceCard } from '../../types/domain';
 
@@ -26,6 +27,12 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
   const [queryHistory, setQueryHistory] = useState<QueryEntry[]>([]);
   const [savedConfirm, setSavedConfirm] = useState(false);
   const bodyRef = useRef<HTMLDivElement | null>(null);
+  const groupKnowledgeRef = useRef<KnowledgeDoc[]>([]);
+
+  useEffect(() => {
+    if (!state.groupId) { groupKnowledgeRef.current = []; return; }
+    loadGroupKnowledge(state.groupId).then((docs) => { groupKnowledgeRef.current = docs; }).catch(() => {});
+  }, [state.groupId]);
 
   const noteKey = selectedNeedId ?? '__general__';
   const currentNote = state.notes[noteKey] ?? '';
@@ -103,21 +110,53 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
     let answer = '';
     let source: 'document' | 'web' = 'web';
 
-    // Try uploaded documents first
+    // 1) Try uploaded documents first
     const docs = getAllDocuments();
     if (docs.length > 0) {
       const chunks = extractRelevantChunks(q, 8, 1500);
       if (chunks.length > 0) {
         const docCtx = chunks.map((c) => `[Source: ${c.docName}]\n${c.chunk}`).join('\n\n---\n\n');
         const docResult = await resolveGapFromDocuments(q, docCtx);
-        if (docResult.confidence >= 0.5) {
+        if (docResult.confidence >= 0.65) {
           answer = docResult.answer;
           source = 'document';
         }
       }
     }
 
-    // Fall back to internet/GPT knowledge
+    // 2) Try Google Drive / Supabase knowledge base
+    if (!answer) {
+      const knowledgeDocs = groupKnowledgeRef.current;
+      if (knowledgeDocs.length > 0) {
+        const localMatches = [
+          ...searchByEntities(q, knowledgeDocs),
+          ...searchByTags(q, knowledgeDocs),
+        ].sort((a, b) => b.score - a.score).slice(0, 3);
+
+        const semanticMatches = state.groupId
+          ? await semanticSearch(q, state.groupId).catch(() => [])
+          : [];
+
+        const topMatches = [...localMatches, ...semanticMatches]
+          .filter((m, i, arr) => arr.findIndex((x) => x.doc.id === m.doc.id) === i)
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 3);
+
+        if (topMatches.length > 0) {
+          const contents = await Promise.all(topMatches.map((m) => fetchDocumentContent(m.doc.id)));
+          const kbCtx = topMatches
+            .map((m, i) => `[Source: ${m.doc.name}]\n${contents[i]?.slice(0, 2500) ?? m.doc.summary}`)
+            .join('\n\n---\n\n');
+          const kbResult = await resolveGapFromDocuments(q, kbCtx);
+          if (kbResult.confidence >= 0.65) {
+            answer = kbResult.answer;
+            source = 'document';
+          }
+        }
+      }
+    }
+
+    // 3) Fall back to GPT general knowledge
     if (!answer) {
       const webResult = await resolveGapFromInternet(q, fullContext, state.context.meetingType ?? 'sales');
       answer = webResult.answer;

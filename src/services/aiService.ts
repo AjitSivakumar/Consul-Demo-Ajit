@@ -274,8 +274,8 @@ Return JSON: { "found": true|false, "answer": "...", "source_document": "filenam
 }
 
 /**
- * Answer a gap from GPT general knowledge.
- * Does NOT return URLs — GPT hallucinates them.
+ * Answer a gap using real web search (gpt-4o-mini-search-preview).
+ * Returns actual source URLs from search result annotations.
  */
 export async function resolveGapFromInternet(
   question: string,
@@ -283,53 +283,89 @@ export async function resolveGapFromInternet(
   meetingType: 'sales' | 'research' = 'sales'
 ): Promise<{ answer: string; source: string; sourceUrl: string | null; confidence: number }> {
   const systemPrompt = meetingType === 'research'
-    ? `You are a senior research analyst. Answer using only facts you are genuinely confident about from published literature and established standards. Self-assess your confidence honestly.
-
-Confidence calibration — be precise:
-- Major published trial data (KEYNOTE, NEJM, Lancet) or established methodology: 0.80-0.92
-- General scientific principle or widely-cited guideline: 0.65-0.80
-- Specific paper from 2024 or later: you likely lack reliable data — set confidence 0.25-0.40 and say so explicitly
-- Proprietary quantitative thresholds (factor loading percentiles, trading cost benchmarks, HFT parameters): you cannot know these reliably — set confidence 0.30-0.45 and say so explicitly
-- Specific institutional protocols, unpublished data, or lab-specific numbers: set confidence 0.20-0.35
-- If uncertain whether a specific number is correct: state the range or principle you know, flag uncertainty, set confidence accordingly
+    ? `You are a senior research analyst with access to live web search. Search for and answer using published literature, trial registries, and established standards. Be precise about what the search results actually say.
 
 Hard rules:
-- NEVER invent specific empirical numbers (p-values, effect sizes, rates, thresholds) you don't actually know
-- If you cannot give a reliable answer, your answer should say "This requires [specific database/expert/document] — I can provide general context but not a reliable specific figure"
-- Always name the source type (e.g. "KEYNOTE-024, NEJM 2016", "FDA CDER IND guidance", "Frazzini and Moskowitz 2012")
-
-Return JSON: { "answer": "3-6 sentences", "source_name": "Source type and citation", "confidence": 0.0-1.0 }`
-    : `You are a research analyst. Answer the question with specific, verifiable data points (3-5 sentences). Cite the type of source (e.g. "Gartner 2024 report", "company's public pricing page", "SEC filing") but do NOT invent URLs.
-
-Return JSON: { "answer": "...", "source_name": "Source description" }`;
+- NEVER invent specific empirical numbers not present in the search results
+- If search results lack a specific figure, say "Search results don't confirm a specific number — [general context from results]"
+- Always cite the actual source found (publication name, trial registry, organization)
+- For very recent or proprietary data not in search results, say so explicitly`
+    : `You are a research analyst with access to live web search. Search for and answer the question with specific, verifiable data points from the results (3-5 sentences). Cite the actual sources found.`;
 
   try {
-    const response = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
-      temperature: meetingType === 'research' ? 0.15 : 0.3,
-      max_tokens: 600,
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: systemPrompt },
-        {
-          role: 'user',
-          content: `Meeting context:\n${transcriptContext}\n\nQuestion: ${question}`,
-        },
-      ],
+    // Use the responses API with web_search_preview for real internet search
+    const response = await (client as any).responses.create({
+      model: 'gpt-4o-mini-search-preview',
+      tools: [{ type: 'web_search_preview' }],
+      system: systemPrompt,
+      input: `Meeting context:\n${transcriptContext}\n\nSearch the web and answer this question: ${question}`,
     });
 
-    const parsed = JSON.parse(response.choices[0].message.content || '{}');
-    // For research: use the model's self-assessed confidence; for sales: hardcode 0.72
-    const rawConf = typeof parsed.confidence === 'number' ? parsed.confidence : 0.72;
+    // Extract answer text from output items
+    let answerText = '';
+    let sourceUrl: string | null = null;
+    let sourceName = 'Web search';
+
+    const outputItems: any[] = response.output ?? [];
+    for (const item of outputItems) {
+      if (item.type === 'message') {
+        const contentItems: any[] = Array.isArray(item.content) ? item.content : [];
+        for (const c of contentItems) {
+          if (c.type === 'output_text') {
+            answerText = c.text ?? '';
+            // Extract first URL citation annotation if present
+            const annotations: any[] = c.annotations ?? [];
+            const firstCitation = annotations.find((a: any) => a.type === 'url_citation');
+            if (firstCitation) {
+              sourceUrl = firstCitation.url ?? null;
+              sourceName = firstCitation.title ?? 'Web search';
+            }
+          }
+        }
+      }
+    }
+
+    if (!answerText) {
+      throw new Error('No answer from web search');
+    }
+
+    // Research mode: apply conservative confidence since even search results can be ambiguous
+    const confidence = meetingType === 'research' ? 0.78 : 0.82;
+
     return {
-      answer: parsed.answer || '',
-      source: parsed.source_name || 'General research',
-      sourceUrl: null, // never generate URLs — GPT hallucinates them
-      confidence: parsed.answer ? rawConf : 0,
+      answer: answerText,
+      source: sourceName,
+      sourceUrl,
+      confidence,
     };
   } catch (err) {
-    console.error('Internet gap resolution error:', err);
-    return { answer: 'Unable to resolve.', source: 'Error', sourceUrl: null, confidence: 0 };
+    console.error('Web search error, falling back to GPT knowledge:', err);
+    // Fallback: GPT training data only (no hallucinated URLs)
+    try {
+      const fallbackPrompt = meetingType === 'research'
+        ? `You are a senior research analyst. Answer using only facts you are genuinely confident about. NEVER invent specific empirical numbers. If uncertain, state the general principle and flag it.`
+        : `You are a research analyst. Answer with specific, verifiable data points (3-5 sentences). Do not invent URLs or statistics.`;
+
+      const fallback = await client.chat.completions.create({
+        model: 'gpt-4o-mini',
+        temperature: meetingType === 'research' ? 0.15 : 0.3,
+        max_tokens: 500,
+        messages: [
+          { role: 'system', content: fallbackPrompt },
+          { role: 'user', content: `Meeting context:\n${transcriptContext}\n\nQuestion: ${question}` },
+        ],
+      });
+      const answer = fallback.choices[0].message.content ?? '';
+      return {
+        answer,
+        source: 'GPT knowledge (web search unavailable)',
+        sourceUrl: null,
+        confidence: meetingType === 'research' ? 0.55 : 0.65,
+      };
+    } catch (fallbackErr) {
+      console.error('Fallback also failed:', fallbackErr);
+      return { answer: 'Unable to resolve.', source: 'Error', sourceUrl: null, confidence: 0 };
+    }
   }
 }
 
@@ -718,7 +754,7 @@ Rules:
 export function detectAmbiTrigger(text: string): string | null {
   const lower = text.toLowerCase();
   // Must contain an ambi variant AND be a question or request
-  const hasAmbi = /\b(ambi|amby|hambi|ambee)\b/.test(lower);
+  const hasAmbi = /\b(ambi|amby|hambi|ambee|mb)\b/.test(lower);
   if (!hasAmbi) return null;
 
   const isQuestion =
@@ -728,7 +764,7 @@ export function detectAmbiTrigger(text: string): string | null {
   if (!isQuestion) return null;
 
   // Extract the question — everything after the ambi reference
-  const match = lower.match(/\b(?:ambi|amby|hambi|ambee)\b[,.]?\s*(.*)/);
+  const match = lower.match(/\b(?:ambi|amby|hambi|ambee|mb)\b[,.]?\s*(.*)/);
   const extracted = match?.[1]?.trim();
   return extracted && extracted.length > 4 ? extracted : text.trim();
 }
@@ -745,16 +781,19 @@ export async function generateDirectAmbiResponse(
   transcriptContext: string,
   meetingType: 'sales' | 'research' = 'sales'
 ): Promise<{ answer: string; source: string; usedDocs: boolean; confidence: number }> {
+  const hasDocs = documentContext.trim().length > 0;
+  if (!hasDocs) {
+    return { answer: '', source: '', usedDocs: false, confidence: 0 };
+  }
+
   const persona = meetingType === 'research'
     ? 'You are Ambi, a research intelligence assistant in a live meeting.'
     : 'You are Ambi, a sales intelligence assistant in a live meeting.';
 
   try {
-    const hasDocs = documentContext.trim().length > 0;
-
     const response = await client.chat.completions.create({
       model: 'gpt-4o',
-      temperature: 0.3,
+      temperature: 0.1,
       max_tokens: 600,
       response_format: { type: 'json_object' },
       messages: [
@@ -762,35 +801,43 @@ export async function generateDirectAmbiResponse(
           role: 'system',
           content: `${persona} Someone in the meeting has asked you a question directly.
 
-Answer it using the provided documents and meeting context first. If they don't cover the question, use your general knowledge to supplement — but clearly distinguish what came from documents vs general knowledge.
+Answer using ONLY the provided documents. Do NOT use general knowledge or training data to fill gaps.
 
-Be concise (3-6 sentences). Be specific — cite document names, data points, figures where available.
+Rules:
+- Quote specific numbers, dates, and figures verbatim from the documents
+- Name the exact document you found the answer in
+- If the documents do not contain a clear answer, set found: false and confidence below 0.5
+- Never invent information not present in the documents
 
 Return JSON:
 {
+  "found": true|false,
   "answer": "...",
-  "source": "Document name OR 'General knowledge' OR 'Combined: Doc X + general knowledge'",
-  "usedDocs": true|false,
+  "source": "Exact document name",
+  "usedDocs": true,
   "confidence": 0.0-1.0
 }`,
         },
         {
           role: 'user',
-          content: `Meeting context:\n${transcriptContext}\n\n${hasDocs ? `Documents:\n${documentContext}\n\n` : ''}Question: ${question}`,
+          content: `Meeting context:\n${transcriptContext}\n\nDocuments:\n${documentContext}\n\nQuestion: ${question}`,
         },
       ],
     });
 
     const parsed = JSON.parse(response.choices[0].message.content || '{}');
+    if (!parsed.found) {
+      return { answer: '', source: '', usedDocs: false, confidence: 0 };
+    }
     return {
-      answer: parsed.answer || 'I was unable to find a confident answer.',
-      source: parsed.source || 'Ambi',
-      usedDocs: parsed.usedDocs ?? false,
-      confidence: parsed.confidence ?? 0.7,
+      answer: parsed.answer || '',
+      source: parsed.source || 'Internal documents',
+      usedDocs: true,
+      confidence: parsed.confidence ?? 0.8,
     };
   } catch (err) {
     console.error('Direct Ambi response error:', err);
-    return { answer: 'Unable to respond right now.', source: 'Ambi', usedDocs: false, confidence: 0 };
+    return { answer: '', source: '', usedDocs: false, confidence: 0 };
   }
 }
 

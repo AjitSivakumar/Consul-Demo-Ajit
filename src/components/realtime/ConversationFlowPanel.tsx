@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { resolveGapFromDocuments, resolveGapFromInternet } from '../../services/aiService';
 import { extractRelevantChunks, getAllDocuments } from '../../services/documentService';
+import { fetchDocumentContent, loadGroupKnowledge, searchByEntities, searchByTags, semanticSearch, type KnowledgeDoc } from '../../services/knowledgeService';
 import { useMeetingStore } from '../../state/MeetingStore';
 import type { EvidenceCard, InformationNeed } from '../../types/domain';
 
@@ -18,6 +19,12 @@ export function InsightsFeed({ selectedNeedId, onSelectNeed, resetKey }: Insight
   const [tagModal, setTagModal] = useState<TagModal>(null);
   const [confirmedNeedIds, setConfirmedNeedIds] = useState<Set<string>>(new Set());
   const shownCriticalIds = useRef<Set<string>>(new Set());
+  const groupKnowledgeRef = useRef<KnowledgeDoc[]>([]);
+
+  useEffect(() => {
+    if (!state.groupId) { groupKnowledgeRef.current = []; return; }
+    loadGroupKnowledge(state.groupId).then((docs) => { groupKnowledgeRef.current = docs; }).catch(() => {});
+  }, [state.groupId]);
 
   useEffect(() => {
     if (!resetKey) return;
@@ -144,7 +151,49 @@ export function InsightsFeed({ selectedNeedId, onSelectNeed, resetKey }: Insight
         }
       }
 
-      // 2) Fallback: internet
+      // 2) Try knowledge base
+      const knowledgeDocs = groupKnowledgeRef.current;
+      if (knowledgeDocs.length > 0) {
+        const localMatches = [
+          ...searchByEntities(need.prompt, knowledgeDocs),
+          ...searchByTags(need.prompt, knowledgeDocs),
+        ].sort((a, b) => b.score - a.score).slice(0, 3);
+        const semanticMatches = state.groupId
+          ? await semanticSearch(need.prompt, state.groupId).catch(() => [])
+          : [];
+        const topMatches = [...localMatches, ...semanticMatches]
+          .filter((m, i, arr) => arr.findIndex((x) => x.doc.id === m.doc.id) === i)
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 3);
+        if (topMatches.length > 0) {
+          const contents = await Promise.all(topMatches.map((m) => fetchDocumentContent(m.doc.id)));
+          const kbCtx = topMatches
+            .map((m, i) => `[Source: ${m.doc.name}]\n${contents[i]?.slice(0, 2500) ?? m.doc.summary}`)
+            .join('\n\n---\n\n');
+          const kbResult = await resolveGapFromDocuments(need.prompt, kbCtx);
+          if (kbResult.confidence >= 0.65) {
+            const evidence: EvidenceCard = {
+              id: `evidence-retry-${need.id}-${Date.now()}`,
+              needId: need.id,
+              title: `Resolved: ${need.prompt.slice(0, 60)}`,
+              summary: kbResult.answer,
+              kind: 'claim',
+              recencyLabel: 'Just resolved',
+              confidence: kbResult.confidence,
+              attributions: [{ sourceId: `src-kb-${Date.now()}`, sourceType: 'internal_document', title: kbResult.source, freshnessScore: 0.9, trustScore: 0.85 }],
+              triggeredBySegmentId: need.triggeredBySegmentId,
+              explainWhyNow: 'Retried by user',
+              verification: 'verified',
+            };
+            dispatch({ type: 'ADD_RESOLVED_EVIDENCE', payload: evidence });
+            dispatch({ type: 'UPDATE_NEED_STATUS', payload: { needId: need.id, status: 'resolved' } });
+            setRetryingId(null);
+            return;
+          }
+        }
+      }
+
+      // 3) Fallback: internet
       const internetResult = await resolveGapFromInternet(need.prompt, transcriptContext, state.context.meetingType ?? 'sales');
       if (internetResult.confidence >= 0.5) {
         const evidence: EvidenceCard = {

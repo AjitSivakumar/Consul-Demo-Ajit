@@ -249,43 +249,95 @@ export function useAmbientMeetingAI(): {
           }],
         });
         void (async () => {
+          // 1) Locally uploaded docs (PreMeetingModal uploads)
           const chunks = extractRelevantChunks(ambiQuestion, 6, 1500);
-          const docs = getAllDocuments();
-          const docCtx = chunks.length > 0
+          const uploadedDocs = getAllDocuments();
+          const uploadedCtx = chunks.length > 0
             ? chunks.map((c) => `[Source: ${c.docName}]\n${c.chunk}`).join('\n\n---\n\n')
-            : docs.slice(0, 3).map((d) => `[Source: ${d.name}]\n${d.content.slice(0, 2000)}`).join('\n\n---\n\n');
+            : uploadedDocs.slice(0, 3).map((d) => `[Source: ${d.name}]\n${d.content.slice(0, 2000)}`).join('\n\n---\n\n');
 
-          const result = await generateDirectAmbiResponse(
+          // 2) Google Drive / Supabase knowledge base docs — search by entity + tag, fetch full content
+          let driveCtx = '';
+          const knowledgeDocs = groupKnowledgeRef.current;
+          if (knowledgeDocs.length > 0) {
+            const localMatches = [
+              ...searchByEntities(ambiQuestion, knowledgeDocs),
+              ...searchByTags(ambiQuestion, knowledgeDocs),
+            ].sort((a, b) => b.score - a.score).slice(0, 3);
+
+            const semanticMatches = state.groupId
+              ? await semanticSearch(ambiQuestion, state.groupId).catch(() => [])
+              : [];
+
+            const topMatches = [...localMatches, ...semanticMatches]
+              .filter((m, i, arr) => arr.findIndex((x) => x.doc.id === m.doc.id) === i)
+              .sort((a, b) => b.score - a.score)
+              .slice(0, 3);
+
+            if (topMatches.length > 0) {
+              const contents = await Promise.all(topMatches.map((m) => fetchDocumentContent(m.doc.id)));
+              driveCtx = topMatches
+                .map((m, i) => `[Source: ${m.doc.name}]\n${contents[i]?.slice(0, 2500) ?? m.doc.summary}`)
+                .join('\n\n---\n\n');
+            }
+          }
+
+          // Combine: Drive docs first (higher specificity), then uploaded docs
+          const docCtx = [driveCtx, uploadedCtx].filter(Boolean).join('\n\n---\n\n');
+
+          // Step 1: Try to answer strictly from documents
+          const docResult = await generateDirectAmbiResponse(
             ambiQuestion,
             docCtx,
             ctxPacket.recentTranscript,
             ctxPacket.meetingType
           );
 
-          if (result.confidence < 0.5) {
-            dispatch({ type: 'UPDATE_NEED_STATUS', payload: { needId, status: 'failed' } });
-            return;
+          let finalAnswer = docResult.answer;
+          let finalSource = docResult.source;
+          let finalConfidence = docResult.confidence;
+          let finalUsedDocs = docResult.usedDocs;
+          let finalSourceUrl: string | undefined = undefined;
+
+          // Step 2: If docs didn't have the answer, do a real web search
+          if (docResult.confidence < 0.65) {
+            const webResult = await resolveGapFromInternet(
+              ambiQuestion,
+              ctxPacket.recentTranscript,
+              ctxPacket.meetingType
+            );
+            if (webResult.confidence >= 0.65) {
+              finalAnswer = webResult.answer;
+              finalSource = webResult.source;
+              finalConfidence = webResult.confidence;
+              finalUsedDocs = false;
+              finalSourceUrl = webResult.sourceUrl ?? undefined;
+            } else {
+              // Neither docs nor web search had a confident answer
+              dispatch({ type: 'UPDATE_NEED_STATUS', payload: { needId, status: 'failed' } });
+              return;
+            }
           }
 
           const evidence: EvidenceCard = {
             id: `evidence-direct-${needId}`,
             needId,
             title: `Ambi: ${ambiQuestion.slice(0, 60)}`,
-            summary: result.answer,
+            summary: finalAnswer,
             kind: 'claim',
             recencyLabel: 'Just answered',
-            confidence: result.confidence,
+            confidence: finalConfidence,
             attributions: [{
               sourceId: `src-ambi-${Date.now()}`,
-              sourceType: result.usedDocs ? 'internal_document' : 'web',
-              title: result.source,
-              url: undefined,
+              sourceType: finalUsedDocs ? 'internal_document' : 'web',
+              title: finalSource,
+              url: finalSourceUrl,
               freshnessScore: 1.0,
-              trustScore: result.usedDocs ? 0.9 : 0.75,
+              trustScore: finalUsedDocs ? 0.9 : 0.75,
             }],
             triggeredBySegmentId: latest.id,
             explainWhyNow: 'You asked Ambi directly',
-            verification: result.usedDocs ? 'verified' : 'inferred',
+            verification: finalUsedDocs ? 'verified' : 'inferred',
           };
 
           dispatch({ type: 'ADD_RESOLVED_EVIDENCE', payload: evidence });
@@ -389,9 +441,23 @@ export function useAmbientMeetingAI(): {
       .join('\n');
 
     const docs = getAllDocuments();
-    const docContext = docs.length
+    const uploadedCtx = docs.length
       ? docs.map((doc) => `[${doc.name}]\n${doc.content.slice(0, 3000)}`).join('\n\n---\n\n')
       : '';
+
+    // Augment with top knowledge base docs (Drive-synced) — fetch full content for top 5 by summary length
+    let kbCtx = '';
+    const kbDocs = groupKnowledgeRef.current;
+    if (kbDocs.length > 0) {
+      const topKb = kbDocs.slice(0, 5);
+      const kbContents = await Promise.all(topKb.map((d) => fetchDocumentContent(d.id).catch(() => null)));
+      kbCtx = topKb
+        .map((d, i) => `[${d.name}]\n${kbContents[i]?.slice(0, 2500) ?? d.summary}`)
+        .filter((_, i) => kbContents[i] || topKb[i].summary)
+        .join('\n\n---\n\n');
+    }
+
+    const docContext = [kbCtx, uploadedCtx].filter(Boolean).join('\n\n---\n\n');
 
     const openGaps: Array<{ label: string; missingQuestion: string }> = state.needs
       .filter((n) => n.status === 'new' || n.status === 'retrieving')
