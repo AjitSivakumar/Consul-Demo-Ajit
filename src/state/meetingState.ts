@@ -30,6 +30,8 @@ export interface MeetingState {
   presetTranscript: TranscriptEvent[] | null;
   // True for the entire session once a preset is loaded — blocks AI inference
   presetActive: boolean;
+  // True when preset has liveAI:true — transcript replays but full AI pipeline runs
+  liveAIPreset: boolean;
   // ID of the loaded preset — used to scope demo triggers to the right preset
   activePresetId: string | null;
   // When true, auto-timer always runs regardless of mode (no script-assist)
@@ -55,13 +57,13 @@ export type MeetingAction =
   | { type: 'ADD_RESOLVED_EVIDENCE'; payload: EvidenceCard }
   | { type: 'SET_GENERATING'; payload: boolean }
   | { type: 'SET_GENERATED_CONTENT'; payload: GeneratedDeliverables }
-  | { type: 'LOAD_PRESET'; payload: { id: string; context: MeetingContext; transcript: TranscriptEvent[]; autoPlay?: boolean } }
+  | { type: 'LOAD_PRESET'; payload: { id: string; context: MeetingContext; transcript: TranscriptEvent[]; autoPlay?: boolean; liveAI?: boolean } }
   | { type: 'CLEAR_PRESET_TRANSCRIPT' }
   | { type: 'SET_SCRIPT_ASSIST'; payload: boolean }
   | { type: 'SET_NOTE'; payload: { key: string; text: string } }
   | { type: 'SAVE_INSIGHT'; payload: { question: string; answer: string; source: string } }
   | { type: 'SET_GROUP'; payload: string | null }
-  | { type: 'SET_MEETING_CONTEXT'; payload: { title: string; groupId: string | null; accountContext: string } }
+  | { type: 'SET_MEETING_CONTEXT'; payload: { title: string; groupId: string | null; accountContext: string; meetingType: 'sales' | 'research' } }
   | { type: 'RESET' };
 
 export const initialMeetingState: MeetingState = {
@@ -74,7 +76,8 @@ export const initialMeetingState: MeetingState = {
     discussedThemes: [],
     unresolvedQuestions: [],
     deliverableTargets: [],
-    confidenceByTheme: {}
+    confidenceByTheme: {},
+    meetingType: 'sales',
   },
   transcript: [],
   needs: [],
@@ -88,6 +91,7 @@ export const initialMeetingState: MeetingState = {
   notes: {},
   presetTranscript: null,
   presetActive: false,
+  liveAIPreset: false,
   activePresetId: null,
   presetAutoPlay: false,
   scriptAssistMode: false,
@@ -168,7 +172,9 @@ export function meetingReducer(state: MeetingState, action: MeetingAction): Meet
     case 'LOAD_PRESET': {
       return {
         ...initialMeetingState,
-        presetActive: true,
+        // liveAI presets replay the transcript but let the full AI pipeline run (no hardcoded triggers)
+        presetActive: !action.payload.liveAI,
+        liveAIPreset: action.payload.liveAI ?? false,
         activePresetId: action.payload.id,
         presetAutoPlay: action.payload.autoPlay ?? false,
         context: { ...initialMeetingState.context, ...action.payload.context },
@@ -204,7 +210,7 @@ export function meetingReducer(state: MeetingState, action: MeetingAction): Meet
       return {
         ...state,
         groupId: action.payload.groupId,
-        context: { ...state.context, title: action.payload.title, accountContext: action.payload.accountContext },
+        context: { ...state.context, title: action.payload.title, accountContext: action.payload.accountContext, meetingType: action.payload.meetingType },
       };
     case 'RESET':
       return initialMeetingState;

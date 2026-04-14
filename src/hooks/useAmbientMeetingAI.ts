@@ -1,7 +1,9 @@
 import { useEffect, useRef } from 'react';
 import {
+  detectAmbiTrigger,
   generateActionItems,
   generateAmbientSuggestion,
+  generateDirectAmbiResponse,
   generateQAAnswers,
   generateResearchSummary,
   generateSlideDeck,
@@ -66,13 +68,15 @@ export function useAmbientMeetingAI(): {
     loadGroupKnowledge(state.groupId).then((docs) => { groupKnowledgeRef.current = docs; }).catch(() => {});
   }, [state.groupId]);
 
-  // Cooldown: require at least 35s AND 7 transcript events between AI inferences
-  const AI_INFERENCE_COOLDOWN_MS = 35_000;
-  const AI_INFERENCE_MIN_EVENTS = 7;
+  // In liveAI preset mode the transcript replays at 2500ms/event (~32s total for 13 events).
+  // Use tight cooldowns so the AI fires multiple times across the script instead of just once.
+  const isLiveAIPreset = state.liveAIPreset;
+  const AI_INFERENCE_COOLDOWN_MS = isLiveAIPreset ? 5_000 : 35_000;
+  const AI_INFERENCE_MIN_EVENTS = isLiveAIPreset ? 2 : 7;
   // Max active information gaps (non-dismissed)
   const MAX_ACTIVE_GAPS = 5;
-  // Cooldown between ambient suggestion calls: 15s minimum
-  const AMBIENT_SUGGESTION_COOLDOWN_MS = 15_000;
+  // Cooldown between ambient suggestion calls
+  const AMBIENT_SUGGESTION_COOLDOWN_MS = isLiveAIPreset ? 6_000 : 15_000;
   const lastAmbientTsRef = useRef<number>(0);
 
   // Auto-resolve: when new needs appear, try docs → internet → mark failed
@@ -175,7 +179,7 @@ export function useAmbientMeetingAI(): {
           }
 
           // 3) Fallback: try internet (GPT general knowledge)
-          const internetResult = await resolveGapFromInternet(need.prompt, transcriptContext);
+          const internetResult = await resolveGapFromInternet(need.prompt, transcriptContext, state.context.meetingType ?? 'sales');
           if (internetResult.confidence >= 0.65) {
             const evidence = buildEvidenceFromResult(need, internetResult, 'web');
             dispatch({ type: 'ADD_RESOLVED_EVIDENCE', payload: evidence });
@@ -221,7 +225,78 @@ export function useAmbientMeetingAI(): {
           .map((s) => `${s.speaker}: ${s.text}`)
           .join('\n'),
         elapsedMinutes: startTime,
+        meetingType: state.context.meetingType ?? 'sales',
       };
+
+      // ── Direct Ambi trigger ──────────────────────────────────────────────────
+      // If someone says "Ambi, ..." or "Hey Ambi ..." with a question, answer immediately
+      const ambiQuestion = detectAmbiTrigger(latest.text);
+      if (ambiQuestion) {
+        const needId = `ambi-direct-${Date.now()}`;
+        // Use 'retrieving' immediately so the auto-resolve useEffect never double-picks this up
+        autoResolveQueue.current.add(needId);
+        dispatch({
+          type: 'ADD_AI_NEEDS',
+          payload: [{
+            id: needId,
+            category: 'direct_query',
+            prompt: ambiQuestion,
+            rationale: 'Direct question addressed to Ambi',
+            triggeredBySegmentId: latest.id,
+            confidence: 1.0,
+            priority: 'p1',
+            status: 'retrieving',
+          }],
+        });
+        void (async () => {
+          const chunks = extractRelevantChunks(ambiQuestion, 6, 1500);
+          const docs = getAllDocuments();
+          const docCtx = chunks.length > 0
+            ? chunks.map((c) => `[Source: ${c.docName}]\n${c.chunk}`).join('\n\n---\n\n')
+            : docs.slice(0, 3).map((d) => `[Source: ${d.name}]\n${d.content.slice(0, 2000)}`).join('\n\n---\n\n');
+
+          const result = await generateDirectAmbiResponse(
+            ambiQuestion,
+            docCtx,
+            ctxPacket.recentTranscript,
+            ctxPacket.meetingType
+          );
+
+          if (result.confidence < 0.5) {
+            dispatch({ type: 'UPDATE_NEED_STATUS', payload: { needId, status: 'failed' } });
+            return;
+          }
+
+          const evidence: EvidenceCard = {
+            id: `evidence-direct-${needId}`,
+            needId,
+            title: `Ambi: ${ambiQuestion.slice(0, 60)}`,
+            summary: result.answer,
+            kind: 'claim',
+            recencyLabel: 'Just answered',
+            confidence: result.confidence,
+            attributions: [{
+              sourceId: `src-ambi-${Date.now()}`,
+              sourceType: result.usedDocs ? 'internal_document' : 'web',
+              title: result.source,
+              url: undefined,
+              freshnessScore: 1.0,
+              trustScore: result.usedDocs ? 0.9 : 0.75,
+            }],
+            triggeredBySegmentId: latest.id,
+            explainWhyNow: 'You asked Ambi directly',
+            verification: result.usedDocs ? 'verified' : 'inferred',
+          };
+
+          dispatch({ type: 'ADD_RESOLVED_EVIDENCE', payload: evidence });
+          dispatch({ type: 'UPDATE_NEED_STATUS', payload: { needId, status: 'resolved' } });
+          dispatch({
+            type: 'ADD_AMBIENT_SUGGESTION',
+            payload: { headline: `Ambi: ${ambiQuestion.slice(0, 45)}`, needId, importance: 10 },
+          });
+        })();
+        return; // skip normal inference this tick
+      }
 
       // Only call ambient suggestion if: enough time has passed AND enough words spoken
       const wordCount = latest.text.trim().split(/\s+/).length;
@@ -268,16 +343,17 @@ export function useAmbientMeetingAI(): {
 
       const aiNeeds = await inferNeedsWithAI(latest.text, ctxPacket);
       if (aiNeeds.length > 0) {
-        // Only keep critical needs (p1 only, high confidence)
+        // Research gaps are often subtle — allow lower confidence so sanity-check questions surface
+        const minConf = ctxPacket.meetingType === 'research' ? 0.65 : 0.80;
         const filtered = aiNeeds
-          .filter((n) => n.priority === 'p1' && n.confidence >= 0.80)
+          .filter((n) => n.priority === 'p1' && n.confidence >= minConf)
           .slice(0, MAX_ACTIVE_GAPS - activeGaps); // never exceed cap
         if (filtered.length > 0) {
           dispatch({ type: 'ADD_AI_NEEDS', payload: filtered });
         }
       }
     })();
-  }, [dispatch, state.ambientSuggestions, state.liveStatus, state.transcript, state.presetActive, state.evidence, state.context]);
+  }, [dispatch, state.ambientSuggestions, state.liveStatus, state.transcript, state.presetActive, state.liveAIPreset, state.evidence, state.context]);
 
   useEffect(() => {
     if (state.liveStatus !== 'ending' || state.transcript.length === 0 || autoEndStartedRef.current) {
@@ -323,11 +399,12 @@ export function useAmbientMeetingAI(): {
 
     try {
       const accountContext = state.context.accountContext || '';
+      const meetingType = state.context.meetingType ?? 'sales';
       const [research, qa, actions, slides] = await Promise.all([
-        generateResearchSummary(transcriptText, state.evidence, docContext, accountContext),
-        generateQAAnswers(transcriptText, state.evidence, docContext, accountContext),
-        generateActionItems(transcriptText, openGaps, docContext, accountContext),
-        generateSlideDeck(transcriptText, state.evidence, docContext, accountContext)
+        generateResearchSummary(transcriptText, state.evidence, docContext, accountContext, meetingType),
+        generateQAAnswers(transcriptText, state.evidence, docContext, accountContext, meetingType),
+        generateActionItems(transcriptText, openGaps, docContext, accountContext, meetingType),
+        generateSlideDeck(transcriptText, state.evidence, docContext, accountContext, meetingType)
       ]);
 
       dispatch({

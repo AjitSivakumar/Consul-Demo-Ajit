@@ -1,13 +1,26 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { PreMeetingModal } from '../components/realtime/PreMeetingModal';
 import { useAuth } from '../hooks/useAuth';
 import { useGroups, useRecentSessions } from '../hooks/useGroups';
 import { NavBar } from '../components/common/NavBar';
+import { getAllDocuments } from '../services/documentService';
+import { useMeetingStore } from '../state/MeetingStore';
 
 export function DashboardPage(): React.JSX.Element {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { groups, loading: groupsLoading } = useGroups();
   const { sessions, stats, loading: sessionsLoading } = useRecentSessions();
+  const { dispatch } = useMeetingStore();
+  const [showPreMeeting, setShowPreMeeting] = useState(false);
+
+  const handleStartMeeting = (title: string, groupId: string | null, context: string, meetingType: 'sales' | 'research') => {
+    dispatch({ type: 'SET_MEETING_CONTEXT', payload: { title, groupId, accountContext: context, meetingType } });
+    // docs were loaded into documentService by the modal — sync done, navigate
+    void getAllDocuments(); // ensures module is initialised
+    navigate('/realtime', { state: { autoStart: true } });
+  };
 
   const firstName = user?.user_metadata?.full_name?.split(' ')[0] ?? 'there';
 
@@ -35,7 +48,7 @@ export function DashboardPage(): React.JSX.Element {
         {/* Greeting */}
         <div className="dash-greeting">
           <h1 className="dash-greeting-title">Good to see you, {firstName}.</h1>
-          <button type="button" className="dash-start-btn" onClick={() => navigate('/realtime')}>
+          <button type="button" className="dash-start-btn" onClick={() => setShowPreMeeting(true)}>
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
               <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1.5"/>
               <circle cx="7" cy="7" r="2.5" fill="currentColor"/>
@@ -72,7 +85,7 @@ export function DashboardPage(): React.JSX.Element {
           ) : sessions.length === 0 ? (
             <div className="dash-empty-block">
               <p className="dash-muted">No meetings yet.</p>
-              <button type="button" className="dash-inline-btn" onClick={() => navigate('/realtime')}>Start your first meeting →</button>
+              <button type="button" className="dash-inline-btn" onClick={() => setShowPreMeeting(true)}>Start your first meeting →</button>
             </div>
           ) : (
             <div className="dash-session-list">
@@ -181,6 +194,16 @@ export function DashboardPage(): React.JSX.Element {
 
         </div>
       </div>
+
+      {showPreMeeting && (
+        <PreMeetingModal
+          groups={groups}
+          currentGroupId={null}
+          currentTitle=""
+          onStart={handleStartMeeting}
+          onClose={() => setShowPreMeeting(false)}
+        />
+      )}
     </main>
   );
 }

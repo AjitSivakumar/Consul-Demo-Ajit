@@ -11,7 +11,11 @@ export type NeedCategory =
   | 'decision'
   | 'action_item'
   | 'metric'
-  | 'correction';
+  | 'correction'
+  | 'direct_query'
+  | 'hypothesis'
+  | 'methodology'
+  | 'contradiction';
 
 export type SourceType = 'internal_structured' | 'internal_document' | 'product_doc' | 'prior_notes' | 'web';
 
@@ -34,6 +38,7 @@ export interface MeetingContext {
   deliverableTargets: string[];
   confidenceByTheme: Record<string, number>;
   lastSegmentId?: string;
+  meetingType?: 'sales' | 'research';
 }
 
 export interface InformationNeed {

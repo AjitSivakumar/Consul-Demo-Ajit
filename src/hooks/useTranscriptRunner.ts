@@ -103,7 +103,8 @@ export function useTranscriptRunner(): {
             participants: stateRef.current.context.participants,
             accountContext: stateRef.current.context.accountContext,
             projectContext: stateRef.current.context.projectContext,
-            count: 2
+            count: 2,
+            meetingType: stateRef.current.context.meetingType ?? 'sales',
           });
 
           queueRef.current = turns;

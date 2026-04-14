@@ -16,7 +16,7 @@ interface PreMeetingModalProps {
   groups: Group[];
   currentGroupId: string | null;
   currentTitle: string;
-  onStart: (title: string, groupId: string | null, context: string) => void;
+  onStart: (title: string, groupId: string | null, context: string, meetingType: 'sales' | 'research') => void;
   onClose: () => void;
 }
 
@@ -40,6 +40,7 @@ export function PreMeetingModal({ groups, currentGroupId, currentTitle, onStart,
   const [title, setTitle] = useState(currentTitle || '');
   const [groupId, setGroupId] = useState<string | null>(currentGroupId);
   const [context, setContext] = useState('');
+  const [meetingType, setMeetingType] = useState<'sales' | 'research'>('sales');
   const [brief, setBrief] = useState<string>('');
   const [briefLoading, setBriefLoading] = useState(false);
   const [knowledgeDocs, setKnowledgeDocs] = useState<KnowledgeDoc[]>([]);
@@ -47,6 +48,7 @@ export function PreMeetingModal({ groups, currentGroupId, currentTitle, onStart,
   const [kbExpanded, setKbExpanded] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [launching, setLaunching] = useState(false);
+  const [docLoadError, setDocLoadError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const briefTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -108,6 +110,7 @@ export function PreMeetingModal({ groups, currentGroupId, currentTitle, onStart,
   };
 
   const handleStart = async () => {
+    setDocLoadError(null);
     setLaunching(true);
     try {
       // Clear previous session docs
@@ -116,17 +119,22 @@ export function PreMeetingModal({ groups, currentGroupId, currentTitle, onStart,
       // Load selected knowledge base docs (fetch content in parallel)
       if (selectedDocIds.size > 0) {
         const selectedDocs = knowledgeDocs.filter((d) => selectedDocIds.has(d.id));
+        const failed: string[] = [];
         await Promise.all(
           selectedDocs.map(async (doc) => {
             const content = await fetchDocumentContent(doc.id);
             if (content) {
               await uploadDocument(doc.name, content, 'text');
             } else if (doc.summary) {
-              // Fallback: use summary if full content unavailable
               await uploadDocument(doc.name, doc.summary, 'text');
+            } else {
+              failed.push(doc.name);
             }
           })
         );
+        if (failed.length > 0) {
+          setDocLoadError(`Could not load: ${failed.join(', ')}. Continuing without ${failed.length > 1 ? 'them' : 'it'}.`);
+        }
       }
 
       // Add uploaded files
@@ -134,7 +142,7 @@ export function PreMeetingModal({ groups, currentGroupId, currentTitle, onStart,
         await uploadDocument(f.name, f.content, 'text');
       }
 
-      onStart(title.trim() || 'Untitled Meeting', groupId, context.trim());
+      onStart(title.trim() || 'Untitled Meeting', groupId, context.trim(), meetingType);
     } catch {
       setLaunching(false);
     }
@@ -162,6 +170,27 @@ export function PreMeetingModal({ groups, currentGroupId, currentTitle, onStart,
               placeholder="Q2 discovery call with Acme"
               autoFocus
             />
+          </div>
+
+          {/* Meeting type */}
+          <div className="bot-settings-field">
+            <label className="bot-settings-label">Meeting type</label>
+            <div className="pmd-type-toggle">
+              <button
+                type="button"
+                className={`pmd-type-btn${meetingType === 'sales' ? ' active' : ''}`}
+                onClick={() => setMeetingType('sales')}
+              >
+                Sales
+              </button>
+              <button
+                type="button"
+                className={`pmd-type-btn${meetingType === 'research' ? ' active' : ''}`}
+                onClick={() => setMeetingType('research')}
+              >
+                Research
+              </button>
+            </div>
           </div>
 
           {/* Group selector */}
@@ -333,13 +362,17 @@ export function PreMeetingModal({ groups, currentGroupId, currentTitle, onStart,
           </div>
         </div>
 
+        {docLoadError && (
+          <div className="pmd-doc-error">{docLoadError}</div>
+        )}
+
         <div className="bot-settings-footer">
           <button type="button" className="bot-settings-btn cancel" onClick={onClose}>Cancel</button>
           <button
             type="button"
             className="bot-settings-btn save"
             onClick={() => void handleStart()}
-            disabled={launching}
+            disabled={launching || title.trim().length === 0}
           >
             {launching ? 'Loading…' : 'Launch meeting →'}
           </button>

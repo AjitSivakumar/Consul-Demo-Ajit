@@ -145,7 +145,7 @@ export function InsightsFeed({ selectedNeedId, onSelectNeed, resetKey }: Insight
       }
 
       // 2) Fallback: internet
-      const internetResult = await resolveGapFromInternet(need.prompt, transcriptContext);
+      const internetResult = await resolveGapFromInternet(need.prompt, transcriptContext, state.context.meetingType ?? 'sales');
       if (internetResult.confidence >= 0.5) {
         const evidence: EvidenceCard = {
           id: `evidence-retry-${need.id}-${Date.now()}`,
@@ -193,12 +193,13 @@ export function InsightsFeed({ selectedNeedId, onSelectNeed, resetKey }: Insight
     const isSelected = selectedNeedId === need.id;
     const isRetrying = retryingId === need.id;
     const isCaution = need.category === 'correction';
+    const isDirectQuery = need.category === 'direct_query';
     const triggerPhrase = need.triggerPhrase ?? needTriggerMap.get(need.id);
 
     return (
       <div
         key={need.id}
-        className={`irow ${isSelected ? 'selected' : ''}`}
+        className={`irow ${isSelected ? 'selected' : ''} ${isDirectQuery ? 'irow--direct' : ''}`}
         style={{ animationDelay: `${idx * 80}ms`, position: 'relative' }}
         onClick={() => onSelectNeed(isSelected ? null : need.id)}
       >
@@ -229,6 +230,12 @@ export function InsightsFeed({ selectedNeedId, onSelectNeed, resetKey }: Insight
             <div className="diagram-tag diagram-tag-btn" onClick={(e) => { e.stopPropagation(); setTagModal({ type: 'diagram', need }); }}>
               <div className="diagram-dot" />
               Diagram
+            </div>
+          )}
+          {isDirectQuery && (
+            <div className="direct-query-tag">
+              <div className="direct-query-dot" />
+              You asked
             </div>
           )}
         </div>

@@ -856,6 +856,13 @@ h1 em {
 
 @keyframes glow-green { 0%,100%{box-shadow:0 4px 18px rgba(74,222,128,0.5)} 50%{box-shadow:0 4px 32px rgba(74,222,128,0.85)} }
 
+/* Direct query card */
+.irow--direct { border-color: rgba(59,130,246,0.5); box-shadow: 0 0 10px rgba(59,130,246,0.18); }
+.irow--direct:hover { border-color: #3b82f6; box-shadow: 0 0 18px rgba(59,130,246,0.3); }
+.direct-query-tag { display:flex; align-items:center; gap:5px; font-size:10px; font-weight:700; letter-spacing:0.08em; color:#1d4ed8; background:#dbeafe; border:1px solid #bfdbfe; border-radius:20px; padding:2px 9px; }
+.direct-query-dot { width:6px; height:6px; border-radius:50%; background:#3b82f6; flex-shrink:0; }
+.ev-direct-badge { font-size:10px; font-weight:700; letter-spacing:0.08em; color:#1d4ed8; background:#dbeafe; border:1px solid #bfdbfe; padding:2px 8px; margin-left:8px; vertical-align:middle; }
+
 /* Proactive card */
 .proactive { background:#16a34a; border:3px solid var(--neon-green); border-radius:14px; animation:glow-green 2.5s ease-in-out infinite; }
 .proactive:hover { background:#15803d; border-color:var(--neon-green); }
@@ -1578,6 +1585,31 @@ h1 em {
   grid-row: 2;
   grid-column: 2;
 }
+.pmd-type-toggle {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--border);
+}
+.pmd-type-btn {
+  flex: 1;
+  padding: 7px 0;
+  background: var(--bg-subtle);
+  border: none;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+.pmd-type-btn + .pmd-type-btn {
+  border-left: 1px solid var(--border);
+}
+.pmd-type-btn.active {
+  background: #1e0a3c;
+  color: #fff;
+  font-weight: 700;
+}
+
 .pmd-show-more {
   background: none;
   border: none;
@@ -1643,6 +1675,13 @@ h1 em {
   flex-shrink: 0;
 }
 .pmd-file-remove:hover { color: var(--danger); }
+.pmd-doc-error {
+  padding: 8px 16px;
+  background: rgba(234,179,8,0.08);
+  border-top: 1px solid rgba(234,179,8,0.3);
+  font-size: 11px;
+  color: #92400e;
+}
 
 .bot-settings-input,
 .bot-settings-select {

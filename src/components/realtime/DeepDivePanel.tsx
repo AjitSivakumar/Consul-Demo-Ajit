@@ -52,6 +52,7 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
 
   const isCaution = selectedNeed?.category === 'correction';
   const isDiagram = selectedNeed?.category === 'comparison';
+  const isDirectQuery = selectedNeed?.category === 'direct_query';
 
   const keyNumbers = useMemo(() => {
     if (!evidence) return [];
@@ -118,7 +119,7 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
 
     // Fall back to internet/GPT knowledge
     if (!answer) {
-      const webResult = await resolveGapFromInternet(q, fullContext);
+      const webResult = await resolveGapFromInternet(q, fullContext, state.context.meetingType ?? 'sales');
       answer = webResult.answer;
       source = 'web';
     }
@@ -198,7 +199,10 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
       {/* Body — header scrolls with content */}
       <div className="ev-body" ref={bodyRef}>
         <div className="ev-header-inline">
-          <div className="deep-dive-label">Deep Dive <span /></div>
+          <div className="deep-dive-label">
+            Deep Dive <span />
+            {isDirectQuery && <span className="ev-direct-badge">You asked Ambi</span>}
+          </div>
           <div className="ev-question">{selectedNeed.prompt}</div>
           {evidence && (
             <>

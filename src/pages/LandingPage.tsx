@@ -145,7 +145,7 @@ export function LandingPage(): React.JSX.Element {
         <div className="lp-section-inner">
           <div className="lp-final-cta">
             <div className="lp-final-left">
-              <h2 className="lp-final-title">Ready to walk into<br />every meeting prepared?</h2>
+              <h2 className="lp-final-title">Ready to make every  <br/> meeting intelligent?</h2>
               <p className="lp-final-sub">Sign in with Google and run your first meeting free.</p>
             </div>
             <button type="button" className="lp-cta lp-cta-light" onClick={goApp}>

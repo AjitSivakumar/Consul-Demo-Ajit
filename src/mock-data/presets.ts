@@ -1,4 +1,5 @@
 import { MeetingContext, TranscriptEvent } from '../types/domain';
+import { researchPresets } from './researchPresets';
 
 export interface MeetingPreset {
  id: string;
@@ -6,6 +7,8 @@ export interface MeetingPreset {
  context: MeetingContext;
  transcript: TranscriptEvent[];
  autoPlay?: boolean;
+ /** When true: transcript replays as a script but AI inference runs live (no hardcoded demoEvidence) */
+ liveAI?: boolean;
 }
 
 export const meetingPresets: MeetingPreset[] = [
@@ -110,6 +113,7 @@ export const meetingPresets: MeetingPreset[] = [
  context: {
  meetingId: 'meeting-chen-tobin-heat-auto',
  title: 'Chen Lab × Tobin Center',
+ meetingType: 'research' as const,
  participants: ['Sarah Chen', 'James Okafor'],
  accountContext: 'Tobin Center for Economic Policy',
  projectContext: 'Heat exposure / preterm birth CT climate adaptation pitch, June session',
@@ -183,6 +187,7 @@ export const meetingPresets: MeetingPreset[] = [
  context: {
  meetingId: 'meeting-chen-tobin-heat',
  title: 'Chen Lab × Tobin Center',
+ meetingType: 'research' as const,
  participants: ['Sarah Chen', 'James Okafor'],
  accountContext: 'Tobin Center for Economic Policy',
  projectContext: 'Heat exposure / preterm birth CT climate adaptation pitch, June session',
@@ -249,5 +254,6 @@ export const meetingPresets: MeetingPreset[] = [
   text: "Let's get it in front of the adaptation office before they're locked into summer priorities."
  }
  ]
- }
+ },
+ ...researchPresets,
 ];

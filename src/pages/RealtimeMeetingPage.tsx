@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { NavBar } from '../components/common/NavBar';
 import { InsightsFeed } from '../components/realtime/ConversationFlowPanel';
 import { DeepDivePanel } from '../components/realtime/DeepDivePanel';
@@ -23,7 +23,9 @@ export function RealtimeMeetingPage(): React.JSX.Element {
   const { user } = useAuth();
   const { groups } = useGroups();
   const navigate = useNavigate();
+  const location = useLocation();
   const fileRef = useRef<HTMLInputElement | null>(null);
+  const autoStartedRef = useRef(false);
   const [docs, setDocs] = useState<UploadedDocument[]>(() => getAllDocuments());
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(state.context.title);
@@ -62,6 +64,18 @@ export function RealtimeMeetingPage(): React.JSX.Element {
   useEffect(() => {
     if (state.liveStatus === 'ended') navigate('/deliverables');
   }, [navigate, state.liveStatus]);
+
+  // Auto-start when navigated from the dashboard pre-meeting modal
+  useEffect(() => {
+    if ((location.state as { autoStart?: boolean } | null)?.autoStart && !autoStartedRef.current) {
+      autoStartedRef.current = true;
+      setDocs(getAllDocuments());
+      runner.start();
+      // Clear the flag so a page refresh doesn't re-trigger
+      window.history.replaceState({}, '');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Save session to Supabase when meeting ends
   useEffect(() => {
@@ -127,8 +141,9 @@ export function RealtimeMeetingPage(): React.JSX.Element {
     setDocs(getAllDocuments());
   };
 
-  const handlePreMeetingStart = (title: string, gId: string | null, context: string): void => {
-    dispatch({ type: 'SET_MEETING_CONTEXT', payload: { title, groupId: gId, accountContext: context } });
+  const handlePreMeetingStart = (title: string, gId: string | null, context: string, meetingType: 'sales' | 'research'): void => {
+    dispatch({ type: 'SET_MEETING_CONTEXT', payload: { title, groupId: gId, accountContext: context, meetingType } });
+    setDocs(getAllDocuments());
     setShowPreMeeting(false);
     runner.start();
   };
@@ -208,7 +223,7 @@ export function RealtimeMeetingPage(): React.JSX.Element {
           value=""
           onChange={(e) => {
             const preset = meetingPresets.find((p) => p.id === e.target.value);
-            if (preset) dispatch({ type: 'LOAD_PRESET', payload: { id: preset.id, context: preset.context, transcript: preset.transcript, autoPlay: preset.autoPlay } });
+            if (preset) dispatch({ type: 'LOAD_PRESET', payload: { id: preset.id, context: preset.context, transcript: preset.transcript, autoPlay: preset.autoPlay, liveAI: preset.liveAI } });
           }}
         >
           <option value="" disabled>Load preset…</option>
