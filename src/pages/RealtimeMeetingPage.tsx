@@ -4,7 +4,7 @@ import { NavBar } from '../components/common/NavBar';
 import { InsightsFeed } from '../components/realtime/ConversationFlowPanel';
 import { DeepDivePanel } from '../components/realtime/DeepDivePanel';
 import { BotSettingsModal } from '../components/realtime/BotSettingsModal';
-import { PreMeetingModal } from '../components/realtime/PreMeetingModal';
+import { PreMeetingModal, type MeetingMode } from '../components/realtime/PreMeetingModal';
 import { useAmbientMeetingAI } from '../hooks/useAmbientMeetingAI';
 import { useAuth } from '../hooks/useAuth';
 import { useBotSettings } from '../hooks/useBotSettings';
@@ -143,10 +143,19 @@ export function RealtimeMeetingPage(): React.JSX.Element {
     setDocs(getAllDocuments());
   };
 
-  const handlePreMeetingStart = (title: string, gId: string | null, context: string, meetingType: 'sales' | 'research'): void => {
+  const handlePreMeetingStart = (title: string, gId: string | null, context: string, meetingType: 'sales' | 'research', mode: MeetingMode, presetId: string | null): void => {
     dispatch({ type: 'SET_MEETING_CONTEXT', payload: { title, groupId: gId, accountContext: context, meetingType } });
     setDocs(getAllDocuments());
     setShowPreMeeting(false);
+    if (presetId) {
+      const preset = meetingPresets.find((p) => p.id === presetId);
+      if (preset) {
+        dispatch({ type: 'LOAD_PRESET', payload: { id: preset.id, context: preset.context, transcript: preset.transcript, autoPlay: preset.autoPlay, liveAI: preset.liveAI } });
+        runner.start();
+        return;
+      }
+    }
+    runner.setMode(mode);
     runner.start();
   };
 
@@ -213,41 +222,7 @@ export function RealtimeMeetingPage(): React.JSX.Element {
 
       {/* ── Controls Strip ── */}
       <div className="controls-strip">
-        <span className="ctrl-label">Mode</span>
-        <select value={runner.mode} onChange={(e) => runner.setMode(e.target.value as typeof runner.mode)}>
-          <option value="ai-live">AI Live</option>
-          <option value="recall-bot">Ambi Agent</option>
-        </select>
-
-        <div className="ctrl-divider" />
-        <span className="ctrl-label">Preset</span>
-        <select
-          value=""
-          onChange={(e) => {
-            const preset = meetingPresets.find((p) => p.id === e.target.value);
-            if (preset) dispatch({ type: 'LOAD_PRESET', payload: { id: preset.id, context: preset.context, transcript: preset.transcript, autoPlay: preset.autoPlay, liveAI: preset.liveAI } });
-          }}
-        >
-          <option value="" disabled>Load preset…</option>
-          {meetingPresets.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
-        </select>
-
-        {groups.length > 0 && (
-          <>
-            <div className="ctrl-divider" />
-            <span className="ctrl-label">Group</span>
-            <select
-              value={state.groupId ?? ''}
-              onChange={(e) => dispatch({ type: 'SET_GROUP', payload: e.target.value || null })}
-            >
-              <option value="">None</option>
-              {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
-            </select>
-          </>
-        )}
-
-        <div className="ctrl-divider" />
-        <button type="button" className="ctrl-btn" onClick={() => setShowPreMeeting(true)}>Start</button>
+        <button type="button" className="ctrl-btn" onClick={() => setShowPreMeeting(true)}>New meeting</button>
         {showResetConfirm ? (
           <>
             <span className="ctrl-label" style={{ color: 'var(--danger)' }}>Confirm reset?</span>
@@ -263,7 +238,6 @@ export function RealtimeMeetingPage(): React.JSX.Element {
         ) : (
           <button type="button" className="ctrl-btn" onClick={() => setShowResetConfirm(true)}>Reset</button>
         )}
-
       </div>
 
       {/* ── 3‑Column Body ── */}

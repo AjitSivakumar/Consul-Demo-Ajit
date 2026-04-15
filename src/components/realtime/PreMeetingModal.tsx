@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Group } from '../../hooks/useGroups';
+import { meetingPresets } from '../../mock-data/presets';
 import {
   buildPreMeetingBrief,
   fetchDocumentContent,
@@ -12,11 +13,13 @@ import {
   uploadDocument,
 } from '../../services/documentService';
 
+export type MeetingMode = 'ai-live' | 'recall-bot';
+
 interface PreMeetingModalProps {
   groups: Group[];
   currentGroupId: string | null;
   currentTitle: string;
-  onStart: (title: string, groupId: string | null, context: string, meetingType: 'sales' | 'research') => void;
+  onStart: (title: string, groupId: string | null, context: string, meetingType: 'sales' | 'research', mode: MeetingMode, presetId: string | null) => void;
   onClose: () => void;
 }
 
@@ -41,6 +44,8 @@ export function PreMeetingModal({ groups, currentGroupId, currentTitle, onStart,
   const [groupId, setGroupId] = useState<string | null>(currentGroupId);
   const [context, setContext] = useState('');
   const [meetingType, setMeetingType] = useState<'sales' | 'research'>('sales');
+  const [mode, setMode] = useState<MeetingMode>('ai-live');
+  const [presetId, setPresetId] = useState<string | null>(null);
   const [brief, setBrief] = useState<string>('');
   const [briefLoading, setBriefLoading] = useState(false);
   const [knowledgeDocs, setKnowledgeDocs] = useState<KnowledgeDoc[]>([]);
@@ -142,7 +147,7 @@ export function PreMeetingModal({ groups, currentGroupId, currentTitle, onStart,
         await uploadDocument(f.name, f.content, 'text');
       }
 
-      onStart(title.trim() || 'Untitled Meeting', groupId, context.trim(), meetingType);
+      onStart(title.trim() || 'Untitled Meeting', groupId, context.trim(), meetingType, mode, presetId);
     } catch {
       setLaunching(false);
     }
@@ -191,6 +196,38 @@ export function PreMeetingModal({ groups, currentGroupId, currentTitle, onStart,
                 Research
               </button>
             </div>
+          </div>
+
+          {/* Transcript mode */}
+          <div className="bot-settings-field">
+            <label className="bot-settings-label">Transcript source</label>
+            <div className="pmd-type-toggle">
+              {(['ai-live', 'recall-bot'] as MeetingMode[]).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  className={`pmd-type-btn${mode === m ? ' active' : ''}`}
+                  onClick={() => { setMode(m); setPresetId(null); }}
+                >
+                  {m === 'ai-live' ? 'AI Live' : 'Ambi Agent'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Preset selector */}
+          <div className="bot-settings-field">
+            <label className="bot-settings-label">Demo preset <span className="bot-settings-hint" style={{ fontWeight: 400 }}>(optional — overrides transcript source)</span></label>
+            <select
+              className="bot-settings-select"
+              value={presetId ?? ''}
+              onChange={(e) => setPresetId(e.target.value || null)}
+            >
+              <option value="">None</option>
+              {meetingPresets.map((p) => (
+                <option key={p.id} value={p.id}>{p.label}</option>
+              ))}
+            </select>
           </div>
 
           {/* Group selector */}
