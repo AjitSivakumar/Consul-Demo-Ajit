@@ -22,9 +22,11 @@ const CHEN_LAB_PRESET_IDS = new Set(['chen-tobin-heat', 'chen-tobin-heat-auto'])
 
 const GENERATION_TIMEOUT_MS = 30000;
 
+type RichFields = Pick<EvidenceCard, 'richChart' | 'richMetricGrid' | 'richCorrectionBlock' | 'richFlowDiagram'>;
+
 function buildEvidenceFromResult(
   need: InformationNeed,
-  result: { answer: string; source: string; sourceUrl?: string | null; confidence: number },
+  result: { answer: string; source: string; sourceUrl?: string | null; confidence: number; rich?: Partial<RichFields> },
   sourceType: 'web' | 'internal_document'
 ): EvidenceCard {
   return {
@@ -48,6 +50,7 @@ function buildEvidenceFromResult(
     triggeredBySegmentId: need.triggeredBySegmentId,
     explainWhyNow: 'Auto-resolved by Ambi during meeting',
     verification: sourceType === 'web' ? 'inferred' : 'verified',
+    ...result.rich,
   };
 }
 
@@ -298,6 +301,7 @@ export function useAmbientMeetingAI(): {
           let finalConfidence = docResult.confidence;
           let finalUsedDocs = docResult.usedDocs;
           let finalSourceUrl: string | undefined = undefined;
+          let finalRich: Partial<RichFields> = docResult.rich ?? {};
 
           // Step 2: If docs didn't have the answer, do a real web search
           if (docResult.confidence < 0.65) {
@@ -312,6 +316,7 @@ export function useAmbientMeetingAI(): {
               finalConfidence = webResult.confidence;
               finalUsedDocs = false;
               finalSourceUrl = webResult.sourceUrl ?? undefined;
+              finalRich = webResult.rich ?? {};
             } else {
               // Neither docs nor web search had a confident answer
               dispatch({ type: 'UPDATE_NEED_STATUS', payload: { needId, status: 'failed' } });
@@ -338,14 +343,11 @@ export function useAmbientMeetingAI(): {
             triggeredBySegmentId: latest.id,
             explainWhyNow: 'You asked Ambi directly',
             verification: finalUsedDocs ? 'verified' : 'inferred',
+            ...finalRich,
           };
 
           dispatch({ type: 'ADD_RESOLVED_EVIDENCE', payload: evidence });
           dispatch({ type: 'UPDATE_NEED_STATUS', payload: { needId, status: 'resolved' } });
-          dispatch({
-            type: 'ADD_AMBIENT_SUGGESTION',
-            payload: { headline: `Ambi: ${ambiQuestion.slice(0, 45)}`, needId, importance: 10 },
-          });
         })();
         return; // skip normal inference this tick
       }

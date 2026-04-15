@@ -4,6 +4,19 @@ import { ResearchElement, QAElement, ActionElement, SlideElement } from '../type
 
 const apiKey = import.meta.env.VITE_OPENAI_API_KEY || '';
 
+/** Strip inline markdown citation patterns the search model injects into answer text.
+ *  e.g. "8.3 billion. ([worldometers.info](https://...))" → "8.3 billion."
+ *  The source URL is already captured separately via annotations.
+ */
+function stripInlineCitations(text: string): string {
+  return text
+    .replace(/\s*\(\[[^\]]*\]\(https?:\/\/[^)]+\)\)/g, '') // ([text](url)) with outer parens
+    .replace(/\s*\[[^\]]*\]\(https?:\/\/[^)]+\)/g, '')      // [text](url) without outer parens
+    .replace(/\s*\(https?:\/\/[^)]+\)/g, '')                 // bare (url)
+    .replace(/\?utm_source=openai/g, '')                     // strip openai UTM tags
+    .trim();
+}
+
 const client = new OpenAI({
   apiKey,
   dangerouslyAllowBrowser: true,
@@ -225,13 +238,138 @@ Or: { "skip": true }`,
 
 // ── Gap resolution ───────────────────────────────────────────────────────────
 
+// ── Rich visual enrichment ───────────────────────────────────────────────────
+
+type RichOutput = Pick<import('../types/domain').EvidenceCard,
+  'richChart' | 'richMetricGrid' | 'richCorrectionBlock' | 'richFlowDiagram'>;
+
+/**
+ * Analyze a Q&A pair and choose the best visual format (metric_grid, chart,
+ * correction, flow, or none). Returns partial RichOutput to spread onto EvidenceCard.
+ * Never throws — returns {} on any error.
+ */
+export async function enrichResolutionOutput(
+  question: string,
+  answer: string
+): Promise<Partial<RichOutput>> {
+  // Skip enrichment for short answers
+  if (answer.length < 100) return {};
+
+  try {
+    const response = await client.chat.completions.create({
+      model: 'gpt-4o-mini',
+      temperature: 0.2,
+      max_tokens: 800,
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content: `You analyze a Q&A pair and decide if a visual format would genuinely improve comprehension. Default to "none" unless the answer clearly contains structured data that benefits from visualization.
+
+WHEN TO USE EACH FORMAT:
+metric_grid: ONLY when the answer explicitly contains 3+ distinct named numeric metrics (percentages, dollar values, rates, counts) that are meaningfully comparable. Do NOT use for a single stat or for general descriptions.
+chart: ONLY when the answer contains 4+ numeric data points across clear categories or time periods AND uses actual numbers from the answer. Never invent data.
+correction: ONLY when the answer directly contradicts a stated or obvious misconception. The wrong/right split must be unambiguous.
+flow: ONLY when the answer describes a clear sequential process with 3-6 discrete named steps. Do NOT use for general explanations or summaries.
+none: Use for ALL other cases — factual paragraphs, definitions, single-stat answers, opinions, comparisons without numbers, historical narratives, etc.
+
+When in doubt, use none. Most answers should be none. Return JSON with "format" key and matching data key only if format is not "none".`,
+        },
+        {
+          role: 'user',
+          content: `Question: ${question}\n\nAnswer: ${answer}`,
+        },
+      ],
+    });
+
+    const raw = response.choices[0].message.content;
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    const format: string = parsed.format ?? 'none';
+
+    if (format === 'metric_grid' && parsed.metric_grid) {
+      const mg = parsed.metric_grid;
+      return {
+        richMetricGrid: {
+          metrics: Array.isArray(mg.metrics) ? mg.metrics : [],
+          insightText: mg.insightText,
+        },
+      };
+    }
+
+    if (format === 'chart' && parsed.chart) {
+      const ch = parsed.chart;
+      const CHART_COLORS = ['#c084fc', '#60a5fa', '#4ade80', '#eab308'];
+      const datasets = Array.isArray(ch.datasets)
+        ? ch.datasets.map((ds: any, idx: number) => ({
+            label: ds.label ?? '',
+            data: Array.isArray(ds.data) ? ds.data : [],
+            color: ds.color ?? CHART_COLORS[idx % CHART_COLORS.length],
+            dashed: ds.dashed,
+          }))
+        : [];
+      return {
+        richChart: {
+          labels: Array.isArray(ch.labels) ? ch.labels : [],
+          datasets,
+          note: ch.note ?? '',
+          chartType: ch.chartType ?? 'bar',
+          yAxisLabel: ch.yAxisLabel,
+        },
+      };
+    }
+
+    if (format === 'correction' && parsed.correction) {
+      const cb = parsed.correction;
+      return {
+        richCorrectionBlock: {
+          wrong: {
+            label: '❌ Common assumption',
+            text: cb.wrong?.text ?? cb.wrong ?? '',
+          },
+          right: {
+            label: '✓ What the data shows',
+            text: cb.right?.text ?? cb.right ?? '',
+          },
+          reframe: cb.reframe,
+        },
+      };
+    }
+
+    if (format === 'flow' && parsed.flow) {
+      const fl = parsed.flow;
+      const rawNodes: any[] = Array.isArray(fl.nodes) ? fl.nodes : [];
+      const nodes = rawNodes.map((n: any, idx: number) => ({
+        id: n.id ?? `n${idx + 1}`,
+        label: n.label ?? '',
+        sub: n.sub,
+        kind: (idx === 0 ? 'start' : idx === rawNodes.length - 1 ? 'end' : 'default') as
+          'start' | 'end' | 'default',
+        color: n.color,
+      }));
+      return {
+        richFlowDiagram: {
+          chips: [],
+          note: fl.note,
+          nodes,
+        },
+      };
+    }
+
+    return {};
+  } catch (err) {
+    console.error('enrichResolutionOutput error:', err);
+    return {};
+  }
+}
+
 /**
  * Answer a gap from uploaded or indexed documents.
  */
 export async function resolveGapFromDocuments(
   question: string,
   documentContext: string
-): Promise<{ answer: string; source: string; confidence: number }> {
+): Promise<{ answer: string; source: string; confidence: number; rich?: Partial<RichOutput> }> {
   if (!documentContext.trim()) {
     return { answer: 'No documents to search.', source: 'No documents', confidence: 0 };
   }
@@ -262,10 +400,15 @@ Return JSON: { "found": true|false, "answer": "...", "source_document": "filenam
     });
 
     const parsed = JSON.parse(response.choices[0].message.content || '{}');
+    const found = !!parsed.found;
+    const answer = parsed.answer || 'Not found in documents.';
+    const confidence = found ? (parsed.confidence ?? 0.85) : 0.1;
+    const rich = found ? await enrichResolutionOutput(question, answer) : {};
     return {
-      answer: parsed.answer || 'Not found in documents.',
+      answer,
       source: parsed.source_document || 'Internal documents',
-      confidence: parsed.found ? (parsed.confidence ?? 0.85) : 0.1,
+      confidence,
+      rich,
     };
   } catch (err) {
     console.error('Document gap resolution error:', err);
@@ -281,7 +424,7 @@ export async function resolveGapFromInternet(
   question: string,
   transcriptContext: string,
   meetingType: 'sales' | 'research' = 'sales'
-): Promise<{ answer: string; source: string; sourceUrl: string | null; confidence: number }> {
+): Promise<{ answer: string; source: string; sourceUrl: string | null; confidence: number; rich?: Partial<RichOutput> }> {
   const systemPrompt = meetingType === 'research'
     ? `You are a senior research analyst. Search the web and answer using published literature, trial registries, and established standards. Be precise about what the search results actually say.
 
@@ -305,9 +448,11 @@ Hard rules:
     });
 
     const choice = response.choices?.[0];
-    const answerText: string = choice?.message?.content ?? '';
+    const rawAnswer: string = choice?.message?.content ?? '';
 
-    if (!answerText) throw new Error('Empty response from search model');
+    if (!rawAnswer) throw new Error('Empty response from search model');
+
+    const answerText = stripInlineCitations(rawAnswer);
 
     // Extract URL citation from annotations if present
     const annotations: any[] = choice?.message?.annotations ?? [];
@@ -316,7 +461,8 @@ Hard rules:
     const sourceName: string = firstCitation?.title ?? 'Web search';
 
     const confidence = meetingType === 'research' ? 0.78 : 0.82;
-    return { answer: answerText, source: sourceName, sourceUrl, confidence };
+    const rich = await enrichResolutionOutput(question, answerText);
+    return { answer: answerText, source: sourceName, sourceUrl, confidence, rich };
 
   } catch (err) {
     console.error('Web search error, falling back to GPT knowledge:', err);
@@ -335,11 +481,13 @@ Hard rules:
         ],
       });
       const answer = fallback.choices[0].message.content ?? '';
+      const rich = await enrichResolutionOutput(question, answer);
       return {
         answer,
         source: 'GPT knowledge (web search unavailable)',
         sourceUrl: null,
         confidence: meetingType === 'research' ? 0.55 : 0.65,
+        rich,
       };
     } catch (fallbackErr) {
       console.error('Fallback also failed:', fallbackErr);
@@ -759,7 +907,7 @@ export async function generateDirectAmbiResponse(
   documentContext: string,
   transcriptContext: string,
   meetingType: 'sales' | 'research' = 'sales'
-): Promise<{ answer: string; source: string; usedDocs: boolean; confidence: number }> {
+): Promise<{ answer: string; source: string; usedDocs: boolean; confidence: number; rich?: Partial<RichOutput> }> {
   const hasDocs = documentContext.trim().length > 0;
   if (!hasDocs) {
     return { answer: '', source: '', usedDocs: false, confidence: 0 };
@@ -808,11 +956,14 @@ Return JSON:
     if (!parsed.found) {
       return { answer: '', source: '', usedDocs: false, confidence: 0 };
     }
+    const answer = parsed.answer || '';
+    const rich = await enrichResolutionOutput(question, answer);
     return {
-      answer: parsed.answer || '',
+      answer,
       source: parsed.source || 'Internal documents',
       usedDocs: true,
       confidence: parsed.confidence ?? 0.8,
+      rich,
     };
   } catch (err) {
     console.error('Direct Ambi response error:', err);

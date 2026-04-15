@@ -4,7 +4,7 @@ import {
   LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
 } from 'recharts';
-import { resolveGapFromDocuments, resolveGapFromInternet } from '../../services/aiService';
+import { enrichResolutionOutput, resolveGapFromDocuments, resolveGapFromInternet } from '../../services/aiService';
 import { extractRelevantChunks, getAllDocuments } from '../../services/documentService';
 import { fetchDocumentContent, loadGroupKnowledge, searchByEntities, searchByTags, semanticSearch, type KnowledgeDoc } from '../../services/knowledgeService';
 import { useMeetingStore } from '../../state/MeetingStore';
@@ -18,6 +18,7 @@ interface QueryEntry {
   question: string;
   answer: string | null;
   source: 'document' | 'web' | null;
+  rich?: Partial<Pick<EvidenceCard, 'richChart' | 'richMetricGrid' | 'richCorrectionBlock' | 'richFlowDiagram'>>;
 }
 
 export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX.Element {
@@ -63,13 +64,30 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
 
   const keyNumbers = useMemo(() => {
     if (!evidence) return [];
-    const matches = evidence.summary.match(/\d+[\d.,]*[%×x]?/g);
-    if (!matches) return [];
-    return matches.slice(0, 3).map((val, i) => ({
-      value: val,
-      label: i === 0 ? 'Primary metric' : i === 1 ? 'Comparison' : 'Reference',
-      color: i === 0 ? '#1D9E75' : i === 1 ? 'var(--dl-purple)' : '#D85A30',
-    }));
+    // Only show key numbers for internal documents — web search returns prose where
+    // dates and years are extracted as false positives (e.g. "15", "2026", "8.3").
+    const isWebSource = evidence.attributions.every((a) => a.sourceType === 'web');
+    if (isWebSource) return [];
+
+    // Match numbers with explicit units/context: %, x, ×, $, or followed by scale words
+    const metricPattern = /\$?(\d[\d.,]*)\s*(?:%|×|x\b|\bB\b|\bM\b|bn|mn|billion|million|thousand|k\b)/gi;
+    const seen = new Set<string>();
+    const results: { value: string; label: string; color: string }[] = [];
+    let match: RegExpExecArray | null;
+    // eslint-disable-next-line no-cond-assign
+    while ((match = metricPattern.exec(evidence.summary)) !== null && results.length < 3) {
+      const raw = match[0].trim();
+      if (!seen.has(raw)) {
+        seen.add(raw);
+        const i = results.length;
+        results.push({
+          value: raw,
+          label: i === 0 ? 'Primary metric' : i === 1 ? 'Comparison' : 'Reference',
+          color: i === 0 ? '#1D9E75' : i === 1 ? 'var(--dl-purple)' : '#D85A30',
+        });
+      }
+    }
+    return results;
   }, [evidence]);
 
 
@@ -109,6 +127,7 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
 
     let answer = '';
     let source: 'document' | 'web' = 'web';
+    let rich: QueryEntry['rich'] = {};
 
     // 1) Try uploaded documents first
     const docs = getAllDocuments();
@@ -120,6 +139,7 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
         if (docResult.confidence >= 0.65) {
           answer = docResult.answer;
           source = 'document';
+          rich = docResult.rich ?? {};
         }
       }
     }
@@ -151,6 +171,7 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
           if (kbResult.confidence >= 0.65) {
             answer = kbResult.answer;
             source = 'document';
+            rich = kbResult.rich ?? {};
           }
         }
       }
@@ -161,11 +182,17 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
       const webResult = await resolveGapFromInternet(q, fullContext, state.context.meetingType ?? 'sales');
       answer = webResult.answer;
       source = 'web';
+      rich = webResult.rich ?? {};
+    }
+
+    // Enrich if not yet enriched (fallback path for doc results that skipped it)
+    if (answer && (!rich || Object.keys(rich).length === 0)) {
+      rich = await enrichResolutionOutput(q, answer);
     }
 
     setQueryHistory((prev) =>
       prev.map((item, i) =>
-        i === prev.length - 1 ? { ...item, answer, source } : item
+        i === prev.length - 1 ? { ...item, answer, source, rich } : item
       )
     );
     setIsQuerying(false);
@@ -246,7 +273,7 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
           {evidence && (
             <>
               {!isCaution && !isDiagram && (
-                <div className="ev-answer">{evidence.summary}</div>
+                <div className="ev-answer"><AnswerText text={evidence.summary} /></div>
               )}
               {(isCaution || isDiagram) ? (
                 <div className="ev-src-row">
@@ -322,13 +349,7 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
           </div>
         )}
 
-        {evidence?.richTable && <RichTable table={evidence.richTable} />}
-        {evidence?.richChart && <RichChart chart={evidence.richChart} />}
-        {evidence?.richMetricGrid && <MetricGrid grid={evidence.richMetricGrid} />}
-        {evidence?.richCorrectionBlock && <CorrectionBlock block={evidence.richCorrectionBlock} />}
-        {evidence?.richFlowDiagram && <FlowDiagram flow={evidence.richFlowDiagram} />}
-
-        {evidence && !evidence.richTable && !evidence.richChart && !evidence.richMetricGrid && !evidence.richCorrectionBlock && !evidence.richFlowDiagram && (
+        {evidence && (
           <div>
             <div className="ev-section-label">Full analysis</div>
             <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
@@ -336,6 +357,12 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
             </div>
           </div>
         )}
+
+        {evidence?.richTable && <RichTable table={evidence.richTable} />}
+        {evidence?.richChart && <RichChart chart={evidence.richChart} />}
+        {evidence?.richMetricGrid && <MetricGrid grid={evidence.richMetricGrid} />}
+        {evidence?.richCorrectionBlock && <CorrectionBlock block={evidence.richCorrectionBlock} />}
+        {evidence?.richFlowDiagram && <FlowDiagram flow={evidence.richFlowDiagram} />}
 
         {isCaution && evidence && evidence.attributions.length > 0 && (
           <div className="caution-sources">
@@ -444,6 +471,28 @@ function NotesSection({ note, onChange }: { note: string; onChange: (v: string) 
   );
 }
 
+/** Renders answer text: splits on newlines, bolds **text** patterns. */
+function AnswerText({ text }: { text: string }): React.JSX.Element {
+  const lines = text.split('\n').filter((l) => l.trim());
+  return (
+    <>
+      {lines.map((line, i) => {
+        // Split on **bold** markers
+        const parts = line.split(/(\*\*[^*]+\*\*)/g);
+        return (
+          <p key={i} style={{ margin: i === 0 ? 0 : '6px 0 0 0' }}>
+            {parts.map((part, j) =>
+              part.startsWith('**') && part.endsWith('**')
+                ? <strong key={j}>{part.slice(2, -2)}</strong>
+                : part
+            )}
+          </p>
+        );
+      })}
+    </>
+  );
+}
+
 function QueryThread({ entry }: { entry: QueryEntry }): React.JSX.Element {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -474,7 +523,7 @@ function QueryThread({ entry }: { entry: QueryEntry }): React.JSX.Element {
         lineHeight: 1.6,
         fontStyle: entry.answer ? 'normal' : 'italic',
       }}>
-        {entry.answer ?? 'Thinking…'}
+        {entry.answer ? <AnswerText text={entry.answer} /> : 'Thinking…'}
         {entry.answer && entry.source && (
           <div style={{
             marginTop: 6,
@@ -493,6 +542,12 @@ function QueryThread({ entry }: { entry: QueryEntry }): React.JSX.Element {
           </div>
         )}
       </div>
+
+      {/* Rich visuals — rendered below the bubble, not inside it */}
+      {entry.answer && entry.rich?.richMetricGrid && <MetricGrid grid={entry.rich.richMetricGrid} />}
+      {entry.answer && entry.rich?.richChart && <RichChart chart={entry.rich.richChart} />}
+      {entry.answer && entry.rich?.richCorrectionBlock && <CorrectionBlock block={entry.rich.richCorrectionBlock} />}
+      {entry.answer && entry.rich?.richFlowDiagram && <FlowDiagram flow={entry.rich.richFlowDiagram} />}
     </div>
   );
 }
