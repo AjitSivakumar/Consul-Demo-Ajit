@@ -4,7 +4,7 @@ import {
   LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
 } from 'recharts';
-import { enrichResolutionOutput, resolveGapFromDocuments, resolveGapFromInternet } from '../../services/aiService';
+import { enrichResolutionOutput, isVisualizationRequest, resolveGapFromDocuments, resolveGapFromInternet } from '../../services/aiService';
 import { extractRelevantChunks, getAllDocuments } from '../../services/documentService';
 import { fetchDocumentContent, loadGroupKnowledge, searchByEntities, searchByTags, semanticSearch, type KnowledgeDoc } from '../../services/knowledgeService';
 import { useMeetingStore } from '../../state/MeetingStore';
@@ -129,6 +129,9 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
     let source: 'document' | 'web' = 'web';
     let rich: QueryEntry['rich'] = {};
 
+    // Detect if the user explicitly asked for a chart/graph/visualization
+    const vizHint = isVisualizationRequest(q) ? 'chart' : undefined;
+
     // 1) Try uploaded documents first
     const docs = getAllDocuments();
     if (docs.length > 0) {
@@ -139,7 +142,10 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
         if (docResult.confidence >= 0.65) {
           answer = docResult.answer;
           source = 'document';
-          rich = docResult.rich ?? {};
+          // Re-enrich with visualization hint if needed and not already enriched
+          rich = (vizHint && (!docResult.rich || Object.keys(docResult.rich).length === 0))
+            ? await enrichResolutionOutput(q, answer, vizHint)
+            : docResult.rich ?? {};
         }
       }
     }
@@ -171,23 +177,28 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
           if (kbResult.confidence >= 0.65) {
             answer = kbResult.answer;
             source = 'document';
-            rich = kbResult.rich ?? {};
+            rich = (vizHint && (!kbResult.rich || Object.keys(kbResult.rich).length === 0))
+              ? await enrichResolutionOutput(q, answer, vizHint)
+              : kbResult.rich ?? {};
           }
         }
       }
     }
 
-    // 3) Fall back to GPT general knowledge
+    // 3) Fall back to web search / GPT general knowledge
     if (!answer) {
       const webResult = await resolveGapFromInternet(q, fullContext, state.context.meetingType ?? 'sales');
       answer = webResult.answer;
       source = 'web';
-      rich = webResult.rich ?? {};
+      // Re-enrich with visualization hint if needed
+      rich = (vizHint && (!webResult.rich || Object.keys(webResult.rich).length === 0))
+        ? await enrichResolutionOutput(q, answer, vizHint)
+        : webResult.rich ?? {};
     }
 
-    // Enrich if not yet enriched (fallback path for doc results that skipped it)
+    // Final safety net: enrich if still not enriched
     if (answer && (!rich || Object.keys(rich).length === 0)) {
-      rich = await enrichResolutionOutput(q, answer);
+      rich = await enrichResolutionOutput(q, answer, vizHint);
     }
 
     setQueryHistory((prev) =>
@@ -349,7 +360,13 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
           </div>
         )}
 
-        {evidence && (
+        {evidence?.richTable && <RichTable table={evidence.richTable} />}
+        {evidence?.richChart && <RichChart chart={evidence.richChart} />}
+        {evidence?.richMetricGrid && <MetricGrid grid={evidence.richMetricGrid} />}
+        {evidence?.richCorrectionBlock && <CorrectionBlock block={evidence.richCorrectionBlock} />}
+        {evidence?.richFlowDiagram && <FlowDiagram flow={evidence.richFlowDiagram} />}
+
+        {evidence && !evidence.richTable && !evidence.richChart && !evidence.richMetricGrid && !evidence.richCorrectionBlock && !evidence.richFlowDiagram && (
           <div>
             <div className="ev-section-label">Full analysis</div>
             <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
@@ -357,12 +374,6 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
             </div>
           </div>
         )}
-
-        {evidence?.richTable && <RichTable table={evidence.richTable} />}
-        {evidence?.richChart && <RichChart chart={evidence.richChart} />}
-        {evidence?.richMetricGrid && <MetricGrid grid={evidence.richMetricGrid} />}
-        {evidence?.richCorrectionBlock && <CorrectionBlock block={evidence.richCorrectionBlock} />}
-        {evidence?.richFlowDiagram && <FlowDiagram flow={evidence.richFlowDiagram} />}
 
         {isCaution && evidence && evidence.attributions.length > 0 && (
           <div className="caution-sources">

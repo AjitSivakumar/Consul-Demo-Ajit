@@ -24,6 +24,8 @@ function loadState(): MeetingState {
     // Reset transient statuses so a refresh doesn't leave a stale "listening" state
     return {
       ...parsed,
+      // Deep-merge context so new fields added to the schema don't crash on old localStorage data
+      context: { ...initialMeetingState.context, ...parsed.context },
       liveStatus:
         parsed.liveStatus === 'listening' || parsed.liveStatus === 'ending'
           ? 'paused'

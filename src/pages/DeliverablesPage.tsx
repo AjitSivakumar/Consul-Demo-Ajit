@@ -27,7 +27,7 @@ export function DeliverablesPage(): React.JSX.Element {
     window.print();
   };
 
-  const participants = state.context.participants.slice(0, 3).join(' · ');
+  const participants = (state.context.participants ?? []).slice(0, 3).join(' · ');
 
   return (
     <main className="db-wrap">

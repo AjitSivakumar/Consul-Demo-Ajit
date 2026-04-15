@@ -244,22 +244,57 @@ type RichOutput = Pick<import('../types/domain').EvidenceCard,
   'richChart' | 'richMetricGrid' | 'richCorrectionBlock' | 'richFlowDiagram'>;
 
 /**
+ * Strip opening disclaimers about visual content that search/chat models emit.
+ * e.g. "I don't have the capability to generate charts. However, I can provide..."
+ * These confuse the enrichment model into thinking there's no data in the answer.
+ */
+function stripVisualizationDisclaimers(text: string): string {
+  return text
+    .replace(/I (don't|do not|cannot|can't) have the (capability|ability) to (generate|create|make|produce|render) (visual content|charts?|graphs?|line charts?|bar charts?|visuali[sz]ations?)[^.]*\.\s*/gi, '')
+    .replace(/However,\s*I can provide you with (the )?[^.]+data[^.]*\.\s*/gi, '')
+    .replace(/You can use (this|the) data to (create|make|generate|build) [^.]+\.\s*/gi, '')
+    .trim();
+}
+
+/**
+ * Detect if a question is explicitly asking for a chart, graph, or visual.
+ */
+export function isVisualizationRequest(question: string): boolean {
+  return /\b(chart|graph|plot|visuali[sz]e|visuali[sz]ation|line chart|bar chart|trend|over time|over the (last|past)\s+\d+|timeline|compare|comparison)\b/i.test(question);
+}
+
+/**
  * Analyze a Q&A pair and choose the best visual format (metric_grid, chart,
  * correction, flow, or none). Returns partial RichOutput to spread onto EvidenceCard.
  * Never throws — returns {} on any error.
+ *
+ * @param hint - Pass 'chart' when the user explicitly requested a chart/graph,
+ *               biasing the model to choose chart over none.
  */
 export async function enrichResolutionOutput(
   question: string,
-  answer: string
+  answer: string,
+  hint?: 'chart' | 'metric_grid' | 'comparison'
 ): Promise<Partial<RichOutput>> {
-  // Skip enrichment for short answers
-  if (answer.length < 100) return {};
+  // Skip enrichment for short answers unless a visualization was explicitly requested
+  if (answer.length < 100 && !hint) return {};
+
+  // Strip opening disclaimers before analysis — they confuse the enrichment model
+  const cleanAnswer = stripVisualizationDisclaimers(answer);
+
+  const hintInstruction = hint === 'chart'
+    ? '\n\nIMPORTANT: The user explicitly asked for a chart or graph. If the answer contains any table or numeric time-series data, you MUST use "chart". Extract ALL data points and ALL series from the answer — do not omit columns.'
+    : hint === 'metric_grid'
+    ? '\n\nIMPORTANT: The user asked for a metric comparison. If the answer contains named numeric values, use "metric_grid".'
+    : hint === 'comparison'
+    ? '\n\nIMPORTANT: The user asked for a comparison. Use "correction" if there is a clear wrong/right framing, otherwise "metric_grid" if there are comparable numbers.'
+    : '';
 
   try {
     const response = await client.chat.completions.create({
       model: 'gpt-4o-mini',
-      temperature: 0.2,
-      max_tokens: 800,
+      temperature: 0.1,
+      max_tokens: 1600,
       response_format: { type: 'json_object' },
       messages: [
         {
@@ -267,17 +302,32 @@ export async function enrichResolutionOutput(
           content: `You analyze a Q&A pair and decide if a visual format would genuinely improve comprehension. Default to "none" unless the answer clearly contains structured data that benefits from visualization.
 
 WHEN TO USE EACH FORMAT:
-metric_grid: ONLY when the answer explicitly contains 3+ distinct named numeric metrics (percentages, dollar values, rates, counts) that are meaningfully comparable. Do NOT use for a single stat or for general descriptions.
-chart: ONLY when the answer contains 4+ numeric data points across clear categories or time periods AND uses actual numbers from the answer. Never invent data.
-correction: ONLY when the answer directly contradicts a stated or obvious misconception. The wrong/right split must be unambiguous.
-flow: ONLY when the answer describes a clear sequential process with 3-6 discrete named steps. Do NOT use for general explanations or summaries.
-none: Use for ALL other cases — factual paragraphs, definitions, single-stat answers, opinions, comparisons without numbers, historical narratives, etc.
+metric_grid: ONLY when the answer explicitly contains 3+ distinct named numeric metrics (percentages, dollar values, rates, counts) that are meaningfully comparable. Each metric needs label, value, and sub.
+chart: Use when the answer contains a table or time-series data with actual numbers. For multi-column tables (e.g. 5 countries over 10 years), create one dataset per column with the row headers as labels array. Extract ALL numbers — never invent. Set chartType to "line" for time series, "bar" for categories.
+correction: ONLY when the answer directly contradicts a stated or obvious misconception with a clear wrong/right split.
+flow: ONLY when the answer describes a clear sequential process with 3-6 discrete named steps.
+none: Use for factual paragraphs, definitions, single-stat answers, opinions, or anything without structured data.
 
-When in doubt, use none. Most answers should be none. Return JSON with "format" key and matching data key only if format is not "none".`,
+For chart with multiple series, the JSON structure is:
+{
+  "format": "chart",
+  "chart": {
+    "labels": ["Year1", "Year2", ...],
+    "datasets": [
+      {"label": "Series A", "data": [n1, n2, ...], "color": "#hex"},
+      {"label": "Series B", "data": [n1, n2, ...], "color": "#hex"}
+    ],
+    "chartType": "line",
+    "yAxisLabel": "Unit label",
+    "note": "Source note"
+  }
+}
+
+When in doubt, use none. Return JSON with "format" key and matching data key only if format is not "none".${hintInstruction}`,
         },
         {
           role: 'user',
-          content: `Question: ${question}\n\nAnswer: ${answer}`,
+          content: `Question: ${question}\n\nAnswer: ${cleanAnswer}`,
         },
       ],
     });
@@ -425,6 +475,12 @@ export async function resolveGapFromInternet(
   transcriptContext: string,
   meetingType: 'sales' | 'research' = 'sales'
 ): Promise<{ answer: string; source: string; sourceUrl: string | null; confidence: number; rich?: Partial<RichOutput> }> {
+  const visualNote = `
+
+IMPORTANT — Visual rendering: This interface renders charts and tables automatically from your text output.
+- If the question asks for a chart, graph, trend, or comparison: provide the data as a markdown table (columns = series, rows = time periods or categories). Do NOT say "I cannot generate charts" — just provide the table and the interface will render it.
+- Do NOT add disclaimers like "I don't have the capability to generate visual content."`;
+
   const systemPrompt = meetingType === 'research'
     ? `You are a senior research analyst. Search the web and answer using published literature, trial registries, and established standards. Be precise about what the search results actually say.
 
@@ -432,8 +488,8 @@ Hard rules:
 - NEVER invent specific empirical numbers not present in the search results
 - If search results lack a specific figure, say "Search results don't confirm a specific number — [general context from results]"
 - Always cite the actual source found (publication name, trial registry, organization)
-- For very recent or proprietary data not in search results, say so explicitly`
-    : `You are a research analyst. Search the web and answer the question with specific, verifiable data points (3-5 sentences). Cite the actual sources found.`;
+- For very recent or proprietary data not in search results, say so explicitly${visualNote}`
+    : `You are a research analyst. Search the web and answer the question with specific, verifiable data points (3-5 sentences). Cite the actual sources found.${visualNote}`;
 
   try {
     // gpt-4o-mini-search-preview supports web_search_options via chat completions —
