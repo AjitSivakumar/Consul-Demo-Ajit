@@ -471,23 +471,97 @@ function NotesSection({ note, onChange }: { note: string; onChange: (v: string) 
   );
 }
 
-/** Renders answer text: splits on newlines, bolds **text** patterns. */
-function AnswerText({ text }: { text: string }): React.JSX.Element {
-  const lines = text.split('\n').filter((l) => l.trim());
+/** Renders a single line of text, converting **bold** markers. */
+function InlineText({ text }: { text: string }): React.JSX.Element {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
   return (
     <>
-      {lines.map((line, i) => {
-        // Split on **bold** markers
-        const parts = line.split(/(\*\*[^*]+\*\*)/g);
-        return (
-          <p key={i} style={{ margin: i === 0 ? 0 : '6px 0 0 0' }}>
-            {parts.map((part, j) =>
-              part.startsWith('**') && part.endsWith('**')
-                ? <strong key={j}>{part.slice(2, -2)}</strong>
-                : part
-            )}
+      {parts.map((part, j) =>
+        part.startsWith('**') && part.endsWith('**')
+          ? <strong key={j}>{part.slice(2, -2)}</strong>
+          : part
+      )}
+    </>
+  );
+}
+
+/** Renders answer text: handles markdown tables, newlines, and **bold**. */
+function AnswerText({ text }: { text: string }): React.JSX.Element {
+  const rawLines = text.split('\n');
+
+  // Group consecutive markdown table lines into table blocks
+  type Block = { type: 'text'; lines: string[] } | { type: 'table'; rows: string[][] };
+  const blocks: Block[] = [];
+  let i = 0;
+  while (i < rawLines.length) {
+    const line = rawLines[i];
+    // A table line contains at least one pipe that isn't just whitespace
+    if (line.trim().startsWith('|') && line.trim().endsWith('|')) {
+      const tableLines: string[] = [];
+      while (i < rawLines.length && rawLines[i].trim().startsWith('|')) {
+        tableLines.push(rawLines[i]);
+        i++;
+      }
+      // Parse: split by | and strip cells; skip separator rows (---|---)
+      const rows: string[][] = tableLines
+        .filter((l) => !/^\s*\|[\s:|-]+\|\s*$/.test(l))
+        .map((l) => l.replace(/^\s*\||\|\s*$/g, '').split('|').map((c) => c.trim()));
+      if (rows.length > 0) blocks.push({ type: 'table', rows });
+    } else {
+      const textLine = line.trim();
+      if (textLine) {
+        const last = blocks[blocks.length - 1];
+        if (last && last.type === 'text') last.lines.push(textLine);
+        else blocks.push({ type: 'text', lines: [textLine] });
+      }
+      i++;
+    }
+  }
+
+  return (
+    <>
+      {blocks.map((block, bi) => {
+        if (block.type === 'table') {
+          const [header, ...bodyRows] = block.rows;
+          return (
+            <div key={bi} style={{ overflowX: 'auto', margin: '8px 0' }}>
+              <table style={{
+                width: '100%', borderCollapse: 'collapse', fontSize: 12,
+                color: 'var(--text-secondary)',
+              }}>
+                {header && (
+                  <thead>
+                    <tr>
+                      {header.map((cell, ci) => (
+                        <th key={ci} style={{
+                          padding: '5px 10px', textAlign: 'left', fontWeight: 600,
+                          borderBottom: '1px solid var(--border)',
+                          color: 'var(--text-primary)', whiteSpace: 'nowrap',
+                        }}>{cell}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                )}
+                <tbody>
+                  {bodyRows.map((row, ri) => (
+                    <tr key={ri} style={{ borderBottom: '1px solid var(--border)' }}>
+                      {row.map((cell, ci) => (
+                        <td key={ci} style={{ padding: '5px 10px', verticalAlign: 'top' }}>
+                          <InlineText text={cell} />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        }
+        return block.lines.map((line, li) => (
+          <p key={`${bi}-${li}`} style={{ margin: bi === 0 && li === 0 ? 0 : '6px 0 0 0' }}>
+            <InlineText text={line} />
           </p>
-        );
+        ));
       })}
     </>
   );
