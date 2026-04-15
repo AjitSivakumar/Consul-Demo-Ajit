@@ -274,8 +274,8 @@ Return JSON: { "found": true|false, "answer": "...", "source_document": "filenam
 }
 
 /**
- * Answer a gap using real web search (gpt-4o-mini-search-preview).
- * Returns actual source URLs from search result annotations.
+ * Answer a gap using real web search (gpt-4o-mini-search-preview via chat completions).
+ * Returns actual source URLs from the message annotations.
  */
 export async function resolveGapFromInternet(
   question: string,
@@ -283,64 +283,43 @@ export async function resolveGapFromInternet(
   meetingType: 'sales' | 'research' = 'sales'
 ): Promise<{ answer: string; source: string; sourceUrl: string | null; confidence: number }> {
   const systemPrompt = meetingType === 'research'
-    ? `You are a senior research analyst with access to live web search. Search for and answer using published literature, trial registries, and established standards. Be precise about what the search results actually say.
+    ? `You are a senior research analyst. Search the web and answer using published literature, trial registries, and established standards. Be precise about what the search results actually say.
 
 Hard rules:
 - NEVER invent specific empirical numbers not present in the search results
 - If search results lack a specific figure, say "Search results don't confirm a specific number — [general context from results]"
 - Always cite the actual source found (publication name, trial registry, organization)
 - For very recent or proprietary data not in search results, say so explicitly`
-    : `You are a research analyst with access to live web search. Search for and answer the question with specific, verifiable data points from the results (3-5 sentences). Cite the actual sources found.`;
+    : `You are a research analyst. Search the web and answer the question with specific, verifiable data points (3-5 sentences). Cite the actual sources found.`;
 
   try {
-    // Use the responses API with web_search_preview for real internet search
-    const response = await (client as any).responses.create({
+    // gpt-4o-mini-search-preview supports web_search_options via chat completions —
+    // same endpoint, same CORS headers, works in the browser with dangerouslyAllowBrowser
+    const response = await (client.chat.completions.create as any)({
       model: 'gpt-4o-mini-search-preview',
-      tools: [{ type: 'web_search_preview' }],
-      system: systemPrompt,
-      input: `Meeting context:\n${transcriptContext}\n\nSearch the web and answer this question: ${question}`,
+      web_search_options: {},
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: `Meeting context:\n${transcriptContext}\n\nQuestion: ${question}` },
+      ],
     });
 
-    // Extract answer text from output items
-    let answerText = '';
-    let sourceUrl: string | null = null;
-    let sourceName = 'Web search';
+    const choice = response.choices?.[0];
+    const answerText: string = choice?.message?.content ?? '';
 
-    const outputItems: any[] = response.output ?? [];
-    for (const item of outputItems) {
-      if (item.type === 'message') {
-        const contentItems: any[] = Array.isArray(item.content) ? item.content : [];
-        for (const c of contentItems) {
-          if (c.type === 'output_text') {
-            answerText = c.text ?? '';
-            // Extract first URL citation annotation if present
-            const annotations: any[] = c.annotations ?? [];
-            const firstCitation = annotations.find((a: any) => a.type === 'url_citation');
-            if (firstCitation) {
-              sourceUrl = firstCitation.url ?? null;
-              sourceName = firstCitation.title ?? 'Web search';
-            }
-          }
-        }
-      }
-    }
+    if (!answerText) throw new Error('Empty response from search model');
 
-    if (!answerText) {
-      throw new Error('No answer from web search');
-    }
+    // Extract URL citation from annotations if present
+    const annotations: any[] = choice?.message?.annotations ?? [];
+    const firstCitation = annotations.find((a: any) => a.type === 'url_citation');
+    const sourceUrl: string | null = firstCitation?.url ?? null;
+    const sourceName: string = firstCitation?.title ?? 'Web search';
 
-    // Research mode: apply conservative confidence since even search results can be ambiguous
     const confidence = meetingType === 'research' ? 0.78 : 0.82;
+    return { answer: answerText, source: sourceName, sourceUrl, confidence };
 
-    return {
-      answer: answerText,
-      source: sourceName,
-      sourceUrl,
-      confidence,
-    };
   } catch (err) {
     console.error('Web search error, falling back to GPT knowledge:', err);
-    // Fallback: GPT training data only (no hallucinated URLs)
     try {
       const fallbackPrompt = meetingType === 'research'
         ? `You are a senior research analyst. Answer using only facts you are genuinely confident about. NEVER invent specific empirical numbers. If uncertain, state the general principle and flag it.`
