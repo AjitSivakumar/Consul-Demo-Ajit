@@ -37,6 +37,8 @@ export function RealtimeMeetingPage(): React.JSX.Element {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resetKey, setResetKey] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [injectText, setInjectText] = useState('');
+  const [injectSpeaker, setInjectSpeaker] = useState('You');
 
   // Timer
   useEffect(() => {
@@ -389,6 +391,41 @@ export function RealtimeMeetingPage(): React.JSX.Element {
                 {transcriptVisible ? 'Hide' : 'Show'}
               </button>
             </div>
+
+            {/* Manual inject for testing */}
+            <form
+              className="inject-form"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const text = injectText.trim();
+                if (!text) return;
+                dispatch({
+                  type: 'PROCESS_EVENT',
+                  payload: {
+                    id: `manual-${Date.now()}`,
+                    segmentId: `manual-seg-${Date.now()}`,
+                    speaker: injectSpeaker,
+                    text,
+                    timestampIso: new Date().toISOString(),
+                  },
+                });
+                setInjectText('');
+              }}
+            >
+              <input
+                className="inject-speaker"
+                value={injectSpeaker}
+                onChange={(e) => setInjectSpeaker(e.target.value)}
+                placeholder="Speaker"
+              />
+              <input
+                className="inject-text"
+                value={injectText}
+                onChange={(e) => setInjectText(e.target.value)}
+                placeholder="Inject transcript line…"
+              />
+              <button type="submit" className="inject-btn">↵</button>
+            </form>
 
             {transcriptVisible && (
               <div className="transcript-lines">
