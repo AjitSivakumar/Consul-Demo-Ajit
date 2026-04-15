@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PreMeetingModal } from '../components/realtime/PreMeetingModal';
+import { PreMeetingModal, type MeetingMode } from '../components/realtime/PreMeetingModal';
 import { useAuth } from '../hooks/useAuth';
 import { useGroups, useRecentSessions } from '../hooks/useGroups';
 import { NavBar } from '../components/common/NavBar';
-import { getAllDocuments } from '../services/documentService';
+import { meetingPresets } from '../mock-data/presets';
 import { useMeetingStore } from '../state/MeetingStore';
 
 export function DashboardPage(): React.JSX.Element {
@@ -15,11 +15,21 @@ export function DashboardPage(): React.JSX.Element {
   const { dispatch } = useMeetingStore();
   const [showPreMeeting, setShowPreMeeting] = useState(false);
 
-  const handleStartMeeting = (title: string, groupId: string | null, context: string, meetingType: 'sales' | 'research') => {
+  const handleStartMeeting = (title: string, groupId: string | null, context: string, meetingType: 'sales' | 'research', mode: MeetingMode, presetId: string | null) => {
+    // Full reset — every new meeting starts completely clean
+    dispatch({ type: 'RESET' });
+
+    if (presetId) {
+      const preset = meetingPresets.find((p) => p.id === presetId);
+      if (preset) {
+        dispatch({ type: 'LOAD_PRESET', payload: { id: preset.id, context: preset.context, transcript: preset.transcript, autoPlay: preset.autoPlay, liveAI: preset.liveAI } });
+        navigate('/realtime', { state: { autoStart: true, mode: 'ai-live', presetId } });
+        return;
+      }
+    }
+
     dispatch({ type: 'SET_MEETING_CONTEXT', payload: { title, groupId, accountContext: context, meetingType } });
-    // docs were loaded into documentService by the modal — sync done, navigate
-    void getAllDocuments(); // ensures module is initialised
-    navigate('/realtime', { state: { autoStart: true } });
+    navigate('/realtime', { state: { autoStart: true, mode } });
   };
 
   const firstName = user?.user_metadata?.full_name?.split(' ')[0] ?? 'there';
@@ -203,6 +213,7 @@ export function DashboardPage(): React.JSX.Element {
           onStart={handleStartMeeting}
           onClose={() => setShowPreMeeting(false)}
         />
+
       )}
     </main>
   );

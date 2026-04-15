@@ -4,15 +4,13 @@ import { NavBar } from '../components/common/NavBar';
 import { InsightsFeed } from '../components/realtime/ConversationFlowPanel';
 import { DeepDivePanel } from '../components/realtime/DeepDivePanel';
 import { BotSettingsModal } from '../components/realtime/BotSettingsModal';
-import { PreMeetingModal, type MeetingMode } from '../components/realtime/PreMeetingModal';
 import { useAmbientMeetingAI } from '../hooks/useAmbientMeetingAI';
 import { useAuth } from '../hooks/useAuth';
 import { useBotSettings } from '../hooks/useBotSettings';
-import { useGroups } from '../hooks/useGroups';
 import { useTranscriptRunner } from '../hooks/useTranscriptRunner';
+import type { TranscriptStreamMode } from '../hooks/useTranscriptRunner';
 import { supabase } from '../lib/supabase';
 import { extractTextFromFile, getAllDocuments, uploadDocument, UploadedDocument } from '../services/documentService';
-import { meetingPresets } from '../mock-data/presets';
 import { useMeetingStore } from '../state/MeetingStore';
 
 export function RealtimeMeetingPage(): React.JSX.Element {
@@ -21,7 +19,6 @@ export function RealtimeMeetingPage(): React.JSX.Element {
   const ambientAI = useAmbientMeetingAI();
   const { settings: botSettings, save: saveBotSettings } = useBotSettings();
   const { user } = useAuth();
-  const { groups } = useGroups();
   const navigate = useNavigate();
   const location = useLocation();
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -33,7 +30,6 @@ export function RealtimeMeetingPage(): React.JSX.Element {
   const [transcriptVisible, setTranscriptVisible] = useState(true);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [showBotSettings, setShowBotSettings] = useState(false);
-  const [showPreMeeting, setShowPreMeeting] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resetKey, setResetKey] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -67,13 +63,16 @@ export function RealtimeMeetingPage(): React.JSX.Element {
     if (state.liveStatus === 'ended') navigate('/deliverables');
   }, [navigate, state.liveStatus]);
 
-  // Auto-start when navigated from the dashboard pre-meeting modal
+  // Auto-start when navigated from the dashboard
   useEffect(() => {
-    if ((location.state as { autoStart?: boolean } | null)?.autoStart && !autoStartedRef.current) {
+    const navState = location.state as { autoStart?: boolean; mode?: string } | null;
+    if (navState?.autoStart && !autoStartedRef.current) {
       autoStartedRef.current = true;
       setDocs(getAllDocuments());
+      if (navState.mode) {
+        runner.setMode(navState.mode as TranscriptStreamMode);
+      }
       runner.start();
-      // Clear the flag so a page refresh doesn't re-trigger
       window.history.replaceState({}, '');
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -143,22 +142,6 @@ export function RealtimeMeetingPage(): React.JSX.Element {
     setDocs(getAllDocuments());
   };
 
-  const handlePreMeetingStart = (title: string, gId: string | null, context: string, meetingType: 'sales' | 'research', mode: MeetingMode, presetId: string | null): void => {
-    dispatch({ type: 'SET_MEETING_CONTEXT', payload: { title, groupId: gId, accountContext: context, meetingType } });
-    setDocs(getAllDocuments());
-    setShowPreMeeting(false);
-    if (presetId) {
-      const preset = meetingPresets.find((p) => p.id === presetId);
-      if (preset) {
-        dispatch({ type: 'LOAD_PRESET', payload: { id: preset.id, context: preset.context, transcript: preset.transcript, autoPlay: preset.autoPlay, liveAI: preset.liveAI } });
-        runner.start();
-        return;
-      }
-    }
-    runner.setMode(mode);
-    runner.start();
-  };
-
   const commitTitle = (): void => {
     const nextTitle = titleDraft.trim();
     if (!nextTitle) {
@@ -216,29 +199,26 @@ export function RealtimeMeetingPage(): React.JSX.Element {
             >
               {state.isGenerating ? 'Generating…' : 'End meeting'}
             </button>
+            {showResetConfirm ? (
+              <>
+                <span className="nav-reset-label">Reset?</span>
+                <button type="button" className="nav-btn nav-btn-danger" onClick={() => {
+                  runner.reset();
+                  setElapsedSeconds(0);
+                  setResetKey((k) => k + 1);
+                  setSelectedNeedId(null);
+                  setDocs([]);
+                  setShowResetConfirm(false);
+                  navigate('/dashboard');
+                }}>Yes</button>
+                <button type="button" className="nav-btn" onClick={() => setShowResetConfirm(false)}>No</button>
+              </>
+            ) : (
+              <button type="button" className="nav-btn" onClick={() => setShowResetConfirm(true)}>Reset</button>
+            )}
           </>
         }
       />
-
-      {/* ── Controls Strip ── */}
-      <div className="controls-strip">
-        <button type="button" className="ctrl-btn" onClick={() => setShowPreMeeting(true)}>New meeting</button>
-        {showResetConfirm ? (
-          <>
-            <span className="ctrl-label" style={{ color: 'var(--danger)' }}>Confirm reset?</span>
-            <button type="button" className="ctrl-btn ctrl-btn-danger" onClick={() => {
-              runner.reset();
-              setElapsedSeconds(0);
-              setResetKey((k) => k + 1);
-              setSelectedNeedId(null);
-              setShowResetConfirm(false);
-            }}>Reset</button>
-            <button type="button" className="ctrl-btn" onClick={() => setShowResetConfirm(false)}>Cancel</button>
-          </>
-        ) : (
-          <button type="button" className="ctrl-btn" onClick={() => setShowResetConfirm(true)}>Reset</button>
-        )}
-      </div>
 
       {/* ── 3‑Column Body ── */}
       <section className="neon-body">
@@ -436,15 +416,6 @@ export function RealtimeMeetingPage(): React.JSX.Element {
         />
       )}
 
-      {showPreMeeting && (
-        <PreMeetingModal
-          groups={groups}
-          currentGroupId={state.groupId}
-          currentTitle={state.context.title}
-          onStart={handlePreMeetingStart}
-          onClose={() => setShowPreMeeting(false)}
-        />
-      )}
     </main>
   );
 }
