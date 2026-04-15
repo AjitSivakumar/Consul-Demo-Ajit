@@ -106,6 +106,8 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
     setIsQuerying(true);
     setQueryHistory((prev) => [...prev, { question: q, answer: null, source: null }]);
 
+    try {
+
     const transcriptContext = state.transcript
       .slice(-10)
       .map((t) => `${t.speaker}: ${t.text}`)
@@ -201,12 +203,23 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
       rich = await enrichResolutionOutput(q, answer, vizHint);
     }
 
-    setQueryHistory((prev) =>
-      prev.map((item, i) =>
-        i === prev.length - 1 ? { ...item, answer, source, rich } : item
-      )
-    );
-    setIsQuerying(false);
+      setQueryHistory((prev) =>
+        prev.map((item, i) =>
+          i === prev.length - 1 ? { ...item, answer, source, rich } : item
+        )
+      );
+    } catch (err) {
+      console.error('[handleQuery] error:', err);
+      setQueryHistory((prev) =>
+        prev.map((item, i) =>
+          i === prev.length - 1
+            ? { ...item, answer: 'Something went wrong. Please try again.', source: 'web' }
+            : item
+        )
+      );
+    } finally {
+      setIsQuerying(false);
+    }
   };
 
   const queryBar = (
