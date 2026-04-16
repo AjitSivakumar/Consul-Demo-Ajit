@@ -551,7 +551,7 @@ export async function resolveGapFromInternet(
   question: string,
   transcriptContext: string,
   meetingType: 'sales' | 'research' = 'sales'
-): Promise<{ answer: string; source: string; sourceUrl: string | null; confidence: number; rich?: Partial<RichOutput> }> {
+): Promise<{ answer: string; source: string; sourceUrl: string | null; confidence: number; provenance: 'web_search' | 'model_inference'; rich?: Partial<RichOutput> }> {
   const visualNote = `
 
 IMPORTANT — Visual rendering: This interface renders charts and tables automatically from your text output.
@@ -596,7 +596,7 @@ Hard rules:
 
     const confidence = meetingType === 'research' ? 0.78 : 0.82;
     const rich = await enrichResolutionOutput(question, answerText);
-    return { answer: answerText, source: sourceName, sourceUrl, confidence, rich };
+    return { answer: answerText, source: sourceName, sourceUrl, confidence, provenance: 'web_search', rich };
 
   } catch (err) {
     console.error('Web search error, falling back to GPT knowledge:', err);
@@ -618,14 +618,15 @@ Hard rules:
       const rich = await enrichResolutionOutput(question, answer);
       return {
         answer,
-        source: 'GPT knowledge (web search unavailable)',
+        source: 'GPT-4o (model inference)',
         sourceUrl: null,
         confidence: meetingType === 'research' ? 0.55 : 0.65,
+        provenance: 'model_inference',
         rich,
       };
     } catch (fallbackErr) {
       console.error('Fallback also failed:', fallbackErr);
-      return { answer: 'Unable to resolve.', source: 'Error', sourceUrl: null, confidence: 0 };
+      return { answer: 'Unable to resolve.', source: 'Error', sourceUrl: null, confidence: 0, provenance: 'model_inference' };
     }
   }
 }

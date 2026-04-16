@@ -65,11 +65,11 @@ const EDGES: [number, number][] = [
   [30,31],[31,17],[31,18],[29,13],[17,12],
 ];
 
-// Purple palette
-const PURPLE_NODE  = '#a855f7';
-const PURPLE_GLOW  = 'rgba(168,85,247,';
-const EDGE_BASE    = 'rgba(168,85,247,0.22)';
-const EDGE_ACTIVE  = 'rgba(168,85,247,0.60)';
+// Blue palette
+const PURPLE_NODE  = '#3b82f6';
+const PURPLE_GLOW  = 'rgba(59,130,246,';
+const EDGE_BASE    = 'rgba(59,130,246,0.22)';
+const EDGE_ACTIVE  = 'rgba(59,130,246,0.60)';
 
 export function GraphCanvas(): React.JSX.Element {
   const wrapRef   = useRef<HTMLDivElement>(null);

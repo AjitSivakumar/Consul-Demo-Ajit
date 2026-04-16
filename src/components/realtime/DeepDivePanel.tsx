@@ -17,7 +17,9 @@ interface DeepDivePanelProps {
 interface QueryEntry {
   question: string;
   answer: string | null;
-  source: 'document' | 'web' | null;
+  source: 'document' | 'web' | 'model_inference' | null;
+  sourceTitle?: string | null;
+  sourceUrl?: string | null;
   rich?: Partial<Pick<EvidenceCard, 'richChart' | 'richMetricGrid' | 'richCorrectionBlock' | 'richFlowDiagram'>>;
 }
 
@@ -103,7 +105,7 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
 
     setQueryText('');
     setIsQuerying(true);
-    setQueryHistory((prev) => [...prev, { question: q, answer: null, source: null }]);
+    setQueryHistory((prev) => [...prev, { question: q, answer: null, source: null, sourceTitle: null, sourceUrl: null }]);
 
     try {
 
@@ -127,7 +129,9 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
       .join('\n\n');
 
     let answer = '';
-    let source: 'document' | 'web' = 'web';
+    let source: QueryEntry['source'] = 'web';
+    let sourceTitle: string | null = null;
+    let sourceUrl: string | null = null;
     let rich: QueryEntry['rich'] = {};
 
     // Detect if the user explicitly asked for a chart/graph/visualization
@@ -190,7 +194,9 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
     if (!answer) {
       const webResult = await resolveGapFromInternet(q, fullContext, state.context.meetingType ?? 'sales');
       answer = webResult.answer;
-      source = 'web';
+      source = webResult.provenance === 'model_inference' ? 'model_inference' : 'web';
+      sourceTitle = webResult.source;
+      sourceUrl = webResult.sourceUrl;
       // Re-enrich with visualization hint if needed
       rich = (vizHint && (!webResult.rich || Object.keys(webResult.rich).length === 0))
         ? await enrichResolutionOutput(q, answer, vizHint)
@@ -204,7 +210,7 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
 
       setQueryHistory((prev) =>
         prev.map((item, i) =>
-          i === prev.length - 1 ? { ...item, answer, source, rich } : item
+          i === prev.length - 1 ? { ...item, answer, source, sourceTitle, sourceUrl, rich } : item
         )
       );
     } catch (err) {
@@ -303,14 +309,38 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
                   <div className="ev-conf">Match <b>{(evidence.confidence * 100).toFixed(0)}%</b></div>
                 </div>
               ) : (
-                <div className="ev-src-row">
-                  {evidence.attributions.map((attr) => (
-                    <div key={attr.sourceId} className="ev-src-badge">
-                      <div className={`src-type-dot src-type-dot--${attr.sourceType}`} />
-                      {attr.title}
+                <div className="ev-src-col">
+                  <div className="ev-src-row">
+                    {evidence.attributions.map((attr) => (
+                      attr.sourceType === 'model_inference' ? (
+                        <div key={attr.sourceId} className="ev-src-badge ev-src-badge--inference">
+                          <span className="ev-src-provenance-label">MODEL INFERENCE</span>
+                          <span className="ev-src-title">GPT-4o · training data</span>
+                        </div>
+                      ) : attr.sourceType === 'web' ? (
+                        <div key={attr.sourceId} className="ev-src-badge ev-src-badge--web">
+                          <span className="ev-src-provenance-label">LIVE WEB SEARCH</span>
+                          {attr.url
+                            ? <a href={attr.url} target="_blank" rel="noopener noreferrer" className="ev-src-title ev-src-link">{attr.title} ↗</a>
+                            : <span className="ev-src-title">{attr.title}</span>
+                          }
+                        </div>
+                      ) : (
+                        <div key={attr.sourceId} className="ev-src-badge ev-src-badge--doc">
+                          <span className="ev-src-provenance-label">
+                            {attr.sourceType === 'internal_document' ? 'UPLOADED DOC' : attr.sourceType === 'product_doc' ? 'PRODUCT DOC' : 'INTERNAL'}
+                          </span>
+                          <span className="ev-src-title">{attr.title}</span>
+                        </div>
+                      )
+                    ))}
+                    <div className="ev-conf">Match <b>{(evidence.confidence * 100).toFixed(0)}%</b></div>
+                  </div>
+                  {evidence.attributions.some(a => a.sourceType === 'model_inference') && (
+                    <div className="ev-inference-disclaimer">
+                      ⓘ Based on model training data — not a live web search. Verify before sharing.
                     </div>
-                  ))}
-                  <div className="ev-conf">Match <b>{(evidence.confidence * 100).toFixed(0)}%</b></div>
+                  )}
                 </div>
               )}
             </>
@@ -622,20 +652,29 @@ function QueryThread({ entry }: { entry: QueryEntry }): React.JSX.Element {
       }}>
         {entry.answer ? <AnswerText text={entry.answer} /> : 'Thinking…'}
         {entry.answer && entry.source && (
-          <div style={{
-            marginTop: 6,
-            fontSize: 10,
-            color: entry.source === 'document' ? 'var(--dl-teal)' : 'var(--accent-blue)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4,
-          }}>
-            <span style={{
-              display: 'inline-block',
-              width: 6, height: 6, borderRadius: '50%',
-              background: entry.source === 'document' ? 'var(--dl-teal-mid)' : 'var(--accent-blue-mid)',
-            }} />
-            {entry.source === 'document' ? 'From uploaded documents' : 'From AI knowledge'}
+          <div className="qr-source-row">
+            {entry.source === 'document' && (
+              <span className="qr-src-badge qr-src-badge--doc">📄 Uploaded documents</span>
+            )}
+            {entry.source === 'web' && (
+              <>
+                <span className="qr-src-badge qr-src-badge--web">🌐 Live web search</span>
+                {entry.sourceTitle && entry.sourceUrl && (
+                  <a href={entry.sourceUrl} target="_blank" rel="noopener noreferrer" className="qr-src-link">
+                    {entry.sourceTitle} ↗
+                  </a>
+                )}
+                {entry.sourceTitle && !entry.sourceUrl && (
+                  <span className="qr-src-name">{entry.sourceTitle}</span>
+                )}
+              </>
+            )}
+            {entry.source === 'model_inference' && (
+              <>
+                <span className="qr-src-badge qr-src-badge--inference">⚡ Model inference</span>
+                <span className="qr-src-name">GPT-4o · training data · not a live search</span>
+              </>
+            )}
           </div>
         )}
       </div>

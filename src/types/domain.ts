@@ -17,7 +17,7 @@ export type NeedCategory =
   | 'methodology'
   | 'contradiction';
 
-export type SourceType = 'internal_structured' | 'internal_document' | 'product_doc' | 'prior_notes' | 'web';
+export type SourceType = 'internal_structured' | 'internal_document' | 'product_doc' | 'prior_notes' | 'web' | 'model_inference';
 
 export interface TranscriptEvent {
   id: string;

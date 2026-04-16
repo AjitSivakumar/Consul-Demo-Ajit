@@ -26,9 +26,14 @@ type RichFields = Pick<EvidenceCard, 'richChart' | 'richMetricGrid' | 'richCorre
 
 function buildEvidenceFromResult(
   need: InformationNeed,
-  result: { answer: string; source: string; sourceUrl?: string | null; confidence: number; rich?: Partial<RichFields> },
-  sourceType: 'web' | 'internal_document'
+  result: { answer: string; source: string; sourceUrl?: string | null; confidence: number; provenance?: 'web_search' | 'model_inference'; rich?: Partial<RichFields> },
+  fallbackSourceType: 'web' | 'internal_document'
 ): EvidenceCard {
+  const sourceType: EvidenceCard['attributions'][number]['sourceType'] =
+    result.provenance === 'model_inference' ? 'model_inference'
+    : result.provenance === 'web_search' ? 'web'
+    : fallbackSourceType;
+
   return {
     id: `evidence-auto-${need.id}-${Date.now()}`,
     needId: need.id,
@@ -44,12 +49,12 @@ function buildEvidenceFromResult(
         title: result.source,
         url: result.sourceUrl ?? undefined,
         freshnessScore: 0.9,
-        trustScore: sourceType === 'web' ? 0.7 : 0.85,
+        trustScore: sourceType === 'model_inference' ? 0.55 : sourceType === 'web' ? 0.7 : 0.85,
       },
     ],
     triggeredBySegmentId: need.triggeredBySegmentId,
     explainWhyNow: 'Auto-resolved by Ambi during meeting',
-    verification: sourceType === 'web' ? 'inferred' : 'verified',
+    verification: (sourceType === 'web' || sourceType === 'model_inference') ? 'inferred' : 'verified',
     ...result.rich,
   };
 }
