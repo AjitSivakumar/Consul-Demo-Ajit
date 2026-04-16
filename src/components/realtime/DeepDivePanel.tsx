@@ -90,7 +90,6 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
     return results;
   }, [evidence]);
 
-
   // Scroll body to bottom when query history updates
   useEffect(() => {
     if (bodyRef.current) {

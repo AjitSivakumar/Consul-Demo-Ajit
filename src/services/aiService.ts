@@ -997,7 +997,9 @@ Rules:
 
     const parsed = JSON.parse(response.choices[0].message.content || '{}');
     return {
-      slides: Array.isArray(parsed.slides) ? parsed.slides : [],
+      slides: Array.isArray(parsed.slides)
+        ? parsed.slides.map((s: any) => ({ ...s, bullets: Array.isArray(s.bullets) ? s.bullets : [] }))
+        : [],
       summary: parsed.summary || '',
     };
   } catch (err) {

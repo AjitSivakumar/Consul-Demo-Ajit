@@ -61,12 +61,12 @@ export function SlideGrid({ data }: { data: SlideElement }): React.JSX.Element {
                       </div>
                     ))}
 
-                  {slide.bullets.length > 0 && !slide.chips && !slide.miniChart && (
+                  {(slide.bullets?.length ?? 0) > 0 && !slide.chips && !slide.miniChart && (
                     <div className="dl-slide-b">
-                      {slide.bullets.map((b, bi) => (
+                      {(slide.bullets ?? []).map((b, bi) => (
                         <span key={bi}>
                           {b}
-                          {bi < slide.bullets.length - 1 ? ' · ' : ''}
+                          {bi < (slide.bullets?.length ?? 0) - 1 ? ' · ' : ''}
                         </span>
                       ))}
                     </div>
