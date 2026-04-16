@@ -38,6 +38,8 @@ export interface MeetingState {
   presetAutoPlay: boolean;
   // Script-assist: preset loaded + recall-bot mode — disables auto-timer, uses looser trigger matching
   scriptAssistMode: boolean;
+  // When true, events still fire (triggering popups) but lines are not added to the visible transcript
+  silentReplay: boolean;
   // Group this session is associated with
   groupId: string | null;
 }
@@ -57,7 +59,7 @@ export type MeetingAction =
   | { type: 'ADD_RESOLVED_EVIDENCE'; payload: EvidenceCard }
   | { type: 'SET_GENERATING'; payload: boolean }
   | { type: 'SET_GENERATED_CONTENT'; payload: GeneratedDeliverables }
-  | { type: 'LOAD_PRESET'; payload: { id: string; context: MeetingContext; transcript: TranscriptEvent[]; autoPlay?: boolean; liveAI?: boolean } }
+  | { type: 'LOAD_PRESET'; payload: { id: string; context: MeetingContext; transcript: TranscriptEvent[]; autoPlay?: boolean; liveAI?: boolean; silentTranscript?: boolean } }
   | { type: 'CLEAR_PRESET_TRANSCRIPT' }
   | { type: 'SET_SCRIPT_ASSIST'; payload: boolean }
   | { type: 'SET_NOTE'; payload: { key: string; text: string } }
@@ -95,6 +97,7 @@ export const initialMeetingState: MeetingState = {
   activePresetId: null,
   presetAutoPlay: false,
   scriptAssistMode: false,
+  silentReplay: false,
   groupId: null,
 };
 
@@ -177,6 +180,7 @@ export function meetingReducer(state: MeetingState, action: MeetingAction): Meet
         liveAIPreset: action.payload.liveAI ?? false,
         activePresetId: action.payload.id,
         presetAutoPlay: action.payload.autoPlay ?? false,
+        silentReplay: action.payload.silentTranscript ?? false,
         context: { ...initialMeetingState.context, ...action.payload.context },
         presetTranscript: action.payload.transcript,
         liveStatus: 'paused',
@@ -221,10 +225,11 @@ export function meetingReducer(state: MeetingState, action: MeetingAction): Meet
 
 function applyTranscriptEvent(state: MeetingState, event: TranscriptEvent, presetMode = false, assistMode = false, presetActive = false, activePresetId: string | null = null): MeetingState {
   const context = updateMeetingContext(state.context, event);
+  // silentReplay: still run inference (so hardcoded popups fire) but don't show lines in transcript panel
   const withTranscript = {
     ...state,
     context,
-    transcript: [...state.transcript, event]
+    transcript: state.silentReplay ? state.transcript : [...state.transcript, event]
   };
 
   // Keep deterministic local inference as fallback when API calls are unavailable.

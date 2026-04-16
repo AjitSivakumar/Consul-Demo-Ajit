@@ -9,6 +9,8 @@ export interface MeetingPreset {
  autoPlay?: boolean;
  /** When true: transcript replays as a script but AI inference runs live (no hardcoded demoEvidence) */
  liveAI?: boolean;
+ /** When true: transcript events still fire (triggering hardcoded popups) but lines are hidden from the transcript panel */
+ silentTranscript?: boolean;
 }
 
 export const meetingPresets: MeetingPreset[] = [
@@ -184,6 +186,7 @@ export const meetingPresets: MeetingPreset[] = [
  {
  id: 'chen-tobin-heat',
  label: 'Chen Lab × Tobin Center',
+ silentTranscript: true,
  context: {
  meetingId: 'meeting-chen-tobin-heat',
  title: 'Chen Lab × Tobin Center',
