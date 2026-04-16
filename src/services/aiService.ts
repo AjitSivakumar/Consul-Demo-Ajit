@@ -711,13 +711,20 @@ Rules:
     });
 
     const parsed = JSON.parse(response.choices[0].message.content || '{}');
+    const ct = parsed.comparisonTable;
     return {
       question: parsed.question || '',
       answer: parsed.answer || '',
-      comparisonTable: parsed.comparisonTable || undefined,
+      // Normalize comparisonTable — only include if columns is a real array
+      comparisonTable: ct && Array.isArray(ct.columns) && ct.columns.length > 0
+        ? { columns: ct.columns, rows: Array.isArray(ct.rows) ? ct.rows : [] }
+        : undefined,
       barChart: Array.isArray(parsed.barChart) ? parsed.barChart : undefined,
       barChartNote: parsed.barChartNote || undefined,
-      keyFinding: parsed.keyFinding || undefined,
+      // Normalize keyFinding — only include if text is a non-empty string
+      keyFinding: parsed.keyFinding?.text
+        ? { text: String(parsed.keyFinding.text), source: parsed.keyFinding.source || '' }
+        : undefined,
       sources: Array.isArray(parsed.sources) ? parsed.sources : [],
     };
   } catch (err) {

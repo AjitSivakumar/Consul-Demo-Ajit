@@ -26,7 +26,7 @@ export function ResearchCard({ data }: { data: ResearchElement }): React.JSX.Ele
 
         {(data.comparisonTable || data.barChart) && (
           <div className="dl-data-grid">
-            {data.comparisonTable && (
+            {data.comparisonTable && Array.isArray(data.comparisonTable.columns) && (
               <div className="dl-info-block">
                 <div className="dl-info-label">Capability matrix</div>
                 <table className="dl-cap-table">
@@ -38,9 +38,9 @@ export function ResearchCard({ data }: { data: ResearchElement }): React.JSX.Ele
                     </tr>
                   </thead>
                   <tbody>
-                    {data.comparisonTable.rows.map((row, ri) => (
+                    {(data.comparisonTable.rows ?? []).map((row, ri) => (
                       <tr key={ri}>
-                        {row.map((cell, ci) => (
+                        {(Array.isArray(row) ? row : []).map((cell, ci) => (
                           <td
                             key={ci}
                             className={cell === '✓' ? 'dl-check' : cell === '✗' ? 'dl-cross' : undefined}
@@ -84,7 +84,7 @@ export function ResearchCard({ data }: { data: ResearchElement }): React.JSX.Ele
           </div>
         )}
 
-        {data.keyFinding && (
+        {data.keyFinding?.text && (
           <div className="dl-finding">
             <div>
               <div className="dl-finding-text">{renderBold(data.keyFinding.text)}</div>

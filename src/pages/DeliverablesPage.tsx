@@ -1,3 +1,4 @@
+import { Component, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { NavBar } from '../components/common/NavBar';
 import { ActionList } from '../components/deliverables/ActionList';
@@ -6,6 +7,24 @@ import { QASection } from '../components/deliverables/QASection';
 import { ResearchCard } from '../components/deliverables/ResearchCard';
 import { SlideGrid } from '../components/deliverables/SlideGrid';
 import { useMeetingStore } from '../state/MeetingStore';
+
+class DeliverableErrorBoundary extends Component<{ children: ReactNode }, { error: string | null }> {
+  state = { error: null };
+  static getDerivedStateFromError(err: Error) { return { error: err.message }; }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="dl-empty">
+          <div className="dl-empty-title">Something went wrong rendering deliverables</div>
+          <p className="dl-empty-sub" style={{ color: 'var(--accent-red, #f87171)', fontFamily: 'monospace', fontSize: 12 }}>
+            {this.state.error}
+          </p>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 export function DeliverablesPage(): React.JSX.Element {
   const { state, dispatch } = useMeetingStore();
@@ -59,6 +78,7 @@ export function DeliverablesPage(): React.JSX.Element {
 
       {/* ── Deliverables Body ── */}
       <div className="dl-body">
+        <DeliverableErrorBoundary>
         {isChenLabPreset && state.liveStatus === 'ended' ? (
           <div className="dl-main"><ChenLabDeliverable /></div>
         ) : !hasContent ? (
@@ -99,6 +119,7 @@ export function DeliverablesPage(): React.JSX.Element {
             )}
           </div>
         )}
+        </DeliverableErrorBoundary>
       </div>
     </main>
   );
