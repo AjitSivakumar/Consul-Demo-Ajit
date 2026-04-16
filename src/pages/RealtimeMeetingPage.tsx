@@ -190,14 +190,13 @@ export function RealtimeMeetingPage(): React.JSX.Element {
               <div className="pause-icon"><div className="pause-bar" /><div className="pause-bar" /></div>
               Pause
             </button>
-            <button type="button" className="nav-btn deliver" onClick={() => navigate('/deliverables')}>Deliverables</button>
             <button
               type="button"
               className="nav-btn end"
               disabled={state.isGenerating || state.liveStatus === 'ending' || state.liveStatus === 'ended'}
               onClick={() => void ambientAI.endMeeting()}
             >
-              {state.isGenerating ? 'Generating…' : 'End meeting'}
+              {state.isGenerating ? 'Generating…' : state.liveStatus === 'ending' ? 'Ending…' : 'End + Deliver'}
             </button>
             {showResetConfirm ? (
               <>
