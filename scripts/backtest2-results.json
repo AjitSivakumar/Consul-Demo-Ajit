@@ -1,0 +1,455 @@
+{
+  "run_at": "2026-04-15T23:32:24.946Z",
+  "t1_trigger_detection": [
+    {
+      "text": "Hey Ambi, what is the ORR threshold for continuation?",
+      "label": "standard question",
+      "expected": true,
+      "got": true,
+      "extracted": "what is the orr threshold for continuation?",
+      "pass": true
+    },
+    {
+      "text": "ambi can you find the KEYNOTE-024 Grade 2+ AE rate",
+      "label": "no punctuation",
+      "expected": true,
+      "got": true,
+      "extracted": "can you find the keynote-024 grade 2+ ae rate",
+      "pass": true
+    },
+    {
+      "text": "Amby, look up the current Iridium pricing",
+      "label": "amby variant",
+      "expected": true,
+      "got": true,
+      "extracted": "look up the current iridium pricing",
+      "pass": true
+    },
+    {
+      "text": "hambi tell me the pembrolizumab dosing schedule",
+      "label": "hambi variant",
+      "expected": true,
+      "got": true,
+      "extracted": "tell me the pembrolizumab dosing schedule",
+      "pass": true
+    },
+    {
+      "text": "Ambi summarize the enrollment lag",
+      "label": "summarize keyword",
+      "expected": true,
+      "got": true,
+      "extracted": "summarize the enrollment lag",
+      "pass": true
+    },
+    {
+      "text": "Ambi compare the two device specs",
+      "label": "compare keyword",
+      "expected": true,
+      "got": true,
+      "extracted": "compare the two device specs",
+      "pass": true
+    },
+    {
+      "text": "AMBI what is the screen failure rate benchmark?",
+      "label": "uppercase",
+      "expected": true,
+      "got": true,
+      "extracted": "what is the screen failure rate benchmark?",
+      "pass": true
+    },
+    {
+      "text": "Ambi, show me the stakeholder pathway",
+      "label": "show me",
+      "expected": true,
+      "got": true,
+      "extracted": "show me the stakeholder pathway",
+      "pass": true
+    },
+    {
+      "text": "I think ambi this is a good point",
+      "label": "ambi as filler, no question",
+      "expected": false,
+      "got": false,
+      "extracted": null,
+      "pass": true
+    },
+    {
+      "text": "The ambient meeting environment is important",
+      "label": "ambient not ambi",
+      "expected": false,
+      "got": false,
+      "extracted": null,
+      "pass": true
+    },
+    {
+      "text": "What is the ORR threshold?",
+      "label": "question but no ambi",
+      "expected": false,
+      "got": false,
+      "extracted": null,
+      "pass": true
+    },
+    {
+      "text": "Ambi.",
+      "label": "ambi with no content",
+      "expected": false,
+      "got": false,
+      "extracted": null,
+      "pass": true
+    },
+    {
+      "text": "Let ambi handle it",
+      "label": "no question marker",
+      "expected": false,
+      "got": false,
+      "extracted": null,
+      "pass": true
+    },
+    {
+      "text": "Great job ambi",
+      "label": "praise, no question",
+      "expected": false,
+      "got": false,
+      "extracted": null,
+      "pass": true
+    }
+  ],
+  "t2_enrichment_formats": [
+    {
+      "label": "clear metric_grid (3+ named numbers)",
+      "pass": false,
+      "error": "expectedFormat is not defined"
+    },
+    {
+      "label": "clear chart (multi-series time data)",
+      "pass": false,
+      "error": "expectedFormat is not defined"
+    },
+    {
+      "label": "clear correction (wrong vs right)",
+      "pass": false,
+      "error": "expectedFormat is not defined"
+    },
+    {
+      "label": "clear flow (sequential process)",
+      "pass": false,
+      "error": "expectedFormat is not defined"
+    },
+    {
+      "label": "should be none (factual paragraph)",
+      "pass": false,
+      "error": "expectedFormat is not defined"
+    },
+    {
+      "label": "should be none (single stat)",
+      "pass": false,
+      "error": "expectedFormat is not defined"
+    },
+    {
+      "label": "viz-hint forces chart on borderline case",
+      "pass": false,
+      "error": "expectedFormat is not defined"
+    },
+    {
+      "label": "disclaimer-prefixed answer (should strip and still enrich)",
+      "pass": false,
+      "error": "expectedFormat is not defined"
+    }
+  ],
+  "t3_inference_categories": [
+    {
+      "label": "contradiction (AE grading mismatch)",
+      "expectedCategory": "contradiction",
+      "gotCategory": "contradiction",
+      "fired": true,
+      "pass": true,
+      "prompt": "What specific factors make the denominators in KEYNOTE-024 and Dr. Torres' study not directly comparable?"
+    },
+    {
+      "label": "methodology (look-ahead bias in backtest)",
+      "expectedCategory": "methodology",
+      "gotCategory": "contradiction",
+      "fired": true,
+      "pass": false,
+      "prompt": "Is the Sharpe divergence truly indicative of look-ahead bias, or could it stem from other factors in the backtesting methodology?"
+    },
+    {
+      "label": "metric (missing CI context)",
+      "expectedCategory": "metric",
+      "gotCategory": "open_question",
+      "fired": true,
+      "pass": false,
+      "prompt": "What factors should be considered in deciding whether to continue the trial given the ORR of 28 percent versus the 35 percent threshold?"
+    },
+    {
+      "label": "comparison (customer asking for competitor data — sales)",
+      "expectedCategory": "comparison",
+      "gotCategory": "comparison",
+      "fired": true,
+      "pass": true,
+      "prompt": "The GTC Buyer is asking for a comparison between the Iridium GO! and the SPOT Gen4, indicating a need for clarity on how the products stack up against each other."
+    },
+    {
+      "label": "should NOT fire — logistics only",
+      "expectedCategory": null,
+      "gotCategory": null,
+      "fired": false,
+      "pass": true
+    },
+    {
+      "label": "should NOT fire — already resolved topic",
+      "expectedCategory": null,
+      "gotCategory": null,
+      "fired": false,
+      "pass": true
+    }
+  ],
+  "t4_web_search_reliability": [
+    {
+      "question": "What is the Grade 2+ adverse event rate for pembrolizumab in KEYNOTE-024?",
+      "meetingType": "research",
+      "hasCitation": true,
+      "sourceName": null,
+      "sourceUrl": null,
+      "answerLength": 1039,
+      "wordCount": 117,
+      "tokenCount": 250,
+      "truncated": true,
+      "judgment": {
+        "relevance": 10,
+        "accuracy": 9,
+        "hallucination_risk": 1,
+        "completeness": 8,
+        "verdict": "warn",
+        "truncated": true,
+        "notes": "The answer is cut off mid-sentence, leaving out important information."
+      }
+    },
+    {
+      "question": "What is the PS2 screen failure rate benchmark for anti-PD-L1 NSCLC trials?",
+      "meetingType": "research",
+      "hasCitation": true,
+      "sourceName": null,
+      "sourceUrl": null,
+      "answerLength": 1692,
+      "wordCount": 230,
+      "tokenCount": 359,
+      "truncated": true,
+      "judgment": {
+        "relevance": 8,
+        "accuracy": 7,
+        "hallucination_risk": 2,
+        "completeness": 6,
+        "verdict": "warn",
+        "truncated": true,
+        "notes": "The answer provides some relevant information but is cut off and lacks specific benchmarks."
+      }
+    },
+    {
+      "question": "Iridium GO! vs SPOT Gen4 data upload speed and specs comparison",
+      "meetingType": "sales",
+      "hasCitation": true,
+      "sourceName": null,
+      "sourceUrl": null,
+      "answerLength": 2974,
+      "wordCount": 207,
+      "tokenCount": 677,
+      "truncated": true,
+      "judgment": {
+        "relevance": 8,
+        "accuracy": 7,
+        "hallucination_risk": 2,
+        "completeness": 5,
+        "verdict": "warn",
+        "truncated": true,
+        "notes": "The answer is cut off mid-sentence, lacking complete specifications."
+      }
+    },
+    {
+      "question": "What is the current retail price of the Iridium Extreme satellite communicator?",
+      "meetingType": "sales",
+      "hasCitation": false,
+      "sourceName": null,
+      "sourceUrl": null,
+      "answerLength": 1421,
+      "wordCount": 112,
+      "tokenCount": 303,
+      "truncated": true,
+      "judgment": {
+        "relevance": 9,
+        "accuracy": 8,
+        "hallucination_risk": 2,
+        "completeness": 7,
+        "verdict": "warn",
+        "truncated": true,
+        "notes": "The answer provides a price range but is cut off before listing all retailers."
+      }
+    },
+    {
+      "question": "What are typical phase II anti-PD-L1 trial continuation thresholds for NSCLC?",
+      "meetingType": "research",
+      "hasCitation": true,
+      "sourceName": null,
+      "sourceUrl": null,
+      "answerLength": 1932,
+      "wordCount": 223,
+      "tokenCount": 422,
+      "truncated": true,
+      "judgment": {
+        "relevance": 9,
+        "accuracy": 8,
+        "hallucination_risk": 2,
+        "completeness": 7,
+        "verdict": "warn",
+        "truncated": true,
+        "notes": "The answer is cut off mid-sentence, leaving out important information."
+      }
+    },
+    {
+      "question": "What is the backtested vs live Sharpe ratio divergence typical for momentum factors?",
+      "meetingType": "research",
+      "hasCitation": true,
+      "sourceName": null,
+      "sourceUrl": null,
+      "answerLength": 1463,
+      "wordCount": 160,
+      "tokenCount": 314,
+      "truncated": true,
+      "judgment": {
+        "relevance": 9,
+        "accuracy": 8,
+        "hallucination_risk": 2,
+        "completeness": 7,
+        "verdict": "warn",
+        "truncated": true,
+        "notes": "The answer is informative but appears cut off mid-sentence."
+      }
+    }
+  ],
+  "t5_confidence_calibration": [
+    {
+      "q": "What is the published Grade 2+ AE rate in KEYNOTE-024?",
+      "expectedConfHigh": true,
+      "judgment": {
+        "relevance": 5,
+        "accuracy": 6,
+        "hallucination_risk": 2,
+        "completeness": 4,
+        "verdict": "warn",
+        "truncated": true,
+        "notes": "The answer does not provide the specific Grade 2+ AE rate requested."
+      }
+    },
+    {
+      "q": "What is the standard look-ahead bias correction for same-day signal backtest?",
+      "expectedConfHigh": true,
+      "judgment": {
+        "relevance": 9,
+        "accuracy": 8,
+        "hallucination_risk": 2,
+        "completeness": 7,
+        "verdict": "warn",
+        "truncated": true,
+        "notes": "The answer is cut off mid-sentence, leaving the explanation incomplete."
+      }
+    },
+    {
+      "q": "What is the general sentiment around momentum investing?",
+      "expectedConfHigh": false,
+      "judgment": {
+        "relevance": 9,
+        "accuracy": 8,
+        "hallucination_risk": 2,
+        "completeness": 7,
+        "verdict": "warn",
+        "truncated": true,
+        "notes": "The answer is cut off mid-sentence, leaving the conclusion incomplete."
+      }
+    },
+    {
+      "q": "What are some typical regulatory processes?",
+      "expectedConfHigh": false,
+      "judgment": {
+        "relevance": 9,
+        "accuracy": 8,
+        "hallucination_risk": 2,
+        "completeness": 7,
+        "verdict": "warn",
+        "truncated": true,
+        "notes": "The answer is cut off mid-sentence, leaving the explanation incomplete."
+      }
+    }
+  ],
+  "t8_viz_detection_borderline": [
+    {
+      "q": "can you track the enrollment over the trial",
+      "label": "track = time-series intent",
+      "expected": true,
+      "got": false,
+      "pass": false
+    },
+    {
+      "q": "show how the Sharpe ratio changed quarter over quarter",
+      "label": "show + time",
+      "expected": true,
+      "got": false,
+      "pass": false
+    },
+    {
+      "q": "what does the AE rate look like across studies",
+      "label": "\"look like\" ambiguous — not a chart keyword",
+      "expected": false,
+      "got": false,
+      "pass": true
+    },
+    {
+      "q": "map out the stakeholder relationships",
+      "label": "map = flow intent but not in regex",
+      "expected": false,
+      "got": false,
+      "pass": true
+    },
+    {
+      "q": "is there a trend in the data",
+      "label": "trend keyword",
+      "expected": true,
+      "got": true,
+      "pass": true
+    },
+    {
+      "q": "what trends are emerging",
+      "label": "trends keyword",
+      "expected": true,
+      "got": false,
+      "pass": false
+    },
+    {
+      "q": "how does this compare to historical",
+      "label": "compare keyword",
+      "expected": true,
+      "got": true,
+      "pass": true
+    },
+    {
+      "q": "draw a conclusion from the numbers",
+      "label": "draw ≠ chart",
+      "expected": false,
+      "got": false,
+      "pass": true
+    },
+    {
+      "q": "give me a breakdown of the costs",
+      "label": "breakdown ≠ chart (missing from regex)",
+      "expected": false,
+      "got": false,
+      "pass": true
+    },
+    {
+      "q": "show me the data",
+      "label": "\"show me\" without chart noun",
+      "expected": false,
+      "got": false,
+      "pass": true
+    }
+  ]
+}

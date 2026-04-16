@@ -70,46 +70,35 @@ export async function inferNeedsWithAI(
   latestSegment: string,
   ctx: MeetingContextPacket
 ): Promise<InformationNeed[]> {
-  try {
-    const contextBlock = buildContextBlock(ctx);
+  const contextBlock = buildContextBlock(ctx);
+  const userContent = `${contextBlock}\n\nRecent conversation:\n${ctx.recentTranscript}\n\nLatest segment:\n${latestSegment}`;
 
-    const response = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
-      temperature: 0.2,
-      max_tokens: 512,
-      response_format: { type: 'json_object' },
-      messages: [
-        {
-          role: 'system',
-          content: ctx.meetingType === 'research'
-            ? `You are a real-time research copilot embedded in a scientific, clinical, or quantitative analysis meeting. Your job is to surface ONE high-value question that the team should have answered RIGHT NOW — something a senior domain expert would immediately want to look up or verify.
+  function mapNeeds(needs: any[]): InformationNeed[] {
+    return needs.map((need: any, idx: number) => ({
+      id: `need-ai-${Date.now()}-${idx}`,
+      category: need.category || 'claim',
+      prompt: need.prompt || '',
+      rationale: need.rationale || '',
+      triggerPhrase: need.triggerPhrase || undefined,
+      triggeredBySegmentId: `segment-${Date.now()}`,
+      confidence: need.confidence ?? 0.7,
+      priority: 'p1' as const,
+      status: 'new' as const,
+    }));
+  }
 
-Return JSON: { "needs": [...] } or { "needs": [] }
-
-Each need:
-{
-  "category": "hypothesis|methodology|contradiction|correction|metric|open_question",
-  "prompt": "Specific, answerable question a researcher would actually Google or look up — include the exact claim, number, or entity from the conversation",
-  "priority": "p1",
-  "confidence": 0.75-1.0,
-  "rationale": "One sentence: the concrete risk if this isn't checked",
-  "triggerPhrase": "exact 2-5 word phrase from the latest segment that triggered this"
-}
-
-What to catch (fire on the FIRST clear signal):
-- contradiction: a specific number or result that directly conflicts with a named prior study or established benchmark — ask for the specific published figure (e.g. "What was the Grade 2+ AE rate in KEYNOTE-024 supplementary data?")
-- methodology: a statistical or experimental flaw being committed — ask the specific corrective question (e.g. "What is the standard T+1 lag correction for same-day look-ahead bias in backtest signals?")
-- metric: a key number cited without the context needed to interpret it — ask for the benchmark, reference range, or CI that anchors it
-- open_question: an explicit unresolved decision or validation step with a knowable answer — name the specific thing that needs to be checked
-- hypothesis: an unverified causal or mechanistic claim being treated as established fact
-
-Hard rules:
-- 0 or 1 needs only. Never return more than one.
-- The prompt must be answerable from published literature or established standards — not from proprietary databases, unpublished data, or 2024+ papers. If the only good answer requires a database or a very recent paper, skip it.
-- Skip: scheduling, logistics, general discussion without a specific verifiable claim
-- Skip: anything already in the "Already surfaced" list
-- confidence >= 0.65 — fire if you are reasonably sure this gap is real and the answer is findable`
-            : `You are a deal intelligence engine for B2B sales. Your job is to catch ONLY the gaps that could directly lose a deal.
+  // ── Sales mode: single pass, strict ─────────────────────────────────────
+  if (ctx.meetingType !== 'research') {
+    try {
+      const response = await client.chat.completions.create({
+        model: 'gpt-4o-mini',
+        temperature: 0.2,
+        max_tokens: 512,
+        response_format: { type: 'json_object' },
+        messages: [
+          {
+            role: 'system',
+            content: `You are a deal intelligence engine for B2B sales. Your job is to catch ONLY the gaps that could directly lose a deal.
 
 Return JSON: { "needs": [...] } or { "needs": [] }
 
@@ -130,30 +119,114 @@ Strict rules:
 - Skip small talk, general discussion, soft objections
 - correction category ONLY for demonstrably false factual claims, not uncertainty
 - confidence must be >= 0.85 — if in doubt, return empty`,
-        },
+          },
+          { role: 'user', content: userContent },
+        ],
+      });
+      const parsed = JSON.parse(response.choices[0].message.content || '{}');
+      return Array.isArray(parsed.needs) ? mapNeeds(parsed.needs) : [];
+    } catch (err) {
+      console.error('AI inference error:', err);
+      return [];
+    }
+  }
+
+  // ── Research mode: two-tier pass ─────────────────────────────────────────
+  // Tier 1: specific numeric/methodological claims (high confidence bar)
+  // Tier 2 fallback: broader analytical claims when Tier 1 fires nothing
+  try {
+    const tier1Response = await client.chat.completions.create({
+      model: 'gpt-4o-mini',
+      temperature: 0.2,
+      max_tokens: 512,
+      response_format: { type: 'json_object' },
+      messages: [
         {
-          role: 'user',
-          content: `${contextBlock}\n\nRecent conversation:\n${ctx.recentTranscript}\n\nLatest segment:\n${latestSegment}`,
+          role: 'system',
+          content: `You are a real-time research copilot. Surface ONE high-value question the team should verify RIGHT NOW — something anchored to a specific, verifiable claim in the latest segment.
+
+Return JSON: { "needs": [...] } or { "needs": [] }
+
+Each need:
+{
+  "category": "hypothesis|methodology|contradiction|correction|metric|open_question",
+  "prompt": "Specific, answerable question — include the exact claim, number, or entity from the conversation",
+  "priority": "p1",
+  "confidence": 0.70-1.0,
+  "rationale": "One sentence: the concrete risk if this isn't checked",
+  "triggerPhrase": "exact 2-5 word phrase from the latest segment"
+}
+
+Tier 1 targets (fire when any of these are present):
+- contradiction: a specific number or named result that conflicts with a published benchmark
+- methodology: a statistical or experimental flaw actively being committed
+- metric: a key figure cited without the benchmark or CI needed to interpret it
+- open_question: an unresolved factual question with a known, findable answer
+- hypothesis: a causal or mechanistic claim asserted as established fact without citation
+
+Hard rules:
+- 0 or 1 needs only
+- Prompt must be answerable from published literature or established data sources
+- confidence >= 0.70
+- Skip: logistics, scheduling, pure opinion, already-surfaced topics`,
         },
+        { role: 'user', content: userContent },
       ],
     });
 
-    const content = response.choices[0].message.content;
-    if (!content) return [];
-    const parsed = JSON.parse(content);
-    return Array.isArray(parsed.needs)
-      ? parsed.needs.map((need: any, idx: number) => ({
-          id: `need-ai-${Date.now()}-${idx}`,
-          category: need.category || 'claim',
-          prompt: need.prompt || '',
-          rationale: need.rationale || '',
-          triggerPhrase: need.triggerPhrase || undefined,
-          triggeredBySegmentId: `segment-${Date.now()}`,
-          confidence: need.confidence ?? 0.7,
-          priority: 'p1' as const,
-          status: 'new' as const,
-        }))
-      : [];
+    const tier1Parsed = JSON.parse(tier1Response.choices[0].message.content || '{}');
+    const tier1Needs = Array.isArray(tier1Parsed.needs) ? tier1Parsed.needs : [];
+
+    if (tier1Needs.length > 0) {
+      return mapNeeds(tier1Needs);
+    }
+
+    // Tier 2: fallback for general analytical conversation with no sharp numeric claims
+    const tier2Response = await client.chat.completions.create({
+      model: 'gpt-4o-mini',
+      temperature: 0.3,
+      max_tokens: 512,
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content: `You are a real-time research copilot for a general analytical discussion. The conversation doesn't contain a sharp numeric claim right now — but a senior researcher might still want to verify or deepen something.
+
+Surface ONE question ONLY if it would meaningfully improve understanding of the current topic. This is a softer bar than the primary pass.
+
+Return JSON: { "needs": [...] } or { "needs": [] }
+
+Each need:
+{
+  "category": "hypothesis|methodology|open_question|comparison",
+  "prompt": "A specific, answerable question grounded in the current discussion — not a generic 'what is X?' but something that adds a dimension the team hasn't addressed",
+  "priority": "p1",
+  "confidence": 0.55-0.70,
+  "rationale": "One sentence: what analytical gap this fills",
+  "triggerPhrase": "exact 2-5 word phrase from the latest segment"
+}
+
+Good fallback targets:
+- A comparative baseline the team is implicitly assuming but hasn't verified (e.g. "compared to what?" for a trend claim)
+- A confounding variable or alternative explanation not yet mentioned
+- A well-known dataset or study that directly covers what's being discussed
+- A definitional ambiguity that would change the interpretation if resolved differently
+
+Hard rules:
+- 0 or 1 needs only
+- Do NOT fire on: pure opinion, logistics, scheduling, turns that are just questions with no analytical claim
+- Do NOT repeat anything in the Already surfaced list
+- If nothing meaningful can be added, return { "needs": [] }
+- confidence must be >= 0.55`,
+        },
+        { role: 'user', content: userContent },
+      ],
+    });
+
+    const tier2Parsed = JSON.parse(tier2Response.choices[0].message.content || '{}');
+    const tier2Needs = Array.isArray(tier2Parsed.needs) ? tier2Parsed.needs : [];
+    return mapNeeds(tier2Needs);
+
   } catch (err) {
     console.error('AI inference error:', err);
     return [];
@@ -257,10 +330,14 @@ function stripVisualizationDisclaimers(text: string): string {
 }
 
 /**
- * Detect if a question is explicitly asking for a chart, graph, or visual.
+ * Detect if a question is asking for a chart, graph, or time-series visual.
+ * Covers explicit requests ("chart", "graph") and natural language patterns
+ * ("track X over Y", "how has X changed", "trends", "quarter over quarter").
  */
 export function isVisualizationRequest(question: string): boolean {
-  return /\b(chart|graph|plot|visuali[sz]e|visuali[sz]ation|line chart|bar chart|trend|over time|over the (last|past)\s+\d+|timeline|compare|comparison)\b/i.test(question);
+  return /\b(chart|graph|plot|visuali[sz]e|visuali[sz]ation|line chart|bar chart|trends?|over time|over the (last|past)\s+\d+|timeline|compar(e|ison)|track(ing)?|progression|historically|(quarter|month|year|week)[- ]over[- ](quarter|month|year|week))\b/i.test(question)
+    || /how (has|have|did).{0,40}change/i.test(question)
+    || /show.{0,20}(how|what).{0,20}(change|evolv|grow|declin|drop|rise|increas|decreas)/i.test(question);
 }
 
 /**
@@ -302,7 +379,7 @@ export async function enrichResolutionOutput(
           content: `You analyze a Q&A pair and decide if a visual format would genuinely improve comprehension. Default to "none" unless the answer clearly contains structured data that benefits from visualization.
 
 WHEN TO USE EACH FORMAT:
-metric_grid: ONLY when the answer explicitly contains 3+ distinct named numeric metrics (percentages, dollar values, rates, counts) that are meaningfully comparable. Each metric needs label, value, and sub.
+metric_grid: ONLY when the answer explicitly contains 3+ distinct named numeric metrics (percentages, dollar values, rates, counts) that are meaningfully comparable AND each one is the primary subject of its own sentence or bullet. Do NOT use metric_grid for numbers incidentally mentioned mid-sentence (e.g. "47 patients, which is 52% of target" = 1 metric, not 2). Each metric needs label, value, and sub.
 chart: Use when the answer contains a table or time-series data with actual numbers. For multi-column tables (e.g. 5 countries over 10 years), create one dataset per column with the row headers as labels array. Extract ALL numbers — never invent. Set chartType to "line" for time series, "bar" for categories.
 correction: ONLY when the answer directly contradicts a stated or obvious misconception with a clear wrong/right split.
 flow: ONLY when the answer describes a clear sequential process with 3-6 discrete named steps.
@@ -497,6 +574,7 @@ Hard rules:
     const response = await (client.chat.completions.create as any)({
       model: 'gpt-4o-mini-search-preview',
       web_search_options: {},
+      max_tokens: 1500,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: `Meeting context:\n${transcriptContext}\n\nQuestion: ${question}` },
@@ -530,7 +608,7 @@ Hard rules:
       const fallback = await client.chat.completions.create({
         model: 'gpt-4o-mini',
         temperature: meetingType === 'research' ? 0.15 : 0.3,
-        max_tokens: 500,
+        max_tokens: 1000,
         messages: [
           { role: 'system', content: fallbackPrompt },
           { role: 'user', content: `Meeting context:\n${transcriptContext}\n\nQuestion: ${question}` },
