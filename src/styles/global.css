@@ -803,9 +803,9 @@ h1 em {
 .col-right { display:flex; flex-direction:column; overflow:hidden; background:var(--bg-card); min-height:0; }
 
 .col-header { padding:16px 20px 14px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
-.col-title { font-size:11px; color:#888; letter-spacing:0.12em; text-transform:uppercase; font-weight:400; font-family:'DM Mono',monospace; }
+.col-title { font-size:11px; color:#000; letter-spacing:0.12em; text-transform:uppercase; font-weight:400; font-family:'DM Mono',monospace; }
 .col-count { font-size:13px; color:#fff; background:var(--dl-teal-mid); border-radius:20px; padding:3px 12px; }
-.upload-btn { display:flex; align-items:center; gap:6px; font-size:12px; padding:6px 12px; border-radius:0; border:1px solid var(--border); background:none; color:#555; cursor:pointer; font-family:'Work Sans',sans-serif; font-weight:500; transition:background 0.15s,color 0.15s; }
+.upload-btn { display:flex; align-items:center; gap:6px; font-size:12px; padding:6px 12px; border-radius:0; border:1px solid var(--border); background:none; color:#000; cursor:pointer; font-family:'Work Sans',sans-serif; font-weight:500; transition:background 0.15s,color 0.15s; }
 .upload-btn:hover { background:rgba(0,0,0,0.04); color:var(--text-primary); }
 
 /* ── Insights Feed (left column) ── */
@@ -1328,7 +1328,7 @@ h1 em {
 .fc-text strong { color:#FF0050; }
 .fc-btns { display:flex; gap:6px; }
 .fc-btn { flex:1; padding:7px 0; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; text-align:center; border:2px solid rgba(255,0,80,0.4); color:#cc0040; background:rgba(255,0,80,0.1); }
-.fc-btn.remove { border-color:#ddd; color:#888; background:#fff; }
+.fc-btn.remove { border-color:#ddd; color:#000; background:#fff; }
 .fc-btn:hover { opacity:0.8; }
 
 /* Diagram popup card */
@@ -3851,7 +3851,7 @@ h1 em {
 .db-stat-label {
   font-family: 'Work Sans', sans-serif;
   font-size: 12px;
-  color: #888;
+  color: #000;
   font-weight: 400;
 }
 
@@ -3901,7 +3901,7 @@ h1 em {
   font-size: 10px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #aaa;
+  color: #000;
 }
 .db-panel-action {
   font-family: 'Work Sans', sans-serif;
@@ -3948,7 +3948,7 @@ h1 em {
 .db-account-email {
   font-family: 'DM Mono', monospace;
   font-size: 10px;
-  color: #aaa;
+  color: #000;
   letter-spacing: 0.02em;
   white-space: nowrap;
   overflow: hidden;
@@ -3996,7 +3996,7 @@ h1 em {
   flex-shrink: 0;
 }
 .db-group-name { flex: 1; font-family: 'Work Sans', sans-serif; font-size: 13px; font-weight: 500; color: var(--text-primary); }
-.db-row-arrow { font-size: 11px; color: #ccc; }
+.db-row-arrow { font-size: 11px; color: #000; }
 
 /* Settings */
 .db-settings-list { display: flex; flex-direction: column; gap: 0; }
@@ -4012,8 +4012,8 @@ h1 em {
 .db-setting-row:last-child { border-bottom: none; padding-bottom: 0; }
 .db-setting-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .db-setting-key { font-family: 'Work Sans', sans-serif; font-size: 13px; color: var(--text-primary); font-weight: 500; }
-.db-setting-desc { font-family: 'Work Sans', sans-serif; font-size: 11px; color: #aaa; line-height: 1.4; }
-.db-setting-val { font-family: 'DM Mono', monospace; font-size: 10px; color: #999; letter-spacing: 0.02em; white-space: nowrap; flex-shrink: 0; }
+.db-setting-desc { font-family: 'Work Sans', sans-serif; font-size: 11px; color: #000; line-height: 1.4; }
+.db-setting-val { font-family: 'DM Mono', monospace; font-size: 10px; color: #000; letter-spacing: 0.02em; white-space: nowrap; flex-shrink: 0; }
 
 /* Toggle group (Sales / Research) */
 .db-setting-toggle-group { display: flex; border: 1px solid var(--border); flex-shrink: 0; }
@@ -4060,7 +4060,7 @@ h1 em {
 .db-switch--on .db-switch-thumb { transform: translateX(16px); background: #fff; }
 
 /* Common utils */
-.db-muted { font-family: 'Work Sans', sans-serif; font-size: 13px; color: #aaa; }
+.db-muted { font-family: 'Work Sans', sans-serif; font-size: 13px; color: #000; }
 .db-empty-state { display: flex; flex-direction: column; gap: 8px; }
 .db-empty-sessions { padding: 32px 28px; display: flex; flex-direction: column; gap: 8px; }
 .db-ghost-btn {
@@ -4118,7 +4118,7 @@ h1 em {
 .db-preset-card--blank:hover { background: rgba(59,130,246,0.04); }
 .db-preset-icon { font-size: 20px; line-height: 1; margin-bottom: 2px; }
 .db-preset-name { font-family: 'Work Sans', sans-serif; font-size: 13px; font-weight: 600; color: var(--text-primary); line-height: 1.3; }
-.db-preset-desc { font-family: 'Work Sans', sans-serif; font-size: 11px; color: #888; line-height: 1.5; }
+.db-preset-desc { font-family: 'Work Sans', sans-serif; font-size: 11px; color: #000; line-height: 1.5; }
 .db-preset-cta { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.08em; color: #a855f7; margin-top: 4px; text-transform: uppercase; }
 
 /* Session table */
@@ -4136,7 +4136,7 @@ h1 em {
   font-size: 9px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #bbb;
+  color: #000;
 }
 .db-th--actions { text-align: right; }
 .db-session-row {
@@ -4166,8 +4166,8 @@ h1 em {
 .db-td--actions { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
 .db-session-dot { width: 6px; height: 6px; border-radius: 50%; background: #a855f7; flex-shrink: 0; }
 .db-session-group { font-size: 12px; color: var(--text-secondary); }
-.db-session-date { font-family: 'DM Mono', monospace; font-size: 11px; color: #aaa; }
-.db-session-dur { font-family: 'DM Mono', monospace; font-size: 11px; color: #aaa; }
+.db-session-date { font-family: 'DM Mono', monospace; font-size: 11px; color: #000; }
+.db-session-dur { font-family: 'DM Mono', monospace; font-size: 11px; color: #000; }
 
 /* Checkbox */
 .db-checkbox {
