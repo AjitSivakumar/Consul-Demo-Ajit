@@ -26,13 +26,37 @@ type RichFields = Pick<EvidenceCard, 'richChart' | 'richMetricGrid' | 'richCorre
 
 function buildEvidenceFromResult(
   need: InformationNeed,
-  result: { answer: string; source: string; sourceUrl?: string | null; confidence: number; provenance?: 'web_search' | 'model_inference'; rich?: Partial<RichFields> },
+  result: { answer: string; source: string; sourceUrl?: string | null; citations?: Array<{ title: string; url: string }>; confidence: number; provenance?: 'web_search' | 'model_inference'; rich?: Partial<RichFields> },
   fallbackSourceType: 'web' | 'internal_document'
 ): EvidenceCard {
   const sourceType: EvidenceCard['attributions'][number]['sourceType'] =
     result.provenance === 'model_inference' ? 'model_inference'
     : result.provenance === 'web_search' ? 'web'
     : fallbackSourceType;
+
+  const trustScore = sourceType === 'model_inference' ? 0.55 : sourceType === 'web' ? 0.7 : 0.85;
+
+  // Build one attribution per citation (if available), else fall back to single entry
+  const citations = result.citations && result.citations.length > 0 ? result.citations : null;
+  const attributions: EvidenceCard['attributions'] = citations
+    ? citations.map((c, i) => ({
+        sourceId: `src-${sourceType}-${Date.now()}-${i}`,
+        sourceType,
+        title: c.title,
+        url: c.url,
+        freshnessScore: 0.9,
+        trustScore,
+      }))
+    : [
+        {
+          sourceId: `src-${sourceType}-${Date.now()}`,
+          sourceType,
+          title: result.source,
+          url: result.sourceUrl ?? undefined,
+          freshnessScore: 0.9,
+          trustScore,
+        },
+      ];
 
   return {
     id: `evidence-auto-${need.id}-${Date.now()}`,
@@ -42,16 +66,7 @@ function buildEvidenceFromResult(
     kind: 'claim',
     recencyLabel: 'Just resolved',
     confidence: result.confidence,
-    attributions: [
-      {
-        sourceId: `src-${sourceType}-${Date.now()}`,
-        sourceType,
-        title: result.source,
-        url: result.sourceUrl ?? undefined,
-        freshnessScore: 0.9,
-        trustScore: sourceType === 'model_inference' ? 0.55 : sourceType === 'web' ? 0.7 : 0.85,
-      },
-    ],
+    attributions,
     triggeredBySegmentId: need.triggeredBySegmentId,
     explainWhyNow: 'Auto-resolved by Ambi during meeting',
     verification: (sourceType === 'web' || sourceType === 'model_inference') ? 'inferred' : 'verified',

@@ -50,8 +50,6 @@ export function DashboardPage(): React.JSX.Element {
     navigate('/realtime', { state: { autoStart: true, mode } });
   };
 
-  const firstName = user?.user_metadata?.full_name?.split(' ')[0] ?? 'there';
-
   const fmtHours = (min: number) => {
     if (min < 60) return `${min}m`;
     return `${Math.floor(min / 60)}h ${min % 60}m`;
@@ -105,32 +103,6 @@ export function DashboardPage(): React.JSX.Element {
     <main className="dash-wrap">
       <NavBar active="dashboard" />
 
-      {/* ── Page header ── */}
-      <div className="db-page-header">
-        <div className="db-page-header-left">
-          <span className="db-page-eyebrow">DASHBOARD</span>
-          <h1 className="db-page-title">Good to see you, {firstName}.</h1>
-        </div>
-        <button type="button" className="db-start-cta" onClick={() => setShowPreMeeting(true)}>
-          Start a Meeting →
-        </button>
-      </div>
-
-      {/* ── Stats strip ── */}
-      <div className="db-stats-strip">
-        {[
-          { num: sessionsLoading ? '—' : String(stats.total), label: 'Total meetings' },
-          { num: sessionsLoading ? '—' : fmtHours(stats.totalMinutes), label: 'Time in meetings' },
-          { num: sessionsLoading ? '—' : String(stats.thisWeek), label: 'This week' },
-          { num: sessionsLoading ? '—' : String(withDeliverables), label: 'With deliverables' },
-        ].map((s, i) => (
-          <div key={i} className="db-stat-item">
-            <span className="db-stat-num">{s.num}</span>
-            <span className="db-stat-label">{s.label}</span>
-          </div>
-        ))}
-      </div>
-
       {/* ── Two-column body ── */}
       <div className="db-content">
 
@@ -157,6 +129,22 @@ export function DashboardPage(): React.JSX.Element {
               <span className="db-account-badge">Google OAuth</span>
               <span className="db-account-badge db-account-badge--plan">Demo plan</span>
             </div>
+            <div className="db-sidebar-stats">
+              {[
+                { num: sessionsLoading ? '—' : String(stats.total), label: 'Meetings' },
+                { num: sessionsLoading ? '—' : fmtHours(stats.totalMinutes), label: 'Hours' },
+                { num: sessionsLoading ? '—' : String(stats.thisWeek), label: 'This week' },
+                { num: sessionsLoading ? '—' : String(withDeliverables), label: 'Deliverables' },
+              ].map((s, i) => (
+                <div key={i} className="db-sidebar-stat">
+                  <span className="db-sidebar-stat-num">{s.num}</span>
+                  <span className="db-sidebar-stat-label">{s.label}</span>
+                </div>
+              ))}
+            </div>
+            <button type="button" className="db-start-cta db-start-cta--full" onClick={() => setShowPreMeeting(true)}>
+              Start a Meeting →
+            </button>
           </section>
 
           {/* Groups */}

@@ -20,6 +20,7 @@ interface QueryEntry {
   source: 'document' | 'web' | 'model_inference' | null;
   sourceTitle?: string | null;
   sourceUrl?: string | null;
+  citations?: Array<{ title: string; url: string }>;
   rich?: Partial<Pick<EvidenceCard, 'richChart' | 'richMetricGrid' | 'richCorrectionBlock' | 'richFlowDiagram'>>;
 }
 
@@ -132,6 +133,7 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
     let source: QueryEntry['source'] = 'web';
     let sourceTitle: string | null = null;
     let sourceUrl: string | null = null;
+    let citations: QueryEntry['citations'] = [];
     let rich: QueryEntry['rich'] = {};
 
     // Detect if the user explicitly asked for a chart/graph/visualization
@@ -197,6 +199,7 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
       source = webResult.provenance === 'model_inference' ? 'model_inference' : 'web';
       sourceTitle = webResult.source;
       sourceUrl = webResult.sourceUrl;
+      citations = webResult.citations ?? [];
       // Re-enrich with visualization hint if needed
       rich = (vizHint && (!webResult.rich || Object.keys(webResult.rich).length === 0))
         ? await enrichResolutionOutput(q, answer, vizHint)
@@ -210,7 +213,7 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
 
       setQueryHistory((prev) =>
         prev.map((item, i) =>
-          i === prev.length - 1 ? { ...item, answer, source, sourceTitle, sourceUrl, rich } : item
+          i === prev.length - 1 ? { ...item, answer, source, sourceTitle, sourceUrl, citations, rich } : item
         )
       );
     } catch (err) {
@@ -659,14 +662,19 @@ function QueryThread({ entry }: { entry: QueryEntry }): React.JSX.Element {
             {entry.source === 'web' && (
               <>
                 <span className="qr-src-badge qr-src-badge--web">🌐 Live web search</span>
-                {entry.sourceTitle && entry.sourceUrl && (
-                  <a href={entry.sourceUrl} target="_blank" rel="noopener noreferrer" className="qr-src-link">
-                    {entry.sourceTitle} ↗
-                  </a>
-                )}
-                {entry.sourceTitle && !entry.sourceUrl && (
-                  <span className="qr-src-name">{entry.sourceTitle}</span>
-                )}
+                {(entry.citations && entry.citations.length > 0) ? (
+                  <div className="qr-citations">
+                    {entry.citations.map((c, i) => (
+                      <a key={i} href={c.url} target="_blank" rel="noopener noreferrer" className="qr-src-link">
+                        {c.title} ↗
+                      </a>
+                    ))}
+                  </div>
+                ) : entry.sourceTitle ? (
+                  entry.sourceUrl
+                    ? <a href={entry.sourceUrl} target="_blank" rel="noopener noreferrer" className="qr-src-link">{entry.sourceTitle} ↗</a>
+                    : <span className="qr-src-name">{entry.sourceTitle}</span>
+                ) : null}
               </>
             )}
             {entry.source === 'model_inference' && (

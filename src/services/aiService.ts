@@ -551,7 +551,7 @@ export async function resolveGapFromInternet(
   question: string,
   transcriptContext: string,
   meetingType: 'sales' | 'research' = 'sales'
-): Promise<{ answer: string; source: string; sourceUrl: string | null; confidence: number; provenance: 'web_search' | 'model_inference'; rich?: Partial<RichOutput> }> {
+): Promise<{ answer: string; source: string; sourceUrl: string | null; citations: Array<{ title: string; url: string }>; confidence: number; provenance: 'web_search' | 'model_inference'; rich?: Partial<RichOutput> }> {
   const visualNote = `
 
 IMPORTANT — Visual rendering: This interface renders charts and tables automatically from your text output.
@@ -588,15 +588,18 @@ Hard rules:
 
     const answerText = stripInlineCitations(rawAnswer);
 
-    // Extract URL citation from annotations if present
+    // Extract all URL citations from annotations
     const annotations: any[] = choice?.message?.annotations ?? [];
-    const firstCitation = annotations.find((a: any) => a.type === 'url_citation');
-    const sourceUrl: string | null = firstCitation?.url ?? null;
-    const sourceName: string = firstCitation?.title ?? 'Web search';
+    const urlCitations = annotations.filter((a: any) => a.type === 'url_citation');
+    const citations: Array<{ title: string; url: string }> = urlCitations
+      .filter((a: any) => a.url)
+      .map((a: any) => ({ title: a.title || new URL(a.url).hostname.replace(/^www\./, ''), url: a.url }));
+    const sourceUrl: string | null = citations[0]?.url ?? null;
+    const sourceName: string = citations[0]?.title ?? 'Web search';
 
     const confidence = meetingType === 'research' ? 0.78 : 0.82;
     const rich = await enrichResolutionOutput(question, answerText);
-    return { answer: answerText, source: sourceName, sourceUrl, confidence, provenance: 'web_search', rich };
+    return { answer: answerText, source: sourceName, sourceUrl, citations, confidence, provenance: 'web_search', rich };
 
   } catch (err) {
     console.error('Web search error, falling back to GPT knowledge:', err);
@@ -620,13 +623,14 @@ Hard rules:
         answer,
         source: 'GPT-4o (model inference)',
         sourceUrl: null,
+        citations: [],
         confidence: meetingType === 'research' ? 0.55 : 0.65,
         provenance: 'model_inference',
         rich,
       };
     } catch (fallbackErr) {
       console.error('Fallback also failed:', fallbackErr);
-      return { answer: 'Unable to resolve.', source: 'Error', sourceUrl: null, confidence: 0, provenance: 'model_inference' };
+      return { answer: 'Unable to resolve.', source: 'Error', sourceUrl: null, citations: [], confidence: 0, provenance: 'model_inference' };
     }
   }
 }

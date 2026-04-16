@@ -971,6 +971,8 @@ h1 em {
 .qr-src-link { font-size:11px; font-family:'Work Sans',sans-serif; color:var(--accent-blue); text-decoration:none; }
 .qr-src-link:hover { text-decoration:underline; }
 .qr-src-name { font-size:11px; font-family:'Work Sans',sans-serif; color:var(--text-tertiary); }
+.qr-citations { display:flex; flex-wrap:wrap; gap:4px 10px; margin-top:2px; }
+.qr-citations .qr-src-link { font-size:11px; }
 
 .ev-body { flex:1; min-height:0; padding:24px 28px; display:flex; flex-direction:column; gap:20px; overflow-y:auto; background:var(--bg-card); }
 .ev-section-label { font-size:11px; color:var(--text-tertiary); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:12px; }
@@ -3778,6 +3780,39 @@ h1 em {
   white-space: nowrap;
 }
 .db-start-cta:hover { opacity: 0.88; box-shadow: 0 4px 20px rgba(15,31,74,0.32); }
+.db-start-cta--full { width: 100%; justify-content: center; margin-top: 12px; }
+
+/* Sidebar stats (2×2 compact grid inside account panel) */
+.db-sidebar-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  margin-top: 12px;
+}
+.db-sidebar-stat {
+  background: var(--surface);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.db-sidebar-stat-num {
+  font-family: 'Work Sans', sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.db-sidebar-stat-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
 
 /* Stats strip */
 .db-stats-strip {
