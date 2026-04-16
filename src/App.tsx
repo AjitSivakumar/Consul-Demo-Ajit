@@ -8,10 +8,13 @@ import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
 import { RealtimeMeetingPage } from './pages/RealtimeMeetingPage';
 import { MeetingStoreProvider } from './state/MeetingStore';
+import { supabase } from './lib/supabase';
 import { useAuth } from './hooks/useAuth';
 
 function RequireAuth({ children }: { children: React.ReactNode }): React.JSX.Element {
   const { user, loading } = useAuth();
+  // If Supabase isn't configured yet, skip auth entirely — app runs in open mode
+  if (!supabase) return <>{children}</>;
   if (loading) return <div className="lp-wrap"><div className="lp-body"><p className="lp-sub">Loading…</p></div></div>;
   if (!user) return <Navigate to="/login" replace />;
   return <>{children}</>;
