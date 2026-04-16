@@ -37,7 +37,7 @@ export function useGroups() {
   const [loading, setLoading] = useState(true);
 
   const fetchGroups = useCallback(async () => {
-    if (!user) return;
+    if (!user || !supabase) return;
     const { data } = await supabase
       .from('group_members')
       .select('groups(*)')
@@ -48,7 +48,7 @@ export function useGroups() {
 
   // Accept any pending invites for this user's email
   const acceptPendingInvites = useCallback(async () => {
-    if (!user?.email) return;
+    if (!user?.email || !supabase) return;
     const { data: invites } = await supabase
       .from('group_invites')
       .select('*')
@@ -70,6 +70,7 @@ export function useGroups() {
 
   const createGroup = async (name: string): Promise<{ group: Group | null; error: string | null }> => {
     if (!user) return { group: null, error: 'Not signed in' };
+    if (!supabase) return { group: null, error: 'Supabase not configured' };
 
     const { data: groupId, error } = await supabase.rpc('create_group_with_member', { group_name: name });
 
@@ -94,7 +95,7 @@ export function useGroupDetail(groupId: string) {
   const [loading, setLoading] = useState(true);
 
   const fetchAll = useCallback(async () => {
-    if (!user || !groupId) return;
+    if (!user || !groupId || !supabase) return;
 
     const [{ data: groupData }, { data: membersData }, { data: sessionsData }] = await Promise.all([
       supabase.from('groups').select('*').eq('id', groupId).single(),
@@ -111,6 +112,7 @@ export function useGroupDetail(groupId: string) {
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   const inviteByEmail = async (email: string): Promise<'added' | 'invited' | 'error'> => {
+    if (!supabase) return 'error';
     // Check if email already has an account
     const { data: profile } = await supabase.from('profiles').select('id').eq('email', email).single();
     if (profile) {
@@ -125,11 +127,13 @@ export function useGroupDetail(groupId: string) {
   };
 
   const removeMember = async (userId: string) => {
+    if (!supabase) return;
     await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', userId);
     await fetchAll();
   };
 
   const deleteGroup = async (): Promise<{ error: string | null }> => {
+    if (!supabase) return { error: 'Supabase not configured' };
     const { error } = await supabase.rpc('delete_group', { target_group_id: groupId });
     if (error) return { error: error.message };
     return { error: null };
@@ -151,7 +155,7 @@ export function useRecentSessions() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !supabase) return;
     (async () => {
       // Get all group IDs the user belongs to
       const { data: memberships } = await supabase

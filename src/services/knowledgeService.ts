@@ -29,6 +29,7 @@ const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000;
  * Load all active documents for a group from Supabase.
  */
 export async function loadGroupKnowledge(groupId: string): Promise<KnowledgeDoc[]> {
+  if (!supabase) return [];
   const { data, error } = await supabase
     .from('group_documents')
     .select('id, name, summary, tags, entities, category, drive_modified_at, synced_at')
@@ -137,6 +138,7 @@ export async function semanticSearch(query: string, groupId: string): Promise<Kn
   const embeddingData = await embeddingResponse.json();
   const embedding: number[] = embeddingData.data[0].embedding;
 
+  if (!supabase) return [];
   const { data, error } = await supabase.rpc('search_group_documents', {
     query_embedding: embedding,
     target_group_id: groupId,
@@ -170,6 +172,7 @@ export async function semanticSearch(query: string, groupId: string): Promise<Kn
  * Fetch the full text content of a single document.
  */
 export async function fetchDocumentContent(docId: string): Promise<string | null> {
+  if (!supabase) return null;
   const { data, error } = await supabase
     .from('group_documents')
     .select('content')

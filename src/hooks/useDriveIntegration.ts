@@ -32,7 +32,7 @@ export function useDriveIntegration(groupId: string) {
     if (session?.access_token) {
       return `Bearer ${session.access_token}`;
     }
-    const { data } = await supabase.auth.getSession();
+    const { data } = await supabase?.auth.getSession() ?? { data: { session: null } };
     return `Bearer ${data.session?.access_token ?? ''}`;
   }, [session]);
 
@@ -70,7 +70,7 @@ export function useDriveIntegration(groupId: string) {
   }, [groupId, getAuthHeader]);
 
   const connect = useCallback(async () => {
-    const { data, error: userError } = await supabase.auth.getUser();
+    const { data, error: userError } = await supabase?.auth.getUser() ?? { data: { user: null }, error: new Error('No supabase') };
 
     if (userError || !data.user) {
       setError('You must be signed in to connect Google Drive.');
@@ -126,6 +126,7 @@ export function useDriveIntegration(groupId: string) {
     setError(null);
 
     try {
+      if (!supabase) return;
       const { error: deleteError } = await supabase
         .from('group_integrations')
         .delete()

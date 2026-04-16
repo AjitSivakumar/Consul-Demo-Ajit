@@ -18,6 +18,7 @@ export function AuthCallbackPage(): React.JSX.Element {
 
       if (accessToken && refreshToken) {
         setStatus('Setting session…');
+        if (!supabase) { setStatus('Error: Supabase not configured'); return; }
         supabase.auth
           .setSession({ access_token: accessToken, refresh_token: refreshToken })
           .then(({ data: { session }, error }) => {
@@ -34,6 +35,7 @@ export function AuthCallbackPage(): React.JSX.Element {
     }
 
     setStatus('No hash tokens — checking existing session…');
+    if (!supabase) { setStatus('Error: Supabase not configured'); return; }
     supabase.auth.getSession().then(({ data: { session } }) => {
       console.log('[auth-callback] getSession:', !!session);
       window.location.replace(session ? '/' : '/login');

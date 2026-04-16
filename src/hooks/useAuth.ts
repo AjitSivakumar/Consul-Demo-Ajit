@@ -19,6 +19,7 @@ export function useAuth(): AuthState & {
   });
 
   useEffect(() => {
+    if (!supabase) { setState(s => ({ ...s, loading: false })); return; }
     supabase.auth.getSession().then(({ data: { session } }) => {
       setState({ user: session?.user ?? null, session, loading: false });
     });
@@ -31,7 +32,7 @@ export function useAuth(): AuthState & {
   }, []);
 
   const signInWithGoogle = async () => {
-    await supabase.auth.signInWithOAuth({
+    await supabase?.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
@@ -40,7 +41,7 @@ export function useAuth(): AuthState & {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    await supabase?.auth.signOut();
   };
 
   return { ...state, signInWithGoogle, signOut };

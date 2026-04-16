@@ -80,7 +80,7 @@ export function RealtimeMeetingPage(): React.JSX.Element {
 
   // Save session to Supabase when meeting ends
   useEffect(() => {
-    if (state.liveStatus !== 'ended' || !user || !state.groupId) return;
+    if (state.liveStatus !== 'ended' || !user || !state.groupId || !supabase) return;
     supabase.from('meeting_sessions').insert({
       group_id: state.groupId,
       created_by: user.id,
