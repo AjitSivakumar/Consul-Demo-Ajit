@@ -71,4 +71,6 @@ export interface GeneratedDeliverables {
   actions?: ActionElement;
   slides?: SlideElement;
   generatedAt?: string;
+  /** Set when deliverable is generated from a hardcoded preset — used by DeliverablesPage to pick the right component */
+  presetId?: string;
 }

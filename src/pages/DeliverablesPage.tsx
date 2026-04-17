@@ -40,8 +40,9 @@ export function DeliverablesPage(): React.JSX.Element {
     navigate('/realtime');
   };
   const g = state.generatedContent;
-  const isChenLabPreset = state.activePresetId === 'chen-tobin-heat' || state.activePresetId === 'chen-tobin-heat-auto';
-  const isPatelLabPreset = state.activePresetId === 'patel-lab-vaccine';
+  const isChenLabPreset = g.presetId === 'chen-tobin-heat' || g.presetId === 'chen-tobin-heat-auto'
+    || state.activePresetId === 'chen-tobin-heat' || state.activePresetId === 'chen-tobin-heat-auto';
+  const isPatelLabPreset = g.presetId === 'patel-lab-vaccine' || state.activePresetId === 'patel-lab-vaccine';
   const hasContent = Boolean(g.research || g.qa || g.actions) || ((isChenLabPreset || isPatelLabPreset) && state.liveStatus === 'ended');
 
   const handleDownloadPDF = (): void => {

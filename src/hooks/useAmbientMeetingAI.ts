@@ -463,8 +463,9 @@ export function useAmbientMeetingAI(): {
 
     // Inject hardcoded deliverable for Chen Lab / Patel Lab presets — component is self-contained
     if (s.activePresetId && CHEN_LAB_PRESET_IDS.has(s.activePresetId)) {
+      const presetId = s.activePresetId;
       setTimeout(() => {
-        dispatch({ type: 'SET_GENERATED_CONTENT', payload: { generatedAt: new Date().toISOString() } });
+        dispatch({ type: 'SET_GENERATED_CONTENT', payload: { generatedAt: new Date().toISOString(), presetId } });
       }, 1800);
       return;
     }
