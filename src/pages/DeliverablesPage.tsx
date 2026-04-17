@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { NavBar } from '../components/common/NavBar';
 import { ActionList } from '../components/deliverables/ActionList';
 import { ChenLabDeliverable } from '../components/deliverables/ChenLabDeliverable';
+import { PatelLabDeliverable } from '../components/deliverables/PatelLabDeliverable';
 import { QASection } from '../components/deliverables/QASection';
 import { ResearchCard } from '../components/deliverables/ResearchCard';
 import { SlideGrid } from '../components/deliverables/SlideGrid';
@@ -40,7 +41,8 @@ export function DeliverablesPage(): React.JSX.Element {
   };
   const g = state.generatedContent;
   const isChenLabPreset = state.activePresetId === 'chen-tobin-heat' || state.activePresetId === 'chen-tobin-heat-auto';
-  const hasContent = Boolean(g.research || g.qa || g.actions) || (isChenLabPreset && state.liveStatus === 'ended');
+  const isPatelLabPreset = state.activePresetId === 'patel-lab-vaccine';
+  const hasContent = Boolean(g.research || g.qa || g.actions) || ((isChenLabPreset || isPatelLabPreset) && state.liveStatus === 'ended');
 
   const handleDownloadPDF = (): void => {
     window.print();
@@ -81,6 +83,8 @@ export function DeliverablesPage(): React.JSX.Element {
         <DeliverableErrorBoundary>
         {isChenLabPreset && state.liveStatus === 'ended' ? (
           <div className="dl-main"><ChenLabDeliverable /></div>
+        ) : isPatelLabPreset && state.liveStatus === 'ended' ? (
+          <div className="dl-main"><PatelLabDeliverable /></div>
         ) : !hasContent ? (
           <div className="dl-empty">
             <div className="dl-empty-title">No deliverables generated yet</div>

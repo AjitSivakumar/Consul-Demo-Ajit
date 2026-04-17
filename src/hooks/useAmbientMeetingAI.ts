@@ -18,7 +18,7 @@ import type { KnowledgeDoc } from '../services/knowledgeService';
 import { useMeetingStore } from '../state/MeetingStore';
 import type { EvidenceCard, InformationNeed } from '../types/domain';
 
-const CHEN_LAB_PRESET_IDS = new Set(['chen-tobin-heat', 'chen-tobin-heat-auto']);
+const CHEN_LAB_PRESET_IDS = new Set(['chen-tobin-heat', 'chen-tobin-heat-auto', 'patel-lab-vaccine']);
 
 const GENERATION_TIMEOUT_MS = 30000;
 
