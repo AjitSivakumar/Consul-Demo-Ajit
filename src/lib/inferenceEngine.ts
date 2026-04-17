@@ -34,7 +34,7 @@ const demoTriggers: Array<{
  presetId: string;
  detect: (text: string) => boolean;
  detectAssist?: (text: string) => boolean;
- needs: Array<{ category: InformationNeed['category']; prompt: string; triggerPhrase: string; demoEvidence: DemoEvidence; isProactiveDemoTrigger?: boolean; proactiveHeadline?: string; proactiveImportance?: number; }>;
+ needs: Array<{ category: InformationNeed['category']; prompt: string; triggerPhrase: string; demoEvidence: DemoEvidence; resolveDelayMs?: number; isProactiveDemoTrigger?: boolean; proactiveHeadline?: string; proactiveImportance?: number; }>;
 }> = [
  // Trigger A: Comparison table Extreme vs GO! feature breakdown
  {
@@ -634,6 +634,7 @@ const demoTriggers: Array<{
   category: 'correction' as InformationNeed['category'],
   prompt: 'Roseland\'s 52% figure reflects a clinic closure — not underlying demand — leading with it is a credibility risk',
   triggerPhrase: 'A community clinic closed in Roseland right in the middle of data collection. That number reflects a supply disruption, not real demand.',
+  resolveDelayMs: 1500,
   isProactiveDemoTrigger: false,
   demoEvidence: {
    title: 'Roseland\'s 52% figure is a supply disruption signal — not a demand signal',
@@ -732,6 +733,7 @@ export function inferInformationNeeds(event: TranscriptEvent, assistMode = false
   priority: 'p1',
   status: 'new',
   demoEvidence: t.demoEvidence,
+  resolveDelayMs: t.resolveDelayMs,
   isProactiveDemoTrigger: t.isProactiveDemoTrigger,
   proactiveHeadline: t.proactiveHeadline,
   proactiveImportance: t.proactiveImportance,

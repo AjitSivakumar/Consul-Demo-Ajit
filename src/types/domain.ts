@@ -52,6 +52,7 @@ export interface InformationNeed {
   priority: 'p1' | 'p2' | 'p3';
   status: 'new' | 'retrieving' | 'resolved' | 'unresolved' | 'kept' | 'dismissed' | 'failed';
   demoEvidence?: Omit<EvidenceCard, 'id' | 'needId' | 'triggeredBySegmentId'>;
+  resolveDelayMs?: number;
   isProactiveDemoTrigger?: boolean;
   proactiveHeadline?: string;
   proactiveImportance?: number;

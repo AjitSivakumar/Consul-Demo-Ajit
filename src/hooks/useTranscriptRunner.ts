@@ -133,6 +133,27 @@ export function useTranscriptRunner(): {
     presetCursorRef.current = 0;
     const events = state.presetTranscript;
 
+    // If the preset encodes demo-paced timestamps (total span < 30s), use them for variable
+    // per-event delays. Otherwise fall back to a uniform 2500ms interval.
+    const firstMs = new Date(events[0].timestampIso).getTime();
+    const lastMs = new Date(events[events.length - 1].timestampIso).getTime();
+    const useDemoTiming = (lastMs - firstMs) < 30_000;
+
+    if (useDemoTiming) {
+      const timers: number[] = [];
+      events.forEach((evt, i) => {
+        const delay = new Date(evt.timestampIso).getTime() - firstMs;
+        const t = window.setTimeout(() => {
+          dispatch({ type: 'PROCESS_EVENT', payload: evt });
+          if (i === events.length - 1) {
+            dispatch({ type: 'CLEAR_PRESET_TRANSCRIPT' });
+          }
+        }, delay);
+        timers.push(t);
+      });
+      return () => timers.forEach((t) => window.clearTimeout(t));
+    }
+
     const timer = window.setInterval(() => {
       if (presetCursorRef.current >= events.length) {
         window.clearInterval(timer);

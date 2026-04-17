@@ -117,7 +117,8 @@ export function useAmbientMeetingAI(): {
       autoResolveQueue.current.add(need.id);
 
       // 3s stagger per gap so each is fully resolved before the next shows progress
-      const delay = i * 3000;
+      // For demo needs, also honour resolveDelayMs from the trigger definition
+      const delay = need.demoEvidence ? (need.resolveDelayMs ?? 0) : i * 3000;
 
       setTimeout(() => {
         void (async () => {
