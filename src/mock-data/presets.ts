@@ -277,57 +277,7 @@ export const meetingPresets: MeetingPreset[] = [
   deliverableTargets: ['Zip code shortlist memo', 'Site approval pathway diagram', 'Board pitch deck'],
   confidenceByTheme: {}
  },
- transcript: [
-  {
-  id: 'evt-pvs-1',
-  segmentId: 'seg-pvs-1',
-  timestampIso: '2026-04-17T10:00:00.000Z',
-  speaker: 'James',
-  text: 'The foundation wants three pilot sites this fall. I need a shortlist of zip codes I can actually defend to the board.'
-  },
-  {
-  id: 'evt-pvs-2',
-  segmentId: 'seg-pvs-2',
-  timestampIso: '2026-04-17T10:00:01.800Z',
-  speaker: 'Priya',
-  text: 'I have the data. But not all of the uptake numbers are equally reliable — some I\'m confident in, one I\'m not. It depends which zip codes you\'re looking at.'
-  },
-  {
-  id: 'evt-pvs-3',
-  segmentId: 'seg-pvs-3',
-  timestampIso: '2026-04-17T10:00:03.600Z',
-  speaker: 'James',
-  text: 'Okay — which ones are solid? Walk me through the ones you\'d actually anchor on.'
-  },
-  {
-  id: 'evt-pvs-4',
-  segmentId: 'seg-pvs-4',
-  timestampIso: '2026-04-17T10:00:05.600Z',
-  speaker: 'Priya',
-  text: 'Little Village, Garfield Park, West Englewood — all stable, thirty-eight to forty-four percent unvaccinated. But placing a clinic in any of them needs sign-off from the hospital network, the city health department, and whoever hosts the site. It\'s not one approval — it\'s three, and they don\'t run in order.'
-  },
-  {
-  id: 'evt-pvs-5',
-  segmentId: 'seg-pvs-5',
-  timestampIso: '2026-04-17T10:00:08.100Z',
-  speaker: 'James',
-  text: 'What about Roseland? That fifty-two percent figure is the most striking number in the dataset. The board will definitely ask.'
-  },
-  {
-  id: 'evt-pvs-6',
-  segmentId: 'seg-pvs-6',
-  timestampIso: '2026-04-17T10:00:11.600Z',
-  speaker: 'Priya',
-  text: 'A community clinic closed in Roseland right in the middle of data collection. That number reflects a supply disruption, not real demand. Lead with it and someone will find the closure — and then everything else looks suspect too.'
-  },
-  {
-  id: 'evt-pvs-7',
-  segmentId: 'seg-pvs-7',
-  timestampIso: '2026-04-17T10:00:14.100Z',
-  speaker: 'James',
-  text: 'Roseland\'s off the shortlist for now. Little Village, Garfield Park, West Englewood — let\'s build the pitch around those three.'
-  },
- ]
+ transcript: []
  },
  ...researchPresets,
 ];

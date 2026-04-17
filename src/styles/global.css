@@ -981,6 +981,18 @@ h1 em {
 .ev-section-label { font-size:11px; color:var(--text-tertiary); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:12px; }
 
 /* ── Caution source list ── */
+.dd-sources-section { background:var(--bg-subtle); border:1px solid var(--border); border-radius:8px; padding:12px 14px; }
+.dd-sources-label { font-size:8px; font-family:'DM Mono',monospace; text-transform:uppercase; letter-spacing:.12em; color:var(--text-tertiary); margin-bottom:9px; font-weight:600; }
+.dd-sources-list { display:flex; flex-direction:column; gap:0; }
+.dd-source-item { display:flex; align-items:flex-start; gap:10px; padding:7px 0; border-bottom:1px solid var(--border); }
+.dd-source-item:first-child { padding-top:0; }
+.dd-source-item:last-child { border-bottom:none; padding-bottom:0; }
+.dd-source-num { font-size:9px; font-family:'DM Mono',monospace; color:#1d4ed8; background:rgba(29,78,216,0.08); border:1px solid rgba(29,78,216,0.2); border-radius:3px; padding:1px 6px; flex-shrink:0; margin-top:1px; }
+.dd-source-body { display:flex; flex-direction:column; gap:2px; min-width:0; }
+.dd-source-title-link { font-size:11px; font-weight:500; color:#1d4ed8; text-decoration:none; line-height:1.4; }
+.dd-source-title-link:hover { text-decoration:underline; }
+.dd-source-title-plain { font-size:11px; font-weight:500; color:var(--text-primary); line-height:1.4; }
+.dd-source-domain { font-size:9px; font-family:'DM Mono',monospace; color:var(--text-tertiary); }
 .caution-sources { background:var(--bg-subtle); border:1px solid var(--border); border-radius:8px; padding:10px 12px; }
 .cs-label { font-size:8px; font-family:'DM Mono',monospace; text-transform:uppercase; letter-spacing:.1em; color:var(--text-tertiary); margin-bottom:7px; }
 .cs-item { display:flex; align-items:flex-start; gap:8px; margin-bottom:7px; padding-bottom:7px; border-bottom:1px solid var(--border); }

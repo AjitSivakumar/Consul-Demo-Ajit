@@ -411,6 +411,30 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
         {evidence?.richCorrectionBlock && <CorrectionBlock block={evidence.richCorrectionBlock} />}
         {evidence?.richFlowDiagram && <FlowDiagram flow={evidence.richFlowDiagram} />}
 
+        {!isCaution && !isDiagram && evidence && evidence.attributions.some(a => a.url || a.sourceType !== 'model_inference') && (
+          <div className="dd-sources-section">
+            <div className="dd-sources-label">Sources</div>
+            <div className="dd-sources-list">
+              {evidence.attributions.map((attr, i) => (
+                <div key={attr.sourceId} className="dd-source-item">
+                  <span className="dd-source-num">{i + 1}</span>
+                  <div className="dd-source-body">
+                    {attr.url ? (
+                      <a href={attr.url} target="_blank" rel="noopener noreferrer" className="dd-source-title-link">
+                        {attr.title}
+                      </a>
+                    ) : (
+                      <span className="dd-source-title-plain">{attr.title}</span>
+                    )}
+                    {attr.url && (
+                      <span className="dd-source-domain">{attr.url.replace(/^https?:\/\//, '').split('/')[0]}</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {isCaution && evidence && evidence.attributions.length > 0 && (
           <div className="caution-sources">
