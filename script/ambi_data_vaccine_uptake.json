@@ -1,0 +1,91 @@
+{
+  "document": {
+    "title": "Patel Lab — Vaccine Uptake by Zip Code and Income Level: Chicago Pilot Analysis",
+    "source": "CPHD Community Health Equity Lab — Internal Working Dataset v3 (not peer reviewed)",
+    "uploaded_by": "Priya Patel",
+    "date": "2026-03-20",
+    "ambi_context": "Zip code targeting data for mobile vaccine clinic rollout pitch — Children's Hospital Foundation meeting"
+  },
+  "metadata": {
+    "study_population": "Residents aged 6 months and older, Chicago metro zip codes, 2023–2025",
+    "n_total": 61840,
+    "exposure_definition": "Vaccine uptake = % of eligible residents with up-to-date vaccination status per zip code",
+    "outcome": "Proportion unvaccinated or under-vaccinated (<37 weeks gestation)",
+    "geographic_unit": "Zip code",
+    "zip_codes_included": ["60623", "60624", "60628", "60632", "60636"],
+    "note_on_60628": "Roseland (60628) zip code — major community clinic closed mid-data-collection in Oct 2024; uptake figures reflect a supply disruption, not underlying demand"
+  },
+  "uptake_by_zip": [
+    {
+      "zip_code": "60623",
+      "neighborhood": "Little Village",
+      "income_quartile": "Q1 (lowest)",
+      "pct_unvaccinated": 38,
+      "ci_lower": 35,
+      "ci_upper": 41,
+      "p_value": 0.0001,
+      "clinic_closed_flag": false,
+      "stability": "stable",
+      "note": "Consistent low uptake across 2023–2025 data collection window"
+    },
+    {
+      "zip_code": "60624",
+      "neighborhood": "Garfield Park",
+      "income_quartile": "Q1 (lowest)",
+      "pct_unvaccinated": 41,
+      "ci_lower": 37,
+      "ci_upper": 45,
+      "p_value": 0.0001,
+      "clinic_closed_flag": false,
+      "stability": "stable",
+      "note": "Second highest unvaccinated rate; stable across collection window"
+    },
+    {
+      "zip_code": "60628",
+      "neighborhood": "Roseland",
+      "income_quartile": "Q1 (lowest)",
+      "pct_unvaccinated": 52,
+      "ci_lower": 46,
+      "ci_upper": 58,
+      "p_value": 0.0001,
+      "clinic_closed_flag": true,
+      "stability": "in_flux",
+      "note": "⚠ Primary community clinic closed Oct 2024 mid-collection. Elevated unvaccinated rate likely reflects access disruption, not stable underlying demand. Do not anchor pilot justification on this figure without flagging."
+    },
+    {
+      "zip_code": "60632",
+      "neighborhood": "Brighton Park",
+      "income_quartile": "Q2",
+      "pct_unvaccinated": 29,
+      "ci_lower": 26,
+      "ci_upper": 32,
+      "p_value": 0.0003,
+      "clinic_closed_flag": false,
+      "stability": "stable",
+      "note": null
+    },
+    {
+      "zip_code": "60636",
+      "neighborhood": "West Englewood",
+      "income_quartile": "Q1 (lowest)",
+      "pct_unvaccinated": 44,
+      "ci_lower": 40,
+      "ci_upper": 48,
+      "p_value": 0.0001,
+      "clinic_closed_flag": false,
+      "stability": "stable",
+      "note": "Consistent high unvaccinated rate; stable and strong candidate for pilot"
+    }
+  ],
+  "conservative_anchor": {
+    "recommended_zip": "60624 — Garfield Park",
+    "pct_unvaccinated_conservative": 37,
+    "rationale": "CI lower bound for Garfield Park — holds even if minor data cleaning shifts the central estimate. Stable across full collection window. Suitable for pilot justification without caveats.",
+    "james_note": "This is the number that survives scrutiny with highest probability. Roseland looks more dramatic but the foundation board will ask questions we can't answer cleanly yet."
+  },
+  "key_finding": {
+    "summary": "Lowest-income zip codes show consistently high unvaccinated rates — 38–44% in stable estimates. The Roseland figure (52%) is an outlier driven by a clinic closure, not a reliable signal of underlying need.",
+    "directionality_stable": true,
+    "policy_implication": "Pattern supports targeting Little Village, Garfield Park, and West Englewood for the first three mobile clinic placements. Roseland should be flagged as a future phase once the clinic access situation is resolved."
+  }
+}

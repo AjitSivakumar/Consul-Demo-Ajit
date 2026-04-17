@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ambi — Caution · Roseland Data Flag</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital,wght@0,400;1,400&family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f4f0;--panel:#fff;--border:#e4e2dc;--border-mid:#ccc9c0;
+  --t1:#1a1a18;--t2:#6b6a66;--t3:#a8a7a2;
+  --green:#1a7a45;--bg-green:#edf7f1;--border-green:#b8e0c8;
+  --red:#b8291c;--bg-red:#fdf2f0;--border-red:#eeb8b0;
+  --warn:#7a4a1a;--bg-warn:#fdf3e8;--border-warn:#e0c090;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t1);min-height:100vh;padding:32px}
+
+/* COLLAPSED */
+.collapsed-card{background:#fff;border:1.5px solid var(--border-red);border-radius:14px;padding:16px 20px;max-width:500px;cursor:pointer;transition:all .2s;display:flex;align-items:flex-start;gap:14px}
+.collapsed-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);border-color:#d84030}
+.cc-icon{width:36px;height:36px;border-radius:10px;background:var(--bg-red);border:1px solid var(--border-red);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;margin-top:2px}
+.cc-content{flex:1}
+.cc-label{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--red);margin-bottom:4px}
+.cc-title{font-size:13px;font-weight:500;color:var(--t1);line-height:1.4;margin-bottom:5px}
+.cc-preview{font-size:12px;color:var(--t2);font-weight:300;line-height:1.6;margin-bottom:5px}
+.cc-trigger{font-size:11px;color:var(--t3);font-style:italic;font-weight:300}
+.cc-expand{font-size:9px;font-family:'DM Mono',monospace;color:var(--t3);flex-shrink:0;padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:#f5f4f0;margin-top:2px}
+
+.sep{height:36px}
+
+/* EXPANDED */
+.expanded-card{background:#fff;border:1.5px solid var(--border-red);border-radius:14px;max-width:640px;overflow:hidden}
+.exp-header{background:var(--bg-red);border-bottom:1px solid var(--border-red);padding:14px 20px;display:flex;align-items:center;gap:12px}
+.exp-icon{width:32px;height:32px;border-radius:8px;background:#fff;border:1px solid var(--border-red);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.exp-label{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--red);margin-bottom:3px}
+.exp-title{font-size:14px;font-weight:500;color:var(--t1)}
+.exp-body{padding:20px 24px 20px}
+.exp-intro{font-size:12.5px;color:var(--t2);font-weight:300;line-height:1.65;margin-bottom:16px}
+
+.trig-box{background:#f5f4f0;border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:16px}
+.trig-label{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--t3);margin-bottom:4px}
+.trig-text{font-size:12px;color:var(--t2);font-style:italic;line-height:1.6}
+
+/* NUMBER CALLOUT */
+.num-callout{background:var(--bg-warn);border:1px solid var(--border-warn);border-radius:10px;padding:14px 16px;margin-bottom:14px;display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center}
+.num-big{font-family:'Instrument Serif',serif;font-size:44px;color:var(--red);line-height:1;letter-spacing:-1px}
+.num-text{font-size:12.5px;line-height:1.7;font-weight:300;color:#5a1010}
+.num-text strong{font-weight:500}
+
+/* SCENARIO GRID */
+.sc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.sc-card{border-radius:10px;padding:13px 14px;border:1px solid}
+.sc-risk{background:var(--bg-warn);border-color:var(--border-warn)}
+.sc-safe{background:var(--bg-green);border-color:var(--border-green)}
+.sc-label{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px}
+.sc-risk .sc-label{color:var(--warn)}.sc-safe .sc-label{color:var(--green)}
+.sc-text{font-size:12px;line-height:1.65;font-weight:300}
+.sc-risk .sc-text{color:#5a3010}.sc-safe .sc-text{color:#1a3a28}
+.sc-text strong{font-weight:500}
+
+/* SOURCES */
+.src-section{border-top:1px solid var(--border);padding-top:14px;display:flex;flex-direction:column;gap:10px}
+.src-item{display:flex;gap:10px;align-items:flex-start}
+.src-tag{display:inline-block;font-size:9px;font-family:'DM Mono',monospace;color:var(--t3);background:#f5f4f0;border:1px solid var(--border);border-radius:4px;padding:2px 8px;flex-shrink:0;margin-top:1px}
+.src-desc{font-size:11px;color:var(--t2);font-weight:300;line-height:1.55}
+</style>
+</head>
+<body>
+
+<div style="font-size:11px;font-family:'DM Mono',monospace;color:#a8a7a2;margin-bottom:20px;text-transform:uppercase;letter-spacing:.1em">↓ Pre-expand state</div>
+
+<!-- COLLAPSED -->
+<div class="collapsed-card">
+  <div class="cc-icon">⚠</div>
+  <div class="cc-content">
+    <div class="cc-label">Caution</div>
+    <div class="cc-title">Roseland's 52% figure reflects a clinic closure, not underlying demand</div>
+    <div class="cc-preview">A primary care clinic in Roseland closed in October 2024 — right in the middle of data collection. The spike in unvaccinated residents is a supply disruption signal, not evidence of higher need relative to comparable zip codes.</div>
+    <div class="cc-trigger">"…a major clinic closed right in the middle of data collection…"</div>
+  </div>
+  <div class="cc-expand">Expand ↗</div>
+</div>
+
+<div class="sep"></div>
+<div style="font-size:11px;font-family:'DM Mono',monospace;color:#a8a7a2;margin-bottom:20px;text-transform:uppercase;letter-spacing:.1em">↓ Post-expand state</div>
+
+<!-- EXPANDED -->
+<div class="expanded-card">
+  <div class="exp-header">
+    <div class="exp-icon">⚠</div>
+    <div>
+      <div class="exp-label">Caution · Data quality flag · Roseland 60628</div>
+      <div class="exp-title">The 52% figure is a supply disruption signal, not a demand signal</div>
+    </div>
+  </div>
+  <div class="exp-body">
+
+    <div class="exp-intro">Roseland's unvaccinated rate looks dramatically higher than comparable low-income zip codes. The difference is almost entirely explained by a clinic closure mid-collection — not by greater underlying hesitancy or need. Leading with this figure in a board pitch is a credibility risk the other stable zip codes don't carry.</div>
+
+    <div class="trig-box">
+      <div class="trig-label">Triggered by</div>
+      <div class="trig-text">Priya Patel: "A community clinic closed in Roseland right in the middle of our data collection. That number reflects a supply disruption, not real demand."</div>
+    </div>
+
+    <div class="num-callout">
+      <div class="num-big">52%</div>
+      <div class="num-text"><strong>Roseland (60628) reported unvaccinated rate — do not anchor on this figure.</strong> The Roseland Primary Care Clinic closed October 2024, removing residents' primary vaccination access point mid-collection. Comparable low-income zip codes with intact access show 38–44%. The true underlying rate is likely in that range.</div>
+    </div>
+
+    <div class="sc-grid">
+      <div class="sc-card sc-risk">
+        <div class="sc-label">⚠ Risk — if you lead with Roseland</div>
+        <div class="sc-text">The clinic closure is public record. <strong>A board member or funder will find it.</strong> Being caught without the context damages credibility on the other three zip codes — which are solid.</div>
+      </div>
+      <div class="sc-card sc-safe">
+        <div class="sc-label">✓ Safe path — flag and defer</div>
+        <div class="sc-text">Position Roseland as a <strong>Phase 2 candidate</strong> once access stabilizes. Lead with Little Village, Garfield Park, and West Englewood — all consistent, all defensible, none carrying a known data caveat.</div>
+      </div>
+    </div>
+
+    <div class="src-section">
+      <div class="src-item">
+        <div class="src-tag">Rennert L et al. (2024) · Public Health Practice</div>
+        <div class="src-desc">Peer-reviewed mobile clinic case study establishing that uptake rates in underserved areas are strongly shaped by physical access to vaccination sites — supporting the interpretation that Roseland's spike reflects access loss, not a stable demand signal.</div>
+      </div>
+      <div class="src-item">
+        <div class="src-tag">Gupta PS et al. (2022) · Preventive Medicine</div>
+        <div class="src-desc">Demonstrates that mobile vaccination unit impact is highest when fixed-site access is disrupted — directly relevant to why Roseland's figure requires a supply-vs-demand distinction before it can be used in a pilot justification.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

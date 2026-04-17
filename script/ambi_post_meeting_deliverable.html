@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ambi — Post-Meeting Deliverable · Patel Lab × Children's Hospital Foundation</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital,wght@0,400;1,400&family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f4f0;--panel:#fff;--border:#e4e2dc;--border-mid:#ccc9c0;
+  --t1:#1a1a18;--t2:#6b6a66;--t3:#a8a7a2;
+  --green:#1a7a45;--bg-green:#edf7f1;--border-green:#b8e0c8;
+  --blue:#185FA5;--bg-blue:#EEF5FD;--border-blue:#b5d4f4;
+  --red:#b8291c;--bg-red:#fdf2f0;--border-red:#eeb8b0;
+  --gold:#7a5400;--bg-gold:#fdf7e8;--border-gold:#e0c878;
+  --warn:#7a4a1a;--bg-warn:#fdf3e8;--border-warn:#e0c090;
+  --purple:#5a3a8a;--bg-purple:#f3eeff;--border-purple:#c8b0f0;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t1);min-height:100vh}
+
+/* TOPBAR */
+.topbar{height:46px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:10px;position:sticky;top:0;z-index:100}
+.logo{font-family:'Instrument Serif',serif;font-size:17px;letter-spacing:-.2px}
+.tb-div{width:1px;height:16px;background:var(--border)}
+.tb-ctx{font-size:11px;color:var(--t2);font-family:'DM Mono',monospace}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.tb-badge{font-size:9px;font-family:'DM Mono',monospace;padding:3px 10px;border-radius:100px;border:1px solid var(--border);background:#f5f4f0;color:var(--t2)}
+.tb-badge.post{background:var(--bg-blue);border-color:var(--border-blue);color:var(--blue)}
+
+/* PAGE */
+.page{max-width:900px;margin:0 auto;padding:48px 40px 100px}
+
+/* HEADER */
+.doc-eyebrow{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.14em;color:var(--t3);margin-bottom:12px}
+.doc-title{font-family:'Instrument Serif',serif;font-size:34px;font-weight:400;line-height:1.2;color:var(--t1);margin-bottom:8px;letter-spacing:-.4px}
+.doc-sub{font-size:13px;color:var(--t2);font-weight:300;line-height:1.65;margin-bottom:8px;max-width:620px}
+.meta-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:40px;margin-top:16px}
+.meta-pill{font-size:10px;font-family:'DM Mono',monospace;padding:3px 10px;border-radius:100px;border:1px solid var(--border);background:#fff;color:var(--t2)}
+
+/* SECTION HEADERS */
+.section{margin-bottom:48px}
+.section-label{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.14em;color:var(--t3);margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.section-title{font-family:'Instrument Serif',serif;font-size:20px;font-weight:400;color:var(--t1);margin-bottom:4px;letter-spacing:-.2px}
+
+/* DECISIONS MADE */
+.decision-list{display:flex;flex-direction:column;gap:10px}
+.decision-item{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 18px;display:flex;gap:14px;align-items:flex-start}
+.decision-item.green{border-left:3px solid var(--green)}
+.decision-item.red{border-left:3px solid var(--red)}
+.decision-item.gold{border-left:3px solid var(--gold)}
+.di-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+.di-label{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.green .di-label{color:var(--green)}.red .di-label{color:var(--red)}.gold .di-label{color:var(--gold)}
+.di-text{font-size:13px;color:var(--t1);line-height:1.55;font-weight:400}
+.di-sub{font-size:11px;color:var(--t2);font-weight:300;margin-top:3px;line-height:1.5}
+
+/* ZIP CODE CARDS */
+.zip-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.zip-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px;position:relative;overflow:hidden}
+.zip-card.selected{border-color:var(--green)}
+.zip-card.deferred{border-color:var(--border);opacity:.7}
+.zip-accent{position:absolute;top:0;left:0;right:0;height:3px}
+.za-green{background:var(--green)}.za-gold{background:var(--gold)}.za-red{background:var(--red)}
+.zip-code{font-family:'DM Mono',monospace;font-size:10px;color:var(--t3);margin-bottom:4px}
+.zip-name{font-size:14px;font-weight:500;color:var(--t1);margin-bottom:10px}
+.zip-stat{display:flex;align-items:baseline;gap:6px;margin-bottom:4px}
+.zip-num{font-family:'Instrument Serif',serif;font-size:32px;color:var(--green);line-height:1;letter-spacing:-.5px}
+.zip-num-defer{font-family:'Instrument Serif',serif;font-size:32px;color:var(--t3);line-height:1;letter-spacing:-.5px}
+.zip-unit{font-size:11px;color:var(--t2);font-weight:300}
+.zip-ci{font-size:10px;font-family:'DM Mono',monospace;color:var(--t3);margin-bottom:8px}
+.zip-tag{display:inline-block;font-size:9px;font-family:'DM Mono',monospace;padding:2px 8px;border-radius:4px}
+.zt-pilot{background:var(--bg-green);color:var(--green);border:1px solid var(--border-green)}
+.zt-defer{background:#f5f4f0;color:var(--t3);border:1px solid var(--border)}
+.zt-flux{background:var(--bg-warn);color:var(--warn);border:1px solid var(--border-warn)}
+
+/* BAR CHART */
+.chart-wrap{background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:14px}
+.chart-title{font-size:11px;font-weight:500;color:var(--t1);margin-bottom:16px}
+.bar-row{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.bar-row:last-child{margin-bottom:0}
+.bar-label{font-size:11px;color:var(--t2);width:130px;flex-shrink:0;text-align:right;font-weight:300}
+.bar-track{flex:1;height:20px;background:#f5f4f0;border-radius:6px;overflow:hidden;position:relative}
+.bar-fill{height:100%;border-radius:6px;display:flex;align-items:center;padding-left:8px}
+.bar-fill.selected{background:var(--green)}
+.bar-fill.mid{background:#8ab8a0}
+.bar-fill.deferred{background:#ccc9c0}
+.bar-fill.flux{background:var(--border-warn)}
+.bar-val{font-size:10px;font-family:'DM Mono',monospace;color:#fff;font-weight:500}
+.bar-note{font-size:10px;color:var(--t3);width:80px;flex-shrink:0;font-family:'DM Mono',monospace}
+.chart-legend{display:flex;gap:16px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)}
+.cl-item{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--t2)}
+.cl-dot{width:10px;height:10px;border-radius:3px}
+
+/* CAUTION CALLOUT */
+.caution-box{background:var(--bg-warn);border:1px solid var(--border-warn);border-radius:12px;padding:16px 20px;margin-bottom:14px}
+.caution-label{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--warn);margin-bottom:8px}
+.caution-text{font-size:13px;color:#5a3010;line-height:1.65;font-weight:300}
+.caution-text strong{font-weight:500}
+
+/* FLOWCHART */
+.flow-wrap{background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:14px}
+.flow-title{font-size:11px;font-weight:500;color:var(--t1);margin-bottom:18px}
+.flow-steps{display:flex;align-items:flex-start;gap:0}
+.flow-step{flex:1;position:relative}
+.flow-step:not(:last-child)::after{content:'→';position:absolute;right:-14px;top:14px;font-size:16px;color:var(--border-mid);z-index:1}
+.fs-node{border-radius:10px;padding:10px 12px;border:1px solid;margin-right:10px;min-height:64px}
+.fs-1{background:#f0f4ff;border-color:#b5c8f4}
+.fs-2a{background:var(--bg-blue);border-color:var(--border-blue)}
+.fs-2b{background:#f0fff4;border-color:#b8e0c8}
+.fs-3{background:var(--bg-gold);border-color:var(--border-gold)}
+.fs-4{background:var(--bg-green);border-color:var(--border-green)}
+.fs-label{font-size:8px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px}
+.fs-1 .fs-label{color:#3a5aaa}.fs-2a .fs-label{color:var(--blue)}.fs-2b .fs-label{color:var(--green)}.fs-3 .fs-label{color:var(--gold)}.fs-4 .fs-label{color:var(--green)}
+.fs-text{font-size:11px;color:var(--t1);line-height:1.4;font-weight:400}
+.parallel-note{font-size:9px;font-family:'DM Mono',monospace;color:var(--t3);text-align:center;margin-top:6px}
+.parallel-col{flex:1;display:flex;flex-direction:column;gap:8px;margin-right:10px}
+
+/* NEXT STEPS */
+.steps-list{display:flex;flex-direction:column;gap:8px}
+.step-item{background:#fff;border:1px solid var(--border);border-radius:10px;padding:13px 16px;display:flex;gap:12px;align-items:flex-start}
+.step-num{font-size:9px;font-family:'DM Mono',monospace;background:var(--bg-blue);border:1px solid var(--border-blue);color:var(--blue);border-radius:4px;padding:2px 7px;flex-shrink:0;margin-top:1px}
+.step-num.urgent{background:var(--bg-warn);border-color:var(--border-warn);color:var(--warn)}
+.step-text{font-size:13px;color:var(--t1);line-height:1.55;font-weight:300}
+.step-text strong{font-weight:500}
+.step-owner{font-size:10px;font-family:'DM Mono',monospace;color:var(--t3);margin-top:3px}
+
+/* INSIGHT LOG */
+.insight-log{display:flex;flex-direction:column;gap:8px}
+.il-item{border-radius:10px;padding:11px 14px;border:1px solid;display:flex;gap:10px;align-items:flex-start}
+.il-r{background:var(--bg-green);border-color:var(--border-green)}
+.il-d{background:var(--bg-gold);border-color:var(--border-gold)}
+.il-c{background:var(--bg-red);border-color:var(--border-red)}
+.il-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.il-r .il-dot{background:var(--green)}.il-d .il-dot{background:var(--gold)}.il-c .il-dot{background:var(--red)}
+.il-label{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px}
+.il-r .il-label{color:var(--green)}.il-d .il-label{color:var(--gold)}.il-c .il-label{color:var(--red)}
+.il-text{font-size:12px;line-height:1.6;font-weight:300}
+.il-r .il-text{color:#1a3a28}.il-d .il-text{color:#4a3000}.il-c .il-text{color:#5a1010}
+.il-time{font-size:9px;font-family:'DM Mono',monospace;color:var(--t3);margin-top:3px}
+
+/* SOURCES */
+.src-section{border-top:1px solid var(--border);padding-top:14px;display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.src-item{display:flex;gap:10px;align-items:flex-start}
+.src-tag{display:inline-block;font-size:9px;font-family:'DM Mono',monospace;color:var(--t3);background:#f5f4f0;border:1px solid var(--border);border-radius:4px;padding:2px 8px;flex-shrink:0;margin-top:1px;white-space:nowrap}
+.src-desc{font-size:11px;color:var(--t2);font-weight:300;line-height:1.55}
+
+.divider{height:1px;background:var(--border);margin:40px 0}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">Ambi</div><div class="tb-div"></div>
+  <div class="tb-ctx">Patel Lab × Children's Hospital Foundation · Mobile vaccine clinic rollout · Chicago</div>
+  <div class="tb-right">
+    <div class="tb-badge">Meeting ended · Apr 17, 2026 · 2:44 PM</div>
+    <div class="tb-badge post">Post-meeting deliverable</div>
+  </div>
+</div>
+
+<div class="page">
+
+  <div class="doc-eyebrow">Ambi · Post-meeting summary · Auto-generated from conversation</div>
+  <div class="doc-title">Mobile Vaccine Clinic Rollout — Chicago Pilot</div>
+  <div class="doc-sub">Decisions made, data reviewed, open questions, and next steps from the Patel Lab × Children's Hospital Foundation strategy session. Generated immediately after the meeting ended — no manual writeup required.</div>
+  <div class="meta-row">
+    <div class="meta-pill">James Okafor · Deloitte Health Equity Practice</div>
+    <div class="meta-pill">Priya Patel · Patel Lab, CPHD</div>
+    <div class="meta-pill">Apr 17, 2026 · 2:12–2:44 PM</div>
+    <div class="meta-pill">3 Ambi insights surfaced</div>
+  </div>
+
+  <!-- DECISIONS -->
+  <div class="section">
+    <div class="section-label">Decisions made in this meeting</div>
+    <div class="decision-list">
+      <div class="decision-item green">
+        <div class="di-icon">✓</div>
+        <div>
+          <div class="di-label">Pilot shortlist confirmed</div>
+          <div class="di-text">Little Village (60623), Garfield Park (60624), and West Englewood (60636) are the three zip codes for the fall pilot.</div>
+          <div class="di-sub">All three have stable uptake estimates, consistent income-quartile profiles, and no outstanding data quality flags.</div>
+        </div>
+      </div>
+      <div class="decision-item red">
+        <div class="di-icon">✗</div>
+        <div>
+          <div class="di-label">Roseland excluded from pilot — deferred to Phase 2</div>
+          <div class="di-text">Roseland (60628) will not appear in the board pitch. The 52% figure reflects a clinic closure mid-collection, not stable underlying demand.</div>
+          <div class="di-sub">Priya to flag in the dataset footnotes. James to prepare a one-line board response if Roseland comes up: "Roseland is a Phase 2 candidate pending access stabilization."</div>
+        </div>
+      </div>
+      <div class="decision-item gold">
+        <div class="di-icon">→</div>
+        <div>
+          <div class="di-label">Conservative anchor for the board pitch</div>
+          <div class="di-text">The 37% CI lower bound for Garfield Park is the number James will use as the headline figure in the pitch deck.</div>
+          <div class="di-sub">Holds even if minor data cleaning shifts the central estimate. Consistent with published benchmarks for mobile clinic impact thresholds.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- DATA REVIEWED -->
+  <div class="section">
+    <div class="section-label">Data reviewed · Vaccine uptake by zip code</div>
+
+    <div class="zip-grid">
+      <div class="zip-card selected">
+        <div class="zip-accent za-green"></div>
+        <div class="zip-code">60623</div>
+        <div class="zip-name">Little Village</div>
+        <div class="zip-stat"><span class="zip-num">38%</span><span class="zip-unit">unvaccinated</span></div>
+        <div class="zip-ci">95% CI: 35–41% · p &lt;0.001</div>
+        <span class="zip-tag zt-pilot">Pilot · Phase 1</span>
+      </div>
+      <div class="zip-card selected">
+        <div class="zip-accent za-green"></div>
+        <div class="zip-code">60624</div>
+        <div class="zip-name">Garfield Park</div>
+        <div class="zip-stat"><span class="zip-num">41%</span><span class="zip-unit">unvaccinated</span></div>
+        <div class="zip-ci">95% CI: 37–45% · p &lt;0.001</div>
+        <span class="zip-tag zt-pilot">Pilot · Phase 1</span>
+      </div>
+      <div class="zip-card selected">
+        <div class="zip-accent za-green"></div>
+        <div class="zip-code">60636</div>
+        <div class="zip-name">West Englewood</div>
+        <div class="zip-stat"><span class="zip-num">44%</span><span class="zip-unit">unvaccinated</span></div>
+        <div class="zip-ci">95% CI: 40–48% · p &lt;0.001</div>
+        <span class="zip-tag zt-pilot">Pilot · Phase 1</span>
+      </div>
+    </div>
+
+    <div class="zip-grid">
+      <div class="zip-card deferred">
+        <div class="zip-accent za-gold"></div>
+        <div class="zip-code">60632</div>
+        <div class="zip-name">Brighton Park</div>
+        <div class="zip-stat"><span class="zip-num-defer">29%</span><span class="zip-unit">unvaccinated</span></div>
+        <div class="zip-ci">95% CI: 26–32% · p &lt;0.001</div>
+        <span class="zip-tag zt-defer">Not selected · lower priority</span>
+      </div>
+      <div class="zip-card deferred">
+        <div class="zip-accent za-red"></div>
+        <div class="zip-code">60628</div>
+        <div class="zip-name">Roseland</div>
+        <div class="zip-stat"><span class="zip-num-defer">52%</span><span class="zip-unit">unvaccinated</span></div>
+        <div class="zip-ci">95% CI: 46–58% · clinic closure flag</div>
+        <span class="zip-tag zt-flux">⚠ In flux · Phase 2</span>
+      </div>
+      <div></div>
+    </div>
+
+    <div class="chart-wrap">
+      <div class="chart-title">Unvaccinated rate by zip code — all five reviewed</div>
+      <div class="bar-row">
+        <div class="bar-label">West Englewood</div>
+        <div class="bar-track"><div class="bar-fill selected" style="width:73%"><span class="bar-val">44%</span></div></div>
+        <div class="bar-note">Pilot ✓</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Garfield Park</div>
+        <div class="bar-track"><div class="bar-fill selected" style="width:68%"><span class="bar-val">41%</span></div></div>
+        <div class="bar-note">Pilot ✓</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Little Village</div>
+        <div class="bar-track"><div class="bar-fill selected" style="width:63%"><span class="bar-val">38%</span></div></div>
+        <div class="bar-note">Pilot ✓</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Brighton Park</div>
+        <div class="bar-track"><div class="bar-fill deferred" style="width:48%"><span class="bar-val" style="color:var(--t2)">29%</span></div></div>
+        <div class="bar-note">Not selected</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Roseland ⚠</div>
+        <div class="bar-track"><div class="bar-fill flux" style="width:86%"><span class="bar-val" style="color:var(--warn)">52%</span></div></div>
+        <div class="bar-note">In flux</div>
+      </div>
+      <div class="chart-legend">
+        <div class="cl-item"><div class="cl-dot" style="background:var(--green)"></div>Selected for pilot</div>
+        <div class="cl-item"><div class="cl-dot" style="background:#ccc9c0"></div>Not selected</div>
+        <div class="cl-item"><div class="cl-dot" style="background:var(--border-warn)"></div>Data in flux — excluded</div>
+      </div>
+    </div>
+
+    <div class="caution-box">
+      <div class="caution-label">⚠ Data flag · Roseland 60628 — do not cite in board materials</div>
+      <div class="caution-text"><strong>The 52% figure reflects a supply disruption, not underlying demand.</strong> The Roseland Primary Care Clinic closed in October 2024, mid-collection. Comparable low-income zip codes with intact access show 38–44%. If Roseland comes up in the board meeting, the prepared response is: <em>"Roseland is a strong Phase 2 candidate — we excluded it from the pilot because a clinic closure during data collection makes the current figure unreliable as a demand signal."</em></div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- APPROVAL PATHWAY -->
+  <div class="section">
+    <div class="section-label">Approval pathway · From shortlist to clinic date</div>
+    <div class="flow-wrap">
+      <div class="flow-title">Three sign-offs required — hospital network and CDPH run in parallel</div>
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="fs-node fs-1">
+            <div class="fs-label">Step 1 · Data</div>
+            <div class="fs-text">Zip code risk scoring confirmed</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="parallel-col">
+            <div class="fs-node fs-2a">
+              <div class="fs-label">Track A · Hospital</div>
+              <div class="fs-text">Staff + van availability · CHF sign-off</div>
+            </div>
+            <div class="fs-node fs-2b">
+              <div class="fs-label">Track B · CDPH</div>
+              <div class="fs-text">Protect Chicago+ alignment · zip eligibility</div>
+            </div>
+            <div class="parallel-note">Both tracks must clear</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="fs-node fs-3">
+            <div class="fs-label">Step 3 · Host site</div>
+            <div class="fs-text">School or community center confirms date</div>
+          </div>
+        </div>
+        <div class="flow-step" style="margin-right:0">
+          <div class="fs-node fs-4" style="margin-right:0">
+            <div class="fs-label">Step 4 · Confirmed</div>
+            <div class="fs-text">Clinic date locked · outreach triggered</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="src-section">
+      <div class="src-item">
+        <div class="src-tag">Kim SJ et al. (2024) · J Public Health Mgmt Practice</div>
+        <div class="src-desc">Documents Chicago's Protect Chicago+ zip code prioritization and the parallel CDPH–hospital network approval structure that this pathway is modelled on.</div>
+      </div>
+      <div class="src-item">
+        <div class="src-tag">Rennert L et al. (2024) · Public Health Practice</div>
+        <div class="src-desc">Establishes that census tract risk scoring is the strongest predictor of mobile clinic impact — validating the Step 1 targeting logic used here.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- NEXT STEPS -->
+  <div class="section">
+    <div class="section-label">Next steps · Owners and deadlines</div>
+    <div class="steps-list">
+      <div class="step-item">
+        <div class="step-num urgent">01 · Urgent</div>
+        <div>
+          <div class="step-text"><strong>James</strong> to update board pitch deck — swap Roseland for Phase 2 language, lead with 37% Garfield Park lower bound as headline figure.</div>
+          <div class="step-owner">Owner: James Okafor · Due: before board meeting</div>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">02</div>
+        <div>
+          <div class="step-text"><strong>James</strong> to initiate parallel outreach to Children's Hospital Foundation clinical operations team and CDPH Protect Chicago+ coordinator — both tracks need to start simultaneously.</div>
+          <div class="step-owner">Owner: James Okafor · Due: this week</div>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">03</div>
+        <div>
+          <div class="step-text"><strong>Priya</strong> to add dataset footnote flagging Roseland clinic closure and add stability annotations to the shared data file for the foundation's records team.</div>
+          <div class="step-owner">Owner: Priya Patel · Due: end of week</div>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">04</div>
+        <div>
+          <div class="step-text"><strong>Both</strong> to identify host site contacts in Little Village, Garfield Park, and West Englewood — schools, churches, and community centers to approach for Step 3 sign-off.</div>
+          <div class="step-owner">Owner: James + Priya · Due: 2 weeks</div>
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">05</div>
+        <div>
+          <div class="step-text"><strong>Priya</strong> to monitor Roseland access situation — flag to James when data collection resumes cleanly so Roseland can be re-evaluated for Phase 2 targeting.</div>
+          <div class="step-owner">Owner: Priya Patel · Ongoing</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- AMBI INSIGHT LOG -->
+  <div class="section">
+    <div class="section-label">Ambi insight log · 3 insights surfaced during this meeting</div>
+    <div class="insight-log">
+      <div class="il-item il-r">
+        <div class="il-dot"></div>
+        <div>
+          <div class="il-label">Reactive · 01</div>
+          <div class="il-text">Zip code uptake table with stability flags surfaced when James asked which figures were reliable enough to anchor on. Pulled from ambi_data_vaccine_uptake.json — showed all five zip codes with CI ranges and in-flux flags.</div>
+          <div class="il-time">Fired ~2:18 PM · after James: "Which ones are solid? Walk me through the ones you'd actually anchor on."</div>
+        </div>
+      </div>
+      <div class="il-item il-d">
+        <div class="il-dot"></div>
+        <div>
+          <div class="il-label">Diagram Suggested · 01</div>
+          <div class="il-text">Site selection approval pathway mapped as a branching flowchart when Priya named three non-sequential decision-makers. Illustrated that hospital network and CDPH tracks run in parallel before host site sign-off.</div>
+          <div class="il-time">Fired ~2:26 PM · after Priya: "…not one approval — it's three, and they don't run in order."</div>
+        </div>
+      </div>
+      <div class="il-item il-c">
+        <div class="il-dot"></div>
+        <div>
+          <div class="il-label">Caution · 01</div>
+          <div class="il-text">Roseland data quality flag surfaced when James asked about the 52% figure. Identified clinic_closed_flag in dataset, surfaced supply-vs-demand distinction, and provided prepared board response language.</div>
+          <div class="il-time">Fired ~2:33 PM · after Priya: "A community clinic closed in Roseland right in the middle of data collection."</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

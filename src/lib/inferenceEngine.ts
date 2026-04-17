@@ -470,6 +470,191 @@ const demoTriggers: Array<{
  },
  ],
  },
+ // ── Patel Lab × Children's Hospital Foundation — Vaccine Clinic Rollout ──
+
+ // Trigger PV-R1: Zip code uptake table — fires when James asks which figures to anchor on
+ {
+ presetId: 'patel-lab-vaccine',
+ detect: (text) =>
+  text.includes('walk me through') && text.includes('anchor on') ||
+  (text.includes('not all of') && text.includes('equally reliable')),
+ detectAssist: (text) =>
+  (text.includes('uptake') && text.includes('reliable')) ||
+  text.includes('anchor on') ||
+  text.includes('which zip codes') ||
+  text.includes('walk me through'),
+ needs: [
+  {
+  category: 'metric' as InformationNeed['category'],
+  prompt: 'Vaccine uptake by zip code — which numbers are safe to anchor on for the board pitch',
+  triggerPhrase: 'Walk me through the ones you\'d actually anchor on.',
+  isProactiveDemoTrigger: false,
+  demoEvidence: {
+   title: 'Vaccine uptake by zip code and income level — stability flags',
+   summary: 'Ambi cross-referenced the uploaded Patel Lab dataset against the conversation. Little Village, Garfield Park, and West Englewood all show stable high unvaccinated rates (38–44%) suitable for board justification. Roseland\'s 52% figure is flagged — a clinic closure mid-collection makes it a supply disruption signal, not a reliable demand signal. Conservative anchor: 37% (Garfield Park CI lower bound) holds under all reasonable model specifications.',
+   kind: 'metric' as EvidenceKind,
+   recencyLabel: 'ambi_data_vaccine_uptake.json · Patel Lab internal dataset v3 · not peer reviewed · uploaded 2026-03-20',
+   confidence: 0.95,
+   verification: 'verified' as const,
+   explainWhyNow: 'James asked Priya directly which figures are reliable and suitable to anchor the foundation pitch on',
+   attributions: [
+   { sourceId: 'patel-lab-vaccine-uptake', sourceType: 'internal_structured' as const, title: 'ambi_data_vaccine_uptake.json · Patel Lab CPHD dataset v3', snippet: 'Zip code targeting data for mobile vaccine clinic rollout pitch — Children\'s Hospital Foundation meeting. Uploaded 2026-03-20.', freshnessScore: 0.95, trustScore: 0.93 },
+   { sourceId: 'rennert-2024', sourceType: 'web' as const, title: 'Rennert L et al. (2024) · Public Health Practice', url: 'https://doi.org/10.1016/j.puhip.2024.100550', snippet: 'Mobile clinic deployment had greatest impact in communities with 35%+ unvaccinated rates — consistent with the Little Village, Garfield Park, and West Englewood figures.', freshnessScore: 0.92, trustScore: 0.95 },
+   ],
+   richTable: {
+   devices: [
+    {
+    name: '60623 · Little Village',
+    badge: '✓ Anchor',
+    subtitle: 'Q1 (lowest income) · p<0.001',
+    isPrimary: true,
+    features: [
+     { name: '% Unvax', val: '38%', kind: 'yes' as const },
+     { name: '95% CI', val: '35–41%', kind: 'neu' as const },
+     { name: 'Stability', val: 'Stable ✓', kind: 'yes' as const },
+    ],
+    },
+    {
+    name: '60624 · Garfield Park',
+    badge: '✓ Anchor',
+    subtitle: 'Q1 (lowest income) · p<0.001',
+    isPrimary: true,
+    features: [
+     { name: '% Unvax', val: '41%', kind: 'yes' as const },
+     { name: '95% CI', val: '37–45%', kind: 'neu' as const },
+     { name: 'Stability', val: 'Stable ✓', kind: 'yes' as const },
+    ],
+    },
+    {
+    name: '60636 · West Englewood',
+    badge: '✓ Anchor',
+    subtitle: 'Q1 (lowest income) · p<0.001',
+    isPrimary: true,
+    features: [
+     { name: '% Unvax', val: '44%', kind: 'yes' as const },
+     { name: '95% CI', val: '40–48%', kind: 'neu' as const },
+     { name: 'Stability', val: 'Stable ✓', kind: 'yes' as const },
+    ],
+    },
+    {
+    name: '⚠ 60628 · Roseland',
+    badge: '⚠ In flux',
+    subtitle: 'Q1 — clinic closed Oct 2024',
+    isPrimary: false,
+    features: [
+     { name: '% Unvax', val: '52%', kind: 'no' as const },
+     { name: '95% CI', val: '46–58%', kind: 'neu' as const },
+     { name: 'Stability', val: 'In flux ⚠', kind: 'no' as const },
+    ],
+    },
+   ],
+   },
+  },
+  },
+ ],
+ },
+ // Trigger PV-DG: Site selection approval pathway — fires on three-approvals mention
+ {
+ presetId: 'patel-lab-vaccine',
+ detect: (text) =>
+  (text.includes('hospital network') && text.includes('city health department')) ||
+  (text.includes("it's not one approval") && text.includes("three")) ||
+  (text.includes('three') && text.includes("don't run in order")),
+ detectAssist: (text) =>
+  (text.includes('hospital') && text.includes('approval')) ||
+  (text.includes('sign-off') && (text.includes('hospital') || text.includes('health') || text.includes('site'))) ||
+  text.includes('three approvals') ||
+  (text.includes('network') && text.includes('health department')),
+ needs: [
+  {
+  category: 'comparison' as InformationNeed['category'],
+  prompt: 'Site selection maps to a branching approval pathway — three sign-offs, two running in parallel',
+  triggerPhrase: 'It\'s not one approval \u2014 it\'s three, and they don\'t run in order.',
+  isProactiveDemoTrigger: false,
+  demoEvidence: {
+   title: 'Mobile clinic site selection — branching approval pathway',
+   summary: 'Priya named three distinct decision-makers whose approvals don\'t run in sequence: the hospital network, the city health department, and the host site. Ambi mapped the structure — zip scoring feeds two parallel tracks (hospital + CDPH) before a host site can confirm a date. Based on Chicago\'s Protect Chicago+ rollout, this process typically takes 4–6 weeks from shortlist to confirmed date.',
+   kind: 'comparison' as EvidenceKind,
+   recencyLabel: 'Generated from conversation context · Woodson et al. (2024) · CDPH Protect Chicago+',
+   confidence: 0.93,
+   verification: 'inferred' as const,
+   explainWhyNow: 'Priya identified three separate approvers (hospital network, city health dept, host site) with non-sequential roles',
+   attributions: [
+   { sourceId: 'woodson-2024', sourceType: 'web' as const, title: 'Woodson et al. (2024) · J Public Health Mgmt Practice', snippet: 'Documents Chicago\'s Protect Chicago+ program — describes how CDPH identified vulnerable zip codes, coordinated with hospital systems, and used community-level outreach to drive clinic placement decisions.', freshnessScore: 0.92, trustScore: 0.93 },
+   { sourceId: 'cdph-protect-chicago', sourceType: 'web' as const, title: 'City of Chicago CDPH · Protect Chicago+', url: 'https://www.chicago.gov/city/en/sites/covid-19/home/vaccine-sites.html', snippet: 'Primary source for the zip code prioritization framework and the parallel approval structure between CDPH and hospital network partners.', freshnessScore: 0.90, trustScore: 0.92 },
+   { sourceId: 'rennert-2024-site', sourceType: 'web' as const, title: 'Rennert L et al. (2024) · Public Health Practice', url: 'https://doi.org/10.1016/j.puhip.2024.100550', snippet: 'Site selection based on census tract risk scoring was the strongest predictor of uptake impact in underserved communities.', freshnessScore: 0.92, trustScore: 0.95 },
+   ],
+   richFlowDiagram: {
+   chips: [],
+   note: 'Ambi generated from conversation context · Based on Chicago Protect Chicago+ rollout · Typical timeline: 4–6 weeks from shortlist to confirmed clinic date · Host site (school, church, community center) requires 3 weeks lead time',
+   badges: [
+    { label: '● Zip scoring', color: 'gray' as const },
+    { label: '● Hospital track', color: 'teal' as const },
+    { label: '● CDPH track', color: 'navy' as const },
+    { label: '● Host site', color: 'green' as const },
+   ],
+   nodes: [
+    { id: 'zip', label: 'Zip code risk scoring', kind: 'start' as const, color: 'gray' as const, sub: 'Unvax rate + income quartile + population weight' },
+    { id: 'shortlist', label: 'Top 3 zip codes shortlisted', kind: 'default' as const, color: 'gray' as const, sub: 'Stable estimates only · flagged data excluded' },
+    { id: 'parallel', label: 'Two parallel tracks required', kind: 'branch' as const, color: 'gold' as const, sub: 'Both must clear before host site is approached' },
+    { id: 'hospital', label: 'Hospital network', kind: 'default' as const, color: 'teal' as const, sub: 'Clinical staff + van availability · Children\'s Hospital Foundation sign-off', parentId: 'parallel', trackId: 'hospital-track', trackLabel: 'Hospital track' },
+    { id: 'cdph', label: 'City health dept (CDPH)', kind: 'default' as const, color: 'navy' as const, sub: 'Outreach coordination · Protect Chicago+ alignment · zip eligibility', parentId: 'parallel', trackId: 'cdph-track', trackLabel: 'CDPH track' },
+    { id: 'gate', label: 'Both tracks cleared?', kind: 'branch' as const, color: 'gold' as const, sub: 'Hospital + CDPH both required to proceed' },
+    { id: 'host', label: 'Host site confirmation', kind: 'default' as const, color: 'green' as const, sub: 'School, church, or community center · principal / site manager · 3-week lead' },
+    { id: 'clinic', label: 'Mobile clinic date confirmed', kind: 'end' as const, color: 'green' as const, sub: 'Community outreach triggered · logistics locked' },
+   ],
+   },
+  },
+  },
+ ],
+ },
+ // Trigger PV-CA: Roseland caution — fires on clinic closure / supply disruption mention
+ {
+ presetId: 'patel-lab-vaccine',
+ detect: (text) =>
+  (text.includes('clinic closed') || text.includes('clinic closed in roseland')) ||
+  (text.includes('supply disruption') && text.includes('not real demand')) ||
+  (text.includes('roseland') && text.includes('data collection') && text.includes('closed')),
+ detectAssist: (text) =>
+  (text.includes('roseland') && (text.includes('closed') || text.includes('disruption'))) ||
+  text.includes('supply disruption') ||
+  (text.includes('52') && text.includes('roseland')),
+ needs: [
+  {
+  category: 'correction' as InformationNeed['category'],
+  prompt: 'Roseland\'s 52% figure reflects a clinic closure — not underlying demand — leading with it is a credibility risk',
+  triggerPhrase: 'A community clinic closed in Roseland right in the middle of data collection. That number reflects a supply disruption, not real demand.',
+  isProactiveDemoTrigger: false,
+  demoEvidence: {
+   title: 'Roseland\'s 52% figure is a supply disruption signal — not a demand signal',
+   summary: 'The Roseland Primary Care Clinic closed October 2024 mid-data-collection, removing residents\' primary vaccination access point. The elevated unvaccinated rate reflects supply loss, not greater underlying hesitancy. Comparable low-income zip codes with intact access show 38–44%. The clinic closure is public record — a board member will find it. Leading with Roseland without flagging this damages credibility on the three stable zip codes.',
+   kind: 'claim' as EvidenceKind,
+   recencyLabel: 'ambi_data_vaccine_uptake.json · Rennert et al. (2024) · Gupta et al. (2022)',
+   confidence: 0.97,
+   verification: 'verified' as const,
+   explainWhyNow: 'Priya explicitly flagged the clinic closure as the driver of Roseland\'s elevated figure — James was about to lead with it to the board',
+   attributions: [
+   { sourceId: 'patel-lab-roseland', sourceType: 'internal_structured' as const, title: 'ambi_data_vaccine_uptake.json · Patel Lab CPHD dataset v3', snippet: '⚠ Roseland (60628): Primary community clinic closed Oct 2024 mid-collection. Elevated unvaccinated rate likely reflects access disruption, not stable underlying demand. Do not anchor pilot justification on this figure without flagging.', freshnessScore: 0.95, trustScore: 0.93 },
+   { sourceId: 'rennert-2024-access', sourceType: 'web' as const, title: 'Rennert L et al. (2024) · Public Health Practice', url: 'https://doi.org/10.1016/j.puhip.2024.100550', snippet: 'Uptake rates in underserved areas are strongly shaped by physical access to vaccination sites — supporting the interpretation that Roseland\'s spike reflects access loss, not a stable demand signal.', freshnessScore: 0.92, trustScore: 0.95 },
+   { sourceId: 'gupta-2022', sourceType: 'web' as const, title: 'Gupta PS et al. (2022) · Preventive Medicine', snippet: 'Mobile vaccination unit impact is highest when fixed-site access is disrupted — directly relevant to why Roseland\'s figure requires a supply-vs-demand distinction before use in a pilot justification.', freshnessScore: 0.88, trustScore: 0.92 },
+   ],
+   richCorrectionBlock: {
+   wrong: { label: '❌ Risk framing', text: '"52% unvaccinated in Roseland — the most striking number in the dataset" — a board member will find the clinic closure' },
+   right: { label: '✓ Safe path', text: 'Position Roseland as a Phase 2 candidate once access stabilizes — lead with Little Village, Garfield Park, and West Englewood' },
+   riskItems: [
+    { num: '01', title: 'The clinic closure is public record', body: 'Roseland Primary Care Clinic closed October 2024 — this is verifiable. A foundation board member or funder will find it if you don\'t flag it first.' },
+    { num: '02', title: 'Leading with Roseland poisons the three stable zip codes', body: 'Being caught without the context damages credibility on Little Village, Garfield Park, and West Englewood — which are solid and carry no data caveats.' },
+    { num: '03', title: 'The three stable sites are sufficient for pilot justification', body: '38–44% unvaccinated across three low-income Q1 zip codes is a compelling, defensible case. Roseland adds drama but not credibility at this stage.' },
+   ],
+   reframe: '"Little Village, Garfield Park, and West Englewood show consistent, stable unvaccinated rates of 38–44% across the full 2023–2025 collection window. Roseland shows 52% but with a known data caveat — a clinic closure mid-collection — so we\'re positioning it as a Phase 2 site once access stabilizes."',
+   },
+  },
+  },
+ ],
+ },
+
+
+
  // Trigger (Iridium): Diagram device decision flow
  {
  presetId: 'gtc-iridium',

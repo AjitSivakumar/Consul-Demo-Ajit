@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ambi — Diagram · Mobile Clinic Site Selection Pathway</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital,wght@0,400;1,400&family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f4f0;--panel:#fff;--border:#e4e2dc;--border-mid:#ccc9c0;
+  --t1:#1a1a18;--t2:#6b6a66;--t3:#a8a7a2;
+  --green:#1a7a45;--bg-green:#edf7f1;--border-green:#b8e0c8;
+  --gold:#7a5400;--bg-gold:#fdf7e8;--border-gold:#e0c878;
+  --blue:#185FA5;--bg-blue:#EEF5FD;--border-blue:#b5d4f4;
+  --red:#b8291c;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t1);min-height:100vh;padding:32px}
+
+/* COLLAPSED */
+.collapsed-card{background:#fff;border:1.5px solid var(--border-gold);border-radius:14px;padding:16px 20px;max-width:500px;cursor:pointer;transition:all .2s;display:flex;align-items:flex-start;gap:14px}
+.collapsed-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);border-color:#c9a840}
+.cc-icon{width:36px;height:36px;border-radius:10px;background:var(--bg-gold);border:1px solid var(--border-gold);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;margin-top:2px}
+.cc-content{flex:1}
+.cc-label{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--gold);margin-bottom:4px}
+.cc-title{font-size:13px;font-weight:500;color:var(--t1);line-height:1.4;margin-bottom:5px}
+.cc-preview{font-size:12px;color:var(--t2);font-weight:300;line-height:1.6;margin-bottom:5px}
+.cc-trigger{font-size:11px;color:var(--t3);font-style:italic;font-weight:300}
+.cc-expand{font-size:9px;font-family:'DM Mono',monospace;color:var(--t3);flex-shrink:0;padding:4px 10px;border:1px solid var(--border);border-radius:6px;background:#f5f4f0;margin-top:2px}
+
+.sep{height:36px}
+
+/* EXPANDED */
+.expanded-card{background:#fff;border:1.5px solid var(--border-gold);border-radius:14px;max-width:720px;overflow:hidden}
+.exp-header{background:var(--bg-gold);border-bottom:1px solid var(--border-gold);padding:14px 20px;display:flex;align-items:center;gap:12px}
+.exp-icon{width:32px;height:32px;border-radius:8px;background:#fff;border:1px solid var(--border-gold);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.exp-label{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--gold);margin-bottom:3px}
+.exp-title{font-size:14px;font-weight:500;color:var(--t1)}
+.exp-body{padding:22px 24px 20px}
+.exp-intro{font-size:12.5px;color:var(--t2);font-weight:300;line-height:1.65;margin-bottom:20px}
+
+/* FLOWCHART */
+.flow{display:flex;flex-direction:column;align-items:flex-start;gap:0;margin-bottom:20px}
+.flow-node{border-radius:10px;padding:10px 14px;border:1px solid;min-width:190px}
+.fn-zip{background:#f0f4ff;border-color:#b5c8f4}
+.fn-score{background:#f5f0ff;border-color:#c8b8f0}
+.fn-hospital{background:var(--bg-blue);border-color:var(--border-blue)}
+.fn-city{background:#f0fff4;border-color:#b8e0c8}
+.fn-host{background:var(--bg-gold);border-color:var(--border-gold)}
+.fn-confirm{background:var(--bg-green);border-color:var(--border-green)}
+.fn-label{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.fn-zip .fn-label{color:#3a5aaa}.fn-score .fn-label{color:#5a3aaa}
+.fn-hospital .fn-label{color:var(--blue)}.fn-city .fn-label{color:var(--green)}
+.fn-host .fn-label{color:var(--gold)}.fn-confirm .fn-label{color:var(--green)}
+.fn-text{font-size:12px;color:var(--t1);font-weight:400;line-height:1.45}
+.fn-sub{font-size:10px;color:var(--t2);font-weight:300;margin-top:3px}
+.arrow{padding:5px 0 5px 24px}
+.arrow-line{width:2px;height:18px;background:var(--border-mid)}
+.branch-label{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);padding:8px 0 6px 0}
+.parallel-row{display:flex;gap:12px;align-items:flex-start}
+
+/* SOURCES */
+.src-section{border-top:1px solid var(--border);padding-top:14px;display:flex;flex-direction:column;gap:10px}
+.src-item{display:flex;gap:10px;align-items:flex-start}
+.src-tag{display:inline-block;font-size:9px;font-family:'DM Mono',monospace;color:var(--t3);background:#f5f4f0;border:1px solid var(--border);border-radius:4px;padding:2px 8px;flex-shrink:0;margin-top:1px}
+.src-desc{font-size:11px;color:var(--t2);font-weight:300;line-height:1.55}
+</style>
+</head>
+<body>
+
+<div style="font-size:11px;font-family:'DM Mono',monospace;color:#a8a7a2;margin-bottom:20px;text-transform:uppercase;letter-spacing:.1em">↓ Pre-expand state</div>
+
+<!-- COLLAPSED -->
+<div class="collapsed-card">
+  <div class="cc-icon">🗺</div>
+  <div class="cc-content">
+    <div class="cc-label">Diagram Suggested</div>
+    <div class="cc-title">Site selection maps to a branching approval pathway — three separate sign-offs, two running in parallel</div>
+    <div class="cc-preview">Zip code risk scoring feeds into a hospital track and a city health department track simultaneously. Both need to clear before a host site can confirm a date.</div>
+    <div class="cc-trigger">"…hospital network, city health dept, and whoever hosts the site — it's not one approval, it's three…"</div>
+  </div>
+  <div class="cc-expand">Expand ↗</div>
+</div>
+
+<div class="sep"></div>
+<div style="font-size:11px;font-family:'DM Mono',monospace;color:#a8a7a2;margin-bottom:20px;text-transform:uppercase;letter-spacing:.1em">↓ Post-expand state</div>
+
+<!-- EXPANDED -->
+<div class="expanded-card">
+  <div class="exp-header">
+    <div class="exp-icon">🗺</div>
+    <div>
+      <div class="exp-label">Diagram Suggested · Mobile clinic site selection</div>
+      <div class="exp-title">From zip code risk score to clinic date — the full approval pathway</div>
+    </div>
+  </div>
+  <div class="exp-body">
+
+    <div class="exp-intro">Getting a mobile clinic placed requires three independent approvals. The hospital network and city health department tracks run in parallel — both must clear before the host site can be approached. Based on Chicago's Protect Chicago+ rollout, this process typically takes 4–6 weeks from shortlist to confirmed date.</div>
+
+    <div class="flow">
+      <div class="flow-node fn-zip">
+        <div class="fn-label">Step 1 · Data</div>
+        <div class="fn-text">Zip code risk scoring</div>
+        <div class="fn-sub">Unvaccinated rate + income quartile, weighted by population</div>
+      </div>
+      <div class="arrow"><div class="arrow-line"></div></div>
+      <div class="flow-node fn-score">
+        <div class="fn-label">Step 2 · Prioritization</div>
+        <div class="fn-text">Top 3 zip codes shortlisted</div>
+        <div class="fn-sub">Stable estimates only · flagged data excluded</div>
+      </div>
+      <div class="arrow"><div class="arrow-line"></div></div>
+      <div class="branch-label">Step 3 · Two parallel approval tracks — both must clear</div>
+      <div class="parallel-row">
+        <div class="flow-node fn-hospital" style="flex:1">
+          <div class="fn-label">Track A · Hospital network</div>
+          <div class="fn-text">Clinical staff + van availability confirmed</div>
+          <div class="fn-sub">Children's Hospital Foundation sign-off</div>
+        </div>
+        <div class="flow-node fn-city" style="flex:1">
+          <div class="fn-label">Track B · City health dept</div>
+          <div class="fn-text">CDPH outreach coordination</div>
+          <div class="fn-sub">Protect Chicago+ alignment · zip eligibility check</div>
+        </div>
+      </div>
+      <div class="arrow"><div class="arrow-line"></div></div>
+      <div class="flow-node fn-host">
+        <div class="fn-label">Step 4 · Host site</div>
+        <div class="fn-text">School, church, or community center confirms date</div>
+        <div class="fn-sub">Principal or site manager sign-off · 3 weeks lead time needed</div>
+      </div>
+      <div class="arrow"><div class="arrow-line"></div></div>
+      <div class="flow-node fn-confirm">
+        <div class="fn-label">Step 5 · Confirmed</div>
+        <div class="fn-text">Mobile clinic date scheduled</div>
+        <div class="fn-sub">Community outreach triggered · logistics locked</div>
+      </div>
+    </div>
+
+    <div class="src-section">
+      <div class="src-item">
+        <div class="src-tag">Woodson et al. (2024) · J Public Health Mgmt Practice</div>
+        <div class="src-desc">Documents Chicago's Protect Chicago+ program — the real-world model for this pathway. Describes how CDPH identified vulnerable zip codes, coordinated with hospital systems, and used community-level outreach to drive clinic placement decisions.</div>
+      </div>
+      <div class="src-item">
+        <div class="src-tag">City of Chicago CDPH · covid19.chicago.gov</div>
+        <div class="src-desc">Primary source for the zip code prioritization framework and the parallel approval structure between CDPH and hospital network partners. The Protect Chicago+ design explicitly required both tracks to clear before sites were confirmed.</div>
+      </div>
+      <div class="src-item">
+        <div class="src-tag">Rennert L et al. (2024) · Public Health Practice</div>
+        <div class="src-desc">Peer-reviewed case study of mobile health clinic deployment across South Carolina. Establishes that site selection based on census tract risk scoring — the same logic used in Step 1 here — was the strongest predictor of uptake impact in underserved communities.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

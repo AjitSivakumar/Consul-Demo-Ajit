@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ambi — Reactive · Vaccine Uptake by Zip Code</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital,wght@0,400;1,400&family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f4f0;--panel:#fff;--border:#e4e2dc;--border-mid:#ccc9c0;
+  --t1:#1a1a18;--t2:#6b6a66;--t3:#a8a7a2;
+  --green:#1a7a45;--bg-green:#edf7f1;--border-green:#b8e0c8;
+  --blue:#185FA5;--bg-blue:#EEF5FD;--border-blue:#b5d4f4;
+  --red:#b8291c;--bg-red:#fdf2f0;--border-red:#eeb8b0;
+  --warn:#7a4a1a;--bg-warn:#fdf3e8;--border-warn:#e0c090;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t1);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:46px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 18px;gap:10px;flex-shrink:0}
+.logo{font-family:'Instrument Serif',serif;font-size:17px;letter-spacing:-.2px}
+.tb-div{width:1px;height:16px;background:var(--border)}
+.tb-ctx{font-size:11px;color:var(--t2);font-family:'DM Mono',monospace}
+.tb-pill{margin-left:auto;display:flex;align-items:center;gap:6px;background:#f0f0ee;border:1px solid var(--border);border-radius:100px;padding:4px 11px}
+.dot-live{width:6px;height:6px;border-radius:50%;background:#4caf50;animation:blink 2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.75)}}
+.tb-pill span{font-size:10px;font-family:'DM Mono',monospace;color:var(--t2)}
+.body{display:flex;flex:1;overflow:hidden}
+
+/* LEFT */
+.left{width:300px;flex-shrink:0;border-right:1px solid var(--border);background:#fafaf8;display:flex;flex-direction:column;overflow:hidden}
+.left-hd{padding:12px 14px 9px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.left-hd-label{font-size:10px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--t3)}
+.count-badge{background:var(--green);color:#fff;font-size:10px;font-family:'DM Mono',monospace;border-radius:100px;padding:1px 8px}
+.feed{padding:8px;display:flex;flex-direction:column;gap:6px;overflow-y:auto;flex:1}
+.fc{border-radius:10px;padding:11px 12px;cursor:pointer;border:1.5px solid var(--border);background:#fff;transition:all .15s}
+.fc:hover{border-color:var(--border-mid);box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.fc.sel-reactive{border-color:var(--green);background:var(--bg-green)}
+.fc.sel-diagram{border-color:#e0c878;background:var(--bg-gold)}
+.fc.sel-caution{border-color:var(--red);background:var(--bg-red)}
+.fc-type{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;display:flex;align-items:center;gap:5px}
+.fc-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.t-reactive .fc-dot{background:var(--green)}.t-reactive{color:var(--green)}
+.t-diagram .fc-dot{background:#7a5400}.t-diagram{color:#7a5400}
+.t-caution .fc-dot{background:var(--red)}.t-caution{color:var(--red)}
+.fc-title{font-size:12.5px;font-weight:500;color:var(--t1);line-height:1.4;margin-bottom:5px}
+.fc-trigger{font-size:11px;color:var(--t2);font-style:italic;line-height:1.45;font-weight:300;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* CENTER */
+.center{flex:1;overflow-y:auto;padding:26px 30px 40px}
+.c-eye{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.12em;color:var(--t3);margin-bottom:8px}
+.c-title{font-family:'Instrument Serif',serif;font-size:24px;font-weight:400;line-height:1.25;color:var(--t1);margin-bottom:6px;letter-spacing:-.3px}
+.c-body{font-size:13px;color:var(--t2);font-weight:300;line-height:1.65;margin-bottom:20px}
+.trig-box{background:#f5f4f0;border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:20px}
+.trig-label{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--t3);margin-bottom:4px}
+.trig-text{font-size:12px;color:var(--t2);font-style:italic;line-height:1.6}
+
+/* TABLE */
+.tbl-card{background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px}
+.tbl-head,.tbl-row{display:grid;grid-template-columns:1.4fr 1fr .7fr .9fr .6fr .85fr;padding:8px 14px;align-items:center}
+.tbl-head{background:#f5f4f0;border-bottom:1px solid var(--border)}
+.th{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.08em;color:var(--t3)}
+.tbl-row{border-bottom:1px solid var(--border);transition:background .1s}
+.tbl-row:last-child{border-bottom:none}
+.tbl-row:hover{background:#fafaf8}
+.tbl-row.warn-row{background:var(--bg-warn)}
+.tbl-row.warn-row:hover{background:#fdf0dc}
+.td{font-size:12px;color:var(--t1)}
+.td.dim{color:var(--t2);font-size:11px;font-weight:300}
+.td.mono{font-family:'DM Mono',monospace;font-size:12px}
+.td.sig{color:var(--green);font-weight:500}
+.td.wn{color:var(--warn);font-weight:500}
+.td.ci{font-family:'DM Mono',monospace;font-size:10px;color:var(--t3)}
+.badge{display:inline-block;font-size:9px;font-family:'DM Mono',monospace;padding:2px 7px;border-radius:4px}
+.b-stable{background:var(--bg-green);color:var(--green);border:1px solid var(--border-green)}
+.b-flux{background:var(--bg-warn);color:var(--warn);border:1px solid var(--border-warn)}
+
+/* CALLOUTS */
+.callout{border-radius:10px;padding:14px 16px;margin-bottom:12px;border:1px solid}
+.co-warn{background:var(--bg-warn);border-color:var(--border-warn)}
+.co-green{background:var(--bg-green);border-color:var(--border-green)}
+.co-label{font-size:9px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin-bottom:7px}
+.co-warn .co-label{color:var(--warn)}
+.co-green .co-label{color:var(--green)}
+.co-text{font-size:12.5px;line-height:1.7;font-weight:300}
+.co-warn .co-text{color:#5a3010}
+.co-green .co-text{color:#1a3a28}
+.co-text strong{font-weight:500}
+.anchor-wrap{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center}
+.anchor-num{font-family:'Instrument Serif',serif;font-size:44px;color:var(--green);line-height:1;letter-spacing:-1px}
+.src-tag{display:inline-block;margin-top:14px;font-size:9px;font-family:'DM Mono',monospace;color:var(--t3);background:#f5f4f0;border:1px solid var(--border);border-radius:4px;padding:2px 8px}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo">Ambi</div><div class="tb-div"></div>
+  <div class="tb-ctx">Patel Lab × Children's Hospital Foundation · Mobile vaccine clinic rollout · Chicago</div>
+  <div class="tb-pill"><div class="dot-live"></div><span>Listening</span></div>
+</div>
+<div class="body">
+  <div class="left">
+    <div class="left-hd"><div class="left-hd-label">Insights Feed</div><div class="count-badge">3</div></div>
+    <div class="feed">
+      <div class="fc sel-reactive t-reactive">
+        <div class="fc-type"><span class="fc-dot"></span>Reactive</div>
+        <div class="fc-title">Uptake rates by zip code — which numbers are safe to anchor on</div>
+        <div class="fc-trigger">"…not all of them are equally reliable. Some I'm confident in…"</div>
+      </div>
+      <div class="fc t-diagram" onclick="sel(this,'diagram')">
+        <div class="fc-type"><span class="fc-dot"></span>Diagram Suggested</div>
+        <div class="fc-title">Site selection involves three approvals — maps to a branching flowchart</div>
+        <div class="fc-trigger">"…hospital network, city health dept, and the host site…"</div>
+      </div>
+      <div class="fc t-caution" onclick="sel(this,'caution')">
+        <div class="fc-type"><span class="fc-dot"></span>Caution</div>
+        <div class="fc-title">Roseland's 52% figure reflects a clinic closure, not underlying demand</div>
+        <div class="fc-trigger">"…a major clinic closed right in the middle of data collection…"</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="center">
+    <div class="c-eye">Reactive Insight · 01 · Source: ambi_data_vaccine_uptake.json</div>
+    <div class="c-title">Vaccine uptake by zip code and income level — stability flags</div>
+    <div class="c-body">Ambi cross-referenced the uploaded Patel Lab dataset against the conversation. Here are the zip codes James can safely pitch to the foundation board — and the one that needs a caveat.</div>
+
+    <div class="trig-box">
+      <div class="trig-label">Triggered by</div>
+      <div class="trig-text">Priya Patel: "The uptake numbers vary a lot by zip code and income level, and not all of them are equally reliable. Some I'm confident in. One I'm not."</div>
+    </div>
+
+    <div class="tbl-card">
+      <div class="tbl-head">
+        <div class="th">Zip / Neighborhood</div><div class="th">Income</div><div class="th">% Unvax</div><div class="th">95% CI</div><div class="th">p</div><div class="th">Stability</div>
+      </div>
+      <div class="tbl-row"><div class="td">60623 · Little Village</div><div class="td dim">Q1 (lowest)</div><div class="td mono sig">38%</div><div class="td ci">35–41%</div><div class="td mono sig">&lt;0.001</div><div class="td"><span class="badge b-stable">Stable</span></div></div>
+      <div class="tbl-row"><div class="td">60624 · Garfield Park</div><div class="td dim">Q1 (lowest)</div><div class="td mono sig">41%</div><div class="td ci">37–45%</div><div class="td mono sig">&lt;0.001</div><div class="td"><span class="badge b-stable">Stable</span></div></div>
+      <div class="tbl-row warn-row"><div class="td">⚠ 60628 · Roseland</div><div class="td dim">Q1 (lowest)</div><div class="td mono wn">52%</div><div class="td ci">46–58%</div><div class="td mono sig">&lt;0.001</div><div class="td"><span class="badge b-flux">In flux</span></div></div>
+      <div class="tbl-row"><div class="td">60632 · Brighton Park</div><div class="td dim">Q2</div><div class="td mono">29%</div><div class="td ci">26–32%</div><div class="td mono sig">&lt;0.001</div><div class="td"><span class="badge b-stable">Stable</span></div></div>
+      <div class="tbl-row"><div class="td">60636 · West Englewood</div><div class="td dim">Q1 (lowest)</div><div class="td mono sig">44%</div><div class="td ci">40–48%</div><div class="td mono sig">&lt;0.001</div><div class="td"><span class="badge b-stable">Stable</span></div></div>
+    </div>
+
+    <div class="callout co-warn">
+      <div class="co-label">⚠ Roseland — clinic closure flag</div>
+      <div class="co-text"><strong>The 52% unvaccinated figure for Roseland (60628) is in flux.</strong> A primary community clinic closed in October 2024, mid-data-collection. The elevated rate likely reflects a supply disruption rather than a stable signal of underlying demand. Do not use this figure as a pilot anchor without flagging the context to the board.</div>
+    </div>
+
+    <div class="callout co-green">
+      <div class="co-label">✓ Conservative anchor for the foundation pitch</div>
+      <div class="anchor-wrap">
+        <div class="anchor-num">37%</div>
+        <div class="co-text">CI lower bound for Garfield Park — holds even if minor data cleaning shifts the central estimate. Stable across the full 2023–2025 collection window. Suitable for pilot justification. Consistent with Rennert et al. (2024) finding that mobile clinics had greatest impact in communities with 35%+ unvaccinated rates.</div>
+      </div>
+    </div>
+
+    <div class="src-tag">Source: ambi_data_vaccine_uptake.json · Patel Lab internal dataset v3 · not peer reviewed · uploaded 2026-03-20</div>
+    <div class="src-tag" style="margin-left:6px">Rennert L et al. (2024) · Public Health Practice · doi:10.1016/j.puhip.2024.100550</div>
+  </div>
+</div>
+<script>
+function sel(el,type){document.querySelectorAll('.fc').forEach(c=>c.className=c.className.replace(/\bsel-\w+/g,'').trim());el.classList.add('sel-'+type)}
+</script>
+</body>
+</html>
