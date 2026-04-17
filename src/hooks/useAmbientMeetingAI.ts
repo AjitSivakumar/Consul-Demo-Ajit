@@ -94,12 +94,12 @@ export function useAmbientMeetingAI(): {
   // In liveAI preset mode the transcript replays at 2500ms/event (~32s total for 13 events).
   // Use tight cooldowns so the AI fires multiple times across the script instead of just once.
   const isLiveAIPreset = state.liveAIPreset;
-  const AI_INFERENCE_COOLDOWN_MS = isLiveAIPreset ? 5_000 : 35_000;
-  const AI_INFERENCE_MIN_EVENTS = isLiveAIPreset ? 2 : 7;
+  const AI_INFERENCE_COOLDOWN_MS = isLiveAIPreset ? 5_000 : 20_000;
+  const AI_INFERENCE_MIN_EVENTS = isLiveAIPreset ? 2 : 4;
   // Max active information gaps (non-dismissed)
   const MAX_ACTIVE_GAPS = 5;
   // Cooldown between ambient suggestion calls
-  const AMBIENT_SUGGESTION_COOLDOWN_MS = isLiveAIPreset ? 6_000 : 15_000;
+  const AMBIENT_SUGGESTION_COOLDOWN_MS = isLiveAIPreset ? 6_000 : 10_000;
   const lastAmbientTsRef = useRef<number>(0);
   const stateRef = useRef(state);
   useEffect(() => { stateRef.current = state; }, [state]);
@@ -386,7 +386,7 @@ export function useAmbientMeetingAI(): {
       // Only call ambient suggestion if: enough time has passed AND enough words spoken
       const wordCount = latest.text.trim().split(/\s+/).length;
       const ambientElapsed = Date.now() - lastAmbientTsRef.current;
-      if (wordCount >= 15 && ambientElapsed >= AMBIENT_SUGGESTION_COOLDOWN_MS) {
+      if (wordCount >= 8 && ambientElapsed >= AMBIENT_SUGGESTION_COOLDOWN_MS) {
         lastAmbientTsRef.current = Date.now();
         const previousHeadlines = state.ambientSuggestions.map((s) => s.headline);
         // Pass last 2-3 turns as the recentSegments string
