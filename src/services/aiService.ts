@@ -113,12 +113,12 @@ Each need:
 }
 
 Strict rules:
-- 0 or 1 needs only. Never more.
+- 0 to 2 needs maximum
 - Only trigger on CUSTOMER speech — what the prospect/buyer says carries 3x more weight than the seller
 - Skip if the topic was already surfaced (check "Already surfaced" list)
 - Skip small talk, general discussion, soft objections
 - correction category ONLY for demonstrably false factual claims, not uncertainty
-- confidence must be >= 0.85 — if in doubt, return empty`,
+- confidence must be >= 0.72 — if in doubt, return empty`,
           },
           { role: 'user', content: userContent },
         ],

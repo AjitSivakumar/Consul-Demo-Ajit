@@ -252,9 +252,9 @@ function applyAdditionalNeeds(state: MeetingState, incomingNeeds: InformationNee
 
   if (presetFiltered.length === 0) return state;
 
-  // Quality gate: only admit p1 needs with confidence >= 0.80
+  // Quality gate: only admit p1 needs with confidence >= 0.65
   const qualityFiltered = presetFiltered.filter(
-    (need) => need.priority === 'p1' && need.confidence >= 0.80
+    (need) => need.priority === 'p1' && need.confidence >= 0.65
   );
 
   if (qualityFiltered.length === 0) {

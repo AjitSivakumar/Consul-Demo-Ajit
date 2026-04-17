@@ -429,7 +429,7 @@ export function useAmbientMeetingAI(): {
       const aiNeeds = await inferNeedsWithAI(latest.text, ctxPacket);
       if (aiNeeds.length > 0) {
         // Research gaps are often subtle — allow lower confidence so sanity-check questions surface
-        const minConf = ctxPacket.meetingType === 'research' ? 0.65 : 0.80;
+        const minConf = ctxPacket.meetingType === 'research' ? 0.55 : 0.70;
         const filtered = aiNeeds
           .filter((n) => n.priority === 'p1' && n.confidence >= minConf)
           .slice(0, MAX_ACTIVE_GAPS - activeGaps); // never exceed cap
