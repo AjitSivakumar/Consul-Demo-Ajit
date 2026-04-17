@@ -243,10 +243,18 @@ export function useAmbientMeetingAI(): {
         detectedThemes: state.context.discussedThemes ?? [],
         resolvedTopics: state.evidence.map((e) => e.title),
         unresolvedQuestions: state.context.unresolvedQuestions ?? [],
-        recentTranscript: state.transcript
-          .slice(-10)
-          .map((s) => `${s.speaker}: ${s.text}`)
-          .join('\n'),
+        recentTranscript: (() => {
+          // Character-budget window: walk back until we have ~1200 chars of context.
+          // More reliable than slice(-10) when Recall.ai produces short/choppy lines.
+          const BUDGET = 1200;
+          let chars = 0;
+          const lines = [...state.transcript]
+            .reverse()
+            .filter((s) => { chars += s.text.length + s.speaker.length + 2; return chars <= BUDGET; })
+            .reverse()
+            .map((s) => `${s.speaker}: ${s.text}`);
+          return lines.join('\n');
+        })(),
         elapsedMinutes: startTime,
         meetingType: state.context.meetingType ?? 'sales',
       };

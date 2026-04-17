@@ -828,6 +828,9 @@ h1 em {
 .sdot { width:7px; height:7px; border-radius:50%; }
 .sname { font-size:11px; color:var(--text-secondary); }
 .irow-time { font-size:11px; color:var(--text-tertiary); }
+.irow-src-links { display:flex; flex-wrap:wrap; gap:4px 8px; margin-top:2px; }
+.irow-src-link { font-size:10px; font-family:'DM Mono',monospace; color:var(--accent-blue); text-decoration:none; letter-spacing:0.02em; }
+.irow-src-link:hover { text-decoration:underline; }
 
 /* Status badges on insight cards */
 .irow-status { font-size:10px; padding:3px 8px; border-radius:6px; }

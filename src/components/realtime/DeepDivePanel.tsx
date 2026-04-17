@@ -411,14 +411,6 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
         {evidence?.richCorrectionBlock && <CorrectionBlock block={evidence.richCorrectionBlock} />}
         {evidence?.richFlowDiagram && <FlowDiagram flow={evidence.richFlowDiagram} />}
 
-        {evidence && !evidence.richTable && !evidence.richChart && !evidence.richMetricGrid && !evidence.richCorrectionBlock && !evidence.richFlowDiagram && (
-          <div>
-            <div className="ev-section-label">Full analysis</div>
-            <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-              {evidence.summary}
-            </div>
-          </div>
-        )}
 
         {isCaution && evidence && evidence.attributions.length > 0 && (
           <div className="caution-sources">

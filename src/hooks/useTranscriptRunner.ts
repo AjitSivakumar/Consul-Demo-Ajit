@@ -262,6 +262,28 @@ export function useTranscriptRunner(): {
       return;
     }
 
+    // Speaker-turn accumulation: buffer finals per speaker, flush after 2.5s of silence
+    const FLUSH_DELAY_MS = 2500;
+    const MIN_WORDS = 4;
+    const turnBuffers: Record<string, { text: string; timer: ReturnType<typeof setTimeout> }> = {};
+
+    const flushSpeaker = (speaker: string) => {
+      const buf = turnBuffers[speaker];
+      if (!buf) return;
+      clearTimeout(buf.timer);
+      delete turnBuffers[speaker];
+      const merged = buf.text.trim();
+      if (!merged) return;
+
+      // Near-duplicate drop: skip if new text is a substring of the last dispatched line from this speaker
+      const allLines = stateRef.current.transcript;
+      const lastLine = allLines.slice().reverse().find((e: TranscriptEvent) => e.speaker === speaker);
+      if (lastLine && lastLine.text.includes(merged)) return;
+
+      console.log('%c[Recall]', 'color:#63d2be;font-weight:bold', `${speaker}: ${merged.substring(0, 80)}`);
+      dispatch({ type: 'PROCESS_EVENT', payload: makeEvent(speaker, merged) });
+    };
+
     const handleEvent = (evt: RecallTranscriptEvent) => {
       const speaker = evt.speaker || 'Unknown';
       const text = evt.text?.trim();
@@ -274,11 +296,23 @@ export function useTranscriptRunner(): {
 
       if (evt.isPartial) {
         setRecallPartials((prev) => ({ ...prev, [speaker]: text }));
-      } else {
-        setRecallPartials((prev) => { const n = { ...prev }; delete n[speaker]; return n; });
-        console.log('%c[Recall]', 'color:#63d2be;font-weight:bold', `${speaker}: ${text.substring(0, 80)}`);
-        dispatch({ type: 'PROCESS_EVENT', payload: makeEvent(speaker, text) });
+        return;
       }
+
+      // Final transcript event — accumulate into the speaker's buffer
+      setRecallPartials((prev) => { const n = { ...prev }; delete n[speaker]; return n; });
+
+      // Word count gate: skip fragments under the minimum
+      const wordCount = text.split(/\s+/).filter(Boolean).length;
+      if (wordCount < MIN_WORDS) return;
+
+      if (turnBuffers[speaker]) {
+        clearTimeout(turnBuffers[speaker].timer);
+        turnBuffers[speaker].text += ' ' + text;
+      } else {
+        turnBuffers[speaker] = { text, timer: setTimeout(() => {}, 0) };
+      }
+      turnBuffers[speaker].timer = setTimeout(() => flushSpeaker(speaker), FLUSH_DELAY_MS);
     };
 
     const handleError = (error: Error) => {
@@ -289,6 +323,8 @@ export function useTranscriptRunner(): {
     recallUnsubRef.current = subscribeToTranscript(recallBotId, handleEvent, handleError);
 
     return () => {
+      // Flush any pending speaker buffers before tearing down
+      Object.keys(turnBuffers).forEach(flushSpeaker);
       recallUnsubRef.current?.();
       recallUnsubRef.current = null;
     };

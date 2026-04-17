@@ -204,14 +204,23 @@ export function InsightsFeed({ selectedNeedId, onSelectNeed, resetKey }: Insight
           kind: 'claim',
           recencyLabel: 'Just resolved',
           confidence: internetResult.confidence,
-          attributions: [{
-            sourceId: `src-web-${Date.now()}`,
-            sourceType: 'web',
-            title: internetResult.source,
-            url: internetResult.sourceUrl ?? undefined,
-            freshnessScore: 0.9,
-            trustScore: 0.7,
-          }],
+          attributions: (internetResult.citations && internetResult.citations.length > 0
+            ? internetResult.citations.map((c, i) => ({
+                sourceId: `src-web-${Date.now()}-${i}`,
+                sourceType: 'web' as const,
+                title: c.title,
+                url: c.url,
+                freshnessScore: 0.9,
+                trustScore: 0.7,
+              }))
+            : [{
+                sourceId: `src-web-${Date.now()}`,
+                sourceType: 'web' as const,
+                title: internetResult.source,
+                url: internetResult.sourceUrl ?? undefined,
+                freshnessScore: 0.9,
+                trustScore: 0.7,
+              }]),
           triggeredBySegmentId: need.triggeredBySegmentId,
           explainWhyNow: 'Retried by user',
           verification: 'inferred',
@@ -302,7 +311,7 @@ export function InsightsFeed({ selectedNeedId, onSelectNeed, resetKey }: Insight
           <div className="irow-snippet irow-snippet-loading">Researching…</div>
         )}
 
-        {/* Footer: retry button */}
+        {/* Footer: source links (web) or retry button */}
         <div className="irow-foot">
           {(need.status === 'failed' || need.status === 'unresolved') && (
             <button
@@ -314,6 +323,19 @@ export function InsightsFeed({ selectedNeedId, onSelectNeed, resetKey }: Insight
               {isRetrying ? '…' : '↻'}
             </button>
           )}
+          {evidence && (() => {
+            const webAttrs = evidence.attributions.filter(a => a.sourceType === 'web' && a.url);
+            if (webAttrs.length === 0) return null;
+            return (
+              <div className="irow-src-links" onClick={e => e.stopPropagation()}>
+                {webAttrs.slice(0, 3).map((attr, i) => (
+                  <a key={i} href={attr.url} target="_blank" rel="noopener noreferrer" className="irow-src-link">
+                    {(() => { try { return new URL(attr.url!).hostname.replace(/^www\./, ''); } catch { return attr.title; } })()}↗
+                  </a>
+                ))}
+              </div>
+            );
+          })()}
         </div>
       </div>
     );
