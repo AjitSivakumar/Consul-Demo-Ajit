@@ -567,11 +567,20 @@ const demoTriggers: Array<{
   (text.includes('hospital') && text.includes('approval')) ||
   (text.includes('sign-off') && (text.includes('hospital') || text.includes('health') || text.includes('site'))) ||
   text.includes('three approvals') ||
-  (text.includes('network') && text.includes('health department')),
+  (text.includes('network') && text.includes('health department')) ||
+  text.includes("don't run in order") ||
+  text.includes('not one approval') ||
+  (text.includes('placing a clinic') && text.includes('sign-off')) ||
+  (text.includes('placing a clinic') && (text.includes('approval') || text.includes('network') || text.includes('health'))) ||
+  (text.includes('whoever hosts') && (text.includes('approval') || text.includes('sign-off'))) ||
+  (text.includes('city health') && (text.includes('sign-off') || text.includes('approval') || text.includes('hospital'))),
  detectAssist: (text) =>
   (text.includes('hospital') && text.includes('approval')) ||
   (text.includes('sign-off') && (text.includes('hospital') || text.includes('health') || text.includes('site'))) ||
   text.includes('three approvals') ||
+  text.includes("don't run in order") ||
+  text.includes('not one approval') ||
+  (text.includes('placing a clinic') && (text.includes('approval') || text.includes('sign-off') || text.includes('network'))) ||
   (text.includes('network') && text.includes('health department')),
  needs: [
   {
