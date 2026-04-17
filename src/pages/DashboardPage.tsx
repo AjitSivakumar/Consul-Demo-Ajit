@@ -41,7 +41,7 @@ export function DashboardPage(): React.JSX.Element {
     if (presetId) {
       const preset = meetingPresets.find((p) => p.id === presetId);
       if (preset) {
-        dispatch({ type: 'LOAD_PRESET', payload: { id: preset.id, context: preset.context, transcript: preset.transcript, autoPlay: preset.autoPlay, liveAI: preset.liveAI, silentTranscript: preset.silentTranscript } });
+        dispatch({ type: 'LOAD_PRESET', payload: { id: preset.id, context: preset.context, transcript: preset.transcript, autoPlay: preset.autoPlay, liveAI: preset.liveAI, silentTranscript: preset.silentTranscript, voiceActivated: preset.voiceActivated } });
         navigate('/realtime', { state: { autoStart: true, mode: 'ai-live', presetId } });
         return;
       }

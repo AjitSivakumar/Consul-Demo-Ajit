@@ -60,11 +60,11 @@ export function useTranscriptRunner(): {
   // = disable auto-timer, let real speech (Recall.ai / inject bar) drive keyword triggers
   useEffect(() => {
     const isAssist = state.presetTranscript !== null && !state.presetAutoPlay &&
-      (mode === 'recall-bot' || state.silentReplay);
+      (mode === 'recall-bot' || state.silentReplay || state.presetVoiceActivated);
     if (isAssist !== state.scriptAssistMode) {
       dispatch({ type: 'SET_SCRIPT_ASSIST', payload: isAssist });
     }
-  }, [state.presetTranscript, mode, state.scriptAssistMode, state.presetAutoPlay, state.silentReplay, dispatch]);
+  }, [state.presetTranscript, mode, state.scriptAssistMode, state.presetAutoPlay, state.silentReplay, state.presetVoiceActivated, dispatch]);
 
   const makeEvent = (speaker: string, text: string): TranscriptEvent => {
     eventCounterRef.current += 1;

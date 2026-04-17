@@ -40,6 +40,8 @@ export interface MeetingState {
   scriptAssistMode: boolean;
   // When true, events still fire (triggering popups) but lines are not added to the visible transcript
   silentReplay: boolean;
+  // When true, disables preset auto-replay so real speech drives triggers (transcript still visible)
+  presetVoiceActivated: boolean;
   // Group this session is associated with
   groupId: string | null;
 }
@@ -59,7 +61,7 @@ export type MeetingAction =
   | { type: 'ADD_RESOLVED_EVIDENCE'; payload: EvidenceCard }
   | { type: 'SET_GENERATING'; payload: boolean }
   | { type: 'SET_GENERATED_CONTENT'; payload: GeneratedDeliverables }
-  | { type: 'LOAD_PRESET'; payload: { id: string; context: MeetingContext; transcript: TranscriptEvent[]; autoPlay?: boolean; liveAI?: boolean; silentTranscript?: boolean } }
+  | { type: 'LOAD_PRESET'; payload: { id: string; context: MeetingContext; transcript: TranscriptEvent[]; autoPlay?: boolean; liveAI?: boolean; silentTranscript?: boolean; voiceActivated?: boolean } }
   | { type: 'CLEAR_PRESET_TRANSCRIPT' }
   | { type: 'SET_SCRIPT_ASSIST'; payload: boolean }
   | { type: 'SET_NOTE'; payload: { key: string; text: string } }
@@ -98,6 +100,7 @@ export const initialMeetingState: MeetingState = {
   presetAutoPlay: false,
   scriptAssistMode: false,
   silentReplay: false,
+  presetVoiceActivated: false,
   groupId: null,
 };
 
@@ -181,6 +184,7 @@ export function meetingReducer(state: MeetingState, action: MeetingAction): Meet
         activePresetId: action.payload.id,
         presetAutoPlay: action.payload.autoPlay ?? false,
         silentReplay: action.payload.silentTranscript ?? false,
+        presetVoiceActivated: action.payload.voiceActivated ?? false,
         context: { ...initialMeetingState.context, ...action.payload.context },
         presetTranscript: action.payload.transcript,
         liveStatus: 'paused',

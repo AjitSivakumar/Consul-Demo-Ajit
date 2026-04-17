@@ -3031,16 +3031,13 @@ h1 em {
 }
 .lp-sub {
   font-family: 'Work Sans', sans-serif;
-  font-size: 15px;
-  color: #444;
-  line-height: 1.75;
+  font-size: 19px;
+  line-height: 1.6;
   margin: 0;
   font-weight: 400;
-  max-width: 420px;
-  background: linear-gradient(135deg, rgba(168,85,247,0.08) 0%, rgba(59,130,246,0.06) 100%);
-  border: 1px solid rgba(168,85,247,0.2);
-  padding: 16px 20px;
-  color: #1e0a3c;
+  max-width: 460px;
+  color: rgba(255, 255, 255, 0.72);
+  letter-spacing: 0.01em;
 }
 .lp-hero-actions {
   display: flex;

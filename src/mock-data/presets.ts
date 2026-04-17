@@ -11,6 +11,8 @@ export interface MeetingPreset {
  liveAI?: boolean;
  /** When true: transcript events still fire (triggering hardcoded popups) but lines are hidden from the transcript panel */
  silentTranscript?: boolean;
+ /** When true: disables the preset auto-replay timer so real speech (Recall.ai / inject bar) drives triggers */
+ voiceActivated?: boolean;
 }
 
 export const meetingPresets: MeetingPreset[] = [
@@ -262,6 +264,7 @@ export const meetingPresets: MeetingPreset[] = [
  {
  id: 'patel-lab-vaccine',
  label: 'Patel Lab × Children\'s Hospital',
+ voiceActivated: true,
  context: {
   meetingId: 'meeting-patel-vaccine',
   title: 'Patel Lab × Children\'s Hospital Foundation',
