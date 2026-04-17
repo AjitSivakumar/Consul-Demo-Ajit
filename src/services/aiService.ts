@@ -586,14 +586,30 @@ Hard rules:
 
     if (!rawAnswer) throw new Error('Empty response from search model');
 
+    // Extract inline markdown citations [title](url) before stripping them
+    const inlineCitations: Array<{ title: string; url: string }> = [];
+    const inlineRegex = /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g;
+    let m: RegExpExecArray | null;
+    while ((m = inlineRegex.exec(rawAnswer)) !== null) {
+      const url = m[2].replace(/\?utm_source=openai$/, '');
+      const title = m[1] || new URL(url).hostname.replace(/^www\./, '');
+      if (!inlineCitations.some((c) => c.url === url)) inlineCitations.push({ title, url });
+    }
+
     const answerText = stripInlineCitations(rawAnswer);
 
-    // Extract all URL citations from annotations
+    // Also extract from annotations (the structured field the search model sometimes populates)
     const annotations: any[] = choice?.message?.annotations ?? [];
-    const urlCitations = annotations.filter((a: any) => a.type === 'url_citation');
-    const citations: Array<{ title: string; url: string }> = urlCitations
-      .filter((a: any) => a.url)
+    const annotationCitations: Array<{ title: string; url: string }> = annotations
+      .filter((a: any) => a.type === 'url_citation' && a.url)
       .map((a: any) => ({ title: a.title || new URL(a.url).hostname.replace(/^www\./, ''), url: a.url }));
+
+    // Merge: inline citations first (more common), then annotations, deduplicated by URL
+    const allCitations = [...inlineCitations, ...annotationCitations];
+    const citations: Array<{ title: string; url: string }> = allCitations.filter(
+      (c, i, arr) => arr.findIndex((x) => x.url === c.url) === i
+    );
+
     const sourceUrl: string | null = citations[0]?.url ?? null;
     const sourceName: string = citations[0]?.title ?? 'Web search';
 
