@@ -3236,9 +3236,11 @@ h1 em {
 }
 
 /* ── Final CTA ── */
-.lp-final-cta {
+.lp-section-dark {
   background: linear-gradient(135deg, #1e0a3c 0%, #0f1f4a 100%);
-  padding: 56px 56px;
+  border-bottom: none;
+}
+.lp-final-cta {
   display: flex;
   align-items: center;
   justify-content: space-between;
