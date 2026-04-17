@@ -101,6 +101,8 @@ export function useAmbientMeetingAI(): {
   // Cooldown between ambient suggestion calls
   const AMBIENT_SUGGESTION_COOLDOWN_MS = isLiveAIPreset ? 6_000 : 15_000;
   const lastAmbientTsRef = useRef<number>(0);
+  const stateRef = useRef(state);
+  useEffect(() => { stateRef.current = state; }, [state]);
 
   // Auto-resolve: when new needs appear, try docs → internet → mark failed
   // Stagger by 3s per need so each gets fully processed before the next starts
@@ -451,22 +453,23 @@ export function useAmbientMeetingAI(): {
   }, [state.liveStatus, state.transcript.length]);
 
   const endMeetingInternal = async (): Promise<void> => {
-    if (state.isGenerating || state.liveStatus === 'ending' || state.liveStatus === 'ended') {
+    const s = stateRef.current;
+    if (s.isGenerating || s.liveStatus === 'ending' || s.liveStatus === 'ended') {
       return;
     }
 
     dispatch({ type: 'END_MEETING' });
     dispatch({ type: 'SET_GENERATING', payload: true });
 
-    // Inject hardcoded deliverable for Chen Lab presets — component is self-contained
-    if (state.activePresetId && CHEN_LAB_PRESET_IDS.has(state.activePresetId)) {
+    // Inject hardcoded deliverable for Chen Lab / Patel Lab presets — component is self-contained
+    if (s.activePresetId && CHEN_LAB_PRESET_IDS.has(s.activePresetId)) {
       setTimeout(() => {
         dispatch({ type: 'SET_GENERATED_CONTENT', payload: { generatedAt: new Date().toISOString() } });
       }, 1800);
       return;
     }
 
-    const transcriptText = state.transcript
+    const transcriptText = s.transcript
       .map((segment) => `${segment.speaker}: ${segment.text}`)
       .join('\n');
 
@@ -489,18 +492,18 @@ export function useAmbientMeetingAI(): {
 
     const docContext = [kbCtx, uploadedCtx].filter(Boolean).join('\n\n---\n\n');
 
-    const openGaps: Array<{ label: string; missingQuestion: string }> = state.needs
+    const openGaps: Array<{ label: string; missingQuestion: string }> = s.needs
       .filter((n) => n.status === 'new' || n.status === 'retrieving')
       .map((n) => ({ label: n.category, missingQuestion: n.prompt }));
 
     try {
-      const accountContext = state.context.accountContext || '';
-      const meetingType = state.context.meetingType ?? 'sales';
+      const accountContext = s.context.accountContext || '';
+      const meetingType = s.context.meetingType ?? 'sales';
       const [research, qa, actions, slides] = await Promise.all([
-        generateResearchSummary(transcriptText, state.evidence, docContext, accountContext, meetingType),
-        generateQAAnswers(transcriptText, state.evidence, docContext, accountContext, meetingType),
+        generateResearchSummary(transcriptText, s.evidence, docContext, accountContext, meetingType),
+        generateQAAnswers(transcriptText, s.evidence, docContext, accountContext, meetingType),
         generateActionItems(transcriptText, openGaps, docContext, accountContext, meetingType),
-        generateSlideDeck(transcriptText, state.evidence, docContext, accountContext, meetingType)
+        generateSlideDeck(transcriptText, s.evidence, docContext, accountContext, meetingType)
       ]);
 
       dispatch({

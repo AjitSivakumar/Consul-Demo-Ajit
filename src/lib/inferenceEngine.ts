@@ -476,7 +476,11 @@ const demoTriggers: Array<{
  {
  presetId: 'patel-lab-vaccine',
  detect: (text) =>
-  text.includes('walk me through') && text.includes('anchor on') ||
+  text.includes('walk me through') ||
+  text.includes('anchor on') ||
+  (text.includes('uptake') && text.includes('reliable')) ||
+  text.includes('which zip codes') ||
+  text.includes('which ones are solid') ||
   (text.includes('not all of') && text.includes('equally reliable')),
  detectAssist: (text) =>
   (text.includes('uptake') && text.includes('reliable')) ||
@@ -559,7 +563,11 @@ const demoTriggers: Array<{
  detect: (text) =>
   (text.includes('hospital network') && text.includes('city health department')) ||
   (text.includes("it's not one approval") && text.includes("three")) ||
-  (text.includes('three') && text.includes("don't run in order")),
+  (text.includes('three') && text.includes("don't run in order")) ||
+  (text.includes('hospital') && text.includes('approval')) ||
+  (text.includes('sign-off') && (text.includes('hospital') || text.includes('health') || text.includes('site'))) ||
+  text.includes('three approvals') ||
+  (text.includes('network') && text.includes('health department')),
  detectAssist: (text) =>
   (text.includes('hospital') && text.includes('approval')) ||
   (text.includes('sign-off') && (text.includes('hospital') || text.includes('health') || text.includes('site'))) ||
@@ -612,9 +620,11 @@ const demoTriggers: Array<{
  {
  presetId: 'patel-lab-vaccine',
  detect: (text) =>
-  (text.includes('clinic closed') || text.includes('clinic closed in roseland')) ||
+  text.includes('clinic closed') ||
+  text.includes('supply disruption') ||
+  (text.includes('roseland') && (text.includes('closed') || text.includes('disruption') || text.includes('collection'))) ||
   (text.includes('supply disruption') && text.includes('not real demand')) ||
-  (text.includes('roseland') && text.includes('data collection') && text.includes('closed')),
+  (text.includes('52') && text.includes('roseland')),
  detectAssist: (text) =>
   (text.includes('roseland') && (text.includes('closed') || text.includes('disruption'))) ||
   text.includes('supply disruption') ||

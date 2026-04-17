@@ -262,7 +262,6 @@ export const meetingPresets: MeetingPreset[] = [
  {
  id: 'patel-lab-vaccine',
  label: 'Patel Lab × Children\'s Hospital',
- silentTranscript: true,
  context: {
   meetingId: 'meeting-patel-vaccine',
   title: 'Patel Lab × Children\'s Hospital Foundation',
