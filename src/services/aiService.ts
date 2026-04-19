@@ -551,7 +551,7 @@ export async function resolveGapFromInternet(
   question: string,
   transcriptContext: string,
   meetingType: 'sales' | 'research' = 'sales'
-): Promise<{ answer: string; source: string; sourceUrl: string | null; confidence: number; rich?: Partial<RichOutput> }> {
+): Promise<{ answer: string; source: string; sourceUrl: string | null; confidence: number; rich?: Partial<RichOutput>; citations?: { title: string; url: string }[]; provenance?: 'model_inference' | 'web_search' }> {
   const visualNote = `
 
 IMPORTANT — Visual rendering: This interface renders charts and tables automatically from your text output.
@@ -594,9 +594,12 @@ Hard rules:
     const sourceUrl: string | null = firstCitation?.url ?? null;
     const sourceName: string = firstCitation?.title ?? 'Web search';
 
+    const citations = annotations
+      .filter((a: any) => a.type === 'url_citation' && a.url)
+      .map((a: any) => ({ title: a.title ?? a.url, url: a.url }));
     const confidence = meetingType === 'research' ? 0.78 : 0.82;
     const rich = await enrichResolutionOutput(question, answerText);
-    return { answer: answerText, source: sourceName, sourceUrl, confidence, rich };
+    return { answer: answerText, source: sourceName, sourceUrl, confidence, rich, citations, provenance: 'web_search' };
 
   } catch (err) {
     console.error('Web search error, falling back to GPT knowledge:', err);
@@ -622,10 +625,12 @@ Hard rules:
         sourceUrl: null,
         confidence: meetingType === 'research' ? 0.55 : 0.65,
         rich,
+        citations: [],
+        provenance: 'model_inference',
       };
     } catch (fallbackErr) {
       console.error('Fallback also failed:', fallbackErr);
-      return { answer: 'Unable to resolve.', source: 'Error', sourceUrl: null, confidence: 0 };
+      return { answer: 'Unable to resolve.', source: 'Error', sourceUrl: null, confidence: 0, citations: [], provenance: 'model_inference' };
     }
   }
 }
