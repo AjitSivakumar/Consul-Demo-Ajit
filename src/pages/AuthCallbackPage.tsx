@@ -7,8 +7,17 @@ export function AuthCallbackPage(): React.JSX.Element {
   useEffect(() => {
     if (!supabase) { setStatus('Error: Supabase not configured'); return; }
 
+    // Supabase redirects here with ?error= when sign-in fails server-side
+    const searchParams = new URLSearchParams(window.location.search);
+    const errorParam = searchParams.get('error');
+    if (errorParam) {
+      const desc = searchParams.get('error_description')?.replace(/\+/g, ' ') ?? errorParam;
+      setStatus(`Sign-in failed: ${desc}`);
+      return;
+    }
+
     // PKCE flow: Supabase puts ?code= in the search params
-    const code = new URLSearchParams(window.location.search).get('code');
+    const code = searchParams.get('code');
     if (code) {
       setStatus('Exchanging code…');
       supabase.auth.exchangeCodeForSession(code).then(({ data: { session }, error }) => {
