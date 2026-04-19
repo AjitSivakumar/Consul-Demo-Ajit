@@ -113,12 +113,12 @@ Each need:
 }
 
 Strict rules:
-- 0 to 2 needs maximum
+- 0 or 1 needs only. Never more.
 - Only trigger on CUSTOMER speech — what the prospect/buyer says carries 3x more weight than the seller
 - Skip if the topic was already surfaced (check "Already surfaced" list)
 - Skip small talk, general discussion, soft objections
 - correction category ONLY for demonstrably false factual claims, not uncertainty
-- confidence must be >= 0.72 — if in doubt, return empty`,
+- confidence must be >= 0.85 — if in doubt, return empty`,
           },
           { role: 'user', content: userContent },
         ],
@@ -551,7 +551,7 @@ export async function resolveGapFromInternet(
   question: string,
   transcriptContext: string,
   meetingType: 'sales' | 'research' = 'sales'
-): Promise<{ answer: string; source: string; sourceUrl: string | null; citations: Array<{ title: string; url: string }>; confidence: number; provenance: 'web_search' | 'model_inference'; rich?: Partial<RichOutput> }> {
+): Promise<{ answer: string; source: string; sourceUrl: string | null; confidence: number; rich?: Partial<RichOutput> }> {
   const visualNote = `
 
 IMPORTANT — Visual rendering: This interface renders charts and tables automatically from your text output.
@@ -586,36 +586,17 @@ Hard rules:
 
     if (!rawAnswer) throw new Error('Empty response from search model');
 
-    // Extract inline markdown citations [title](url) before stripping them
-    const inlineCitations: Array<{ title: string; url: string }> = [];
-    const inlineRegex = /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g;
-    let m: RegExpExecArray | null;
-    while ((m = inlineRegex.exec(rawAnswer)) !== null) {
-      const url = m[2].replace(/\?utm_source=openai$/, '');
-      const title = m[1] || new URL(url).hostname.replace(/^www\./, '');
-      if (!inlineCitations.some((c) => c.url === url)) inlineCitations.push({ title, url });
-    }
-
     const answerText = stripInlineCitations(rawAnswer);
 
-    // Also extract from annotations (the structured field the search model sometimes populates)
+    // Extract URL citation from annotations if present
     const annotations: any[] = choice?.message?.annotations ?? [];
-    const annotationCitations: Array<{ title: string; url: string }> = annotations
-      .filter((a: any) => a.type === 'url_citation' && a.url)
-      .map((a: any) => ({ title: a.title || new URL(a.url).hostname.replace(/^www\./, ''), url: a.url }));
-
-    // Merge: inline citations first (more common), then annotations, deduplicated by URL
-    const allCitations = [...inlineCitations, ...annotationCitations];
-    const citations: Array<{ title: string; url: string }> = allCitations.filter(
-      (c, i, arr) => arr.findIndex((x) => x.url === c.url) === i
-    );
-
-    const sourceUrl: string | null = citations[0]?.url ?? null;
-    const sourceName: string = citations[0]?.title ?? 'Web search';
+    const firstCitation = annotations.find((a: any) => a.type === 'url_citation');
+    const sourceUrl: string | null = firstCitation?.url ?? null;
+    const sourceName: string = firstCitation?.title ?? 'Web search';
 
     const confidence = meetingType === 'research' ? 0.78 : 0.82;
     const rich = await enrichResolutionOutput(question, answerText);
-    return { answer: answerText, source: sourceName, sourceUrl, citations, confidence, provenance: 'web_search', rich };
+    return { answer: answerText, source: sourceName, sourceUrl, confidence, rich };
 
   } catch (err) {
     console.error('Web search error, falling back to GPT knowledge:', err);
@@ -637,16 +618,14 @@ Hard rules:
       const rich = await enrichResolutionOutput(question, answer);
       return {
         answer,
-        source: 'GPT-4o (model inference)',
+        source: 'GPT knowledge (web search unavailable)',
         sourceUrl: null,
-        citations: [],
         confidence: meetingType === 'research' ? 0.55 : 0.65,
-        provenance: 'model_inference',
         rich,
       };
     } catch (fallbackErr) {
       console.error('Fallback also failed:', fallbackErr);
-      return { answer: 'Unable to resolve.', source: 'Error', sourceUrl: null, citations: [], confidence: 0, provenance: 'model_inference' };
+      return { answer: 'Unable to resolve.', source: 'Error', sourceUrl: null, confidence: 0 };
     }
   }
 }
@@ -732,20 +711,13 @@ Rules:
     });
 
     const parsed = JSON.parse(response.choices[0].message.content || '{}');
-    const ct = parsed.comparisonTable;
     return {
       question: parsed.question || '',
       answer: parsed.answer || '',
-      // Normalize comparisonTable — only include if columns is a real array
-      comparisonTable: ct && Array.isArray(ct.columns) && ct.columns.length > 0
-        ? { columns: ct.columns, rows: Array.isArray(ct.rows) ? ct.rows : [] }
-        : undefined,
+      comparisonTable: parsed.comparisonTable || undefined,
       barChart: Array.isArray(parsed.barChart) ? parsed.barChart : undefined,
       barChartNote: parsed.barChartNote || undefined,
-      // Normalize keyFinding — only include if text is a non-empty string
-      keyFinding: parsed.keyFinding?.text
-        ? { text: String(parsed.keyFinding.text), source: parsed.keyFinding.source || '' }
-        : undefined,
+      keyFinding: parsed.keyFinding || undefined,
       sources: Array.isArray(parsed.sources) ? parsed.sources : [],
     };
   } catch (err) {
@@ -1025,9 +997,7 @@ Rules:
 
     const parsed = JSON.parse(response.choices[0].message.content || '{}');
     return {
-      slides: Array.isArray(parsed.slides)
-        ? parsed.slides.map((s: any) => ({ ...s, bullets: Array.isArray(s.bullets) ? s.bullets : [] }))
-        : [],
+      slides: Array.isArray(parsed.slides) ? parsed.slides : [],
       summary: parsed.summary || '',
     };
   } catch (err) {
