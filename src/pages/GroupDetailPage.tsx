@@ -77,7 +77,14 @@ export function GroupDetailPage(): React.JSX.Element {
   const { group, members, sessions, loading, inviteByEmail, removeMember, deleteGroup } = useGroupDetail(id!);
   const { integration } = useDriveIntegration(id!);
 
-  const [activeTab, setActiveTab] = useState<TabId>('overview');
+  // Start on the Knowledge Base tab when returning from OAuth so the panel
+  // mounts in the initial render and its hook claims the ?drive=connected param
+  // before GroupDetailPage's own useDriveIntegration hook clears it.
+  const [activeTab, setActiveTab] = useState<TabId>(() =>
+    new URLSearchParams(window.location.search).get('drive') === 'connected'
+      ? 'knowledge'
+      : 'overview'
+  );
 
   // Invite
   const [inviteEmail, setInviteEmail] = useState('');
