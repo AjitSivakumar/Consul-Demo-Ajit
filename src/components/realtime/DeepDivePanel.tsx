@@ -5,8 +5,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
 } from 'recharts';
 import { enrichResolutionOutput, isVisualizationRequest, resolveGapFromDocuments, resolveGapFromInternet } from '../../services/aiService';
-import { extractRelevantChunks, getAllDocuments } from '../../services/documentService';
-import { fetchDocumentContent, loadGroupKnowledge, searchByEntities, searchByTags, semanticSearch, type KnowledgeDoc } from '../../services/knowledgeService';
+import { buildContext, initRegistry, search } from '../../services/documentRegistry';
 import { useMeetingStore } from '../../state/MeetingStore';
 import type { EvidenceCard } from '../../types/domain';
 
@@ -18,6 +17,7 @@ interface QueryEntry {
   question: string;
   answer: string | null;
   source: 'document' | 'web' | 'model_inference' | null;
+  providerLabel?: string | null;
   sourceTitle?: string | null;
   sourceUrl?: string | null;
   citations?: Array<{ title: string; url: string }>;
@@ -31,11 +31,10 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
   const [queryHistory, setQueryHistory] = useState<QueryEntry[]>([]);
   const [savedConfirm, setSavedConfirm] = useState(false);
   const bodyRef = useRef<HTMLDivElement | null>(null);
-  const groupKnowledgeRef = useRef<KnowledgeDoc[]>([]);
 
   useEffect(() => {
-    if (!state.groupId) { groupKnowledgeRef.current = []; return; }
-    loadGroupKnowledge(state.groupId).then((docs) => { groupKnowledgeRef.current = docs; }).catch(() => {});
+    if (!state.groupId) return;
+    initRegistry(state.groupId).catch(() => {});
   }, [state.groupId]);
 
   const noteKey = selectedNeedId ?? '__general__';
@@ -106,7 +105,7 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
 
     setQueryText('');
     setIsQuerying(true);
-    setQueryHistory((prev) => [...prev, { question: q, answer: null, source: null, sourceTitle: null, sourceUrl: null }]);
+    setQueryHistory((prev) => [...prev, { question: q, answer: null, source: null, providerLabel: null, sourceTitle: null, sourceUrl: null }]);
 
     try {
 
@@ -131,6 +130,7 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
 
     let answer = '';
     let source: QueryEntry['source'] = 'web';
+    let providerLabel: string | null = null;
     let sourceTitle: string | null = null;
     let sourceUrl: string | null = null;
     let citations: QueryEntry['citations'] = [];
@@ -139,60 +139,24 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
     // Detect if the user explicitly asked for a chart/graph/visualization
     const vizHint = isVisualizationRequest(q) ? 'chart' : undefined;
 
-    // 1) Try uploaded documents first
-    const docs = getAllDocuments();
-    if (docs.length > 0) {
-      const chunks = extractRelevantChunks(q, 8, 1500);
-      if (chunks.length > 0) {
-        const docCtx = chunks.map((c) => `[Source: ${c.docName}]\n${c.chunk}`).join('\n\n---\n\n');
-        const docResult = await resolveGapFromDocuments(q, docCtx);
-        if (docResult.confidence >= 0.65) {
-          answer = docResult.answer;
-          source = 'document';
-          // Re-enrich with visualization hint if needed and not already enriched
-          rich = (vizHint && (!docResult.rich || Object.keys(docResult.rich).length === 0))
-            ? await enrichResolutionOutput(q, answer, vizHint)
-            : docResult.rich ?? {};
-        }
+    // 1) Try documents (uploads + Drive) via unified registry
+    const docMatches = await search(q, state.groupId ?? null);
+    if (docMatches.length > 0) {
+      const docResult = await resolveGapFromDocuments(q, buildContext(docMatches));
+      if (docResult.confidence >= 0.65) {
+        answer = docResult.answer;
+        source = 'document';
+        providerLabel = docMatches[0]?.provider === 'google_drive' ? '📁 Google Drive'
+          : docMatches[0]?.provider === 'onedrive' ? '☁️ OneDrive'
+          : docMatches[0]?.provider === 'sharepoint' ? '🏢 SharePoint'
+          : '📄 Uploaded doc';
+        rich = (vizHint && (!docResult.rich || Object.keys(docResult.rich).length === 0))
+          ? await enrichResolutionOutput(q, answer, vizHint)
+          : docResult.rich ?? {};
       }
     }
 
-    // 2) Try Google Drive / Supabase knowledge base
-    if (!answer) {
-      const knowledgeDocs = groupKnowledgeRef.current;
-      if (knowledgeDocs.length > 0) {
-        const localMatches = [
-          ...searchByEntities(q, knowledgeDocs),
-          ...searchByTags(q, knowledgeDocs),
-        ].sort((a, b) => b.score - a.score).slice(0, 3);
-
-        const semanticMatches = state.groupId
-          ? await semanticSearch(q, state.groupId).catch(() => [])
-          : [];
-
-        const topMatches = [...localMatches, ...semanticMatches]
-          .filter((m, i, arr) => arr.findIndex((x) => x.doc.id === m.doc.id) === i)
-          .sort((a, b) => b.score - a.score)
-          .slice(0, 3);
-
-        if (topMatches.length > 0) {
-          const contents = await Promise.all(topMatches.map((m) => fetchDocumentContent(m.doc.id)));
-          const kbCtx = topMatches
-            .map((m, i) => `[Source: ${m.doc.name}]\n${contents[i]?.slice(0, 2500) ?? m.doc.summary}`)
-            .join('\n\n---\n\n');
-          const kbResult = await resolveGapFromDocuments(q, kbCtx);
-          if (kbResult.confidence >= 0.65) {
-            answer = kbResult.answer;
-            source = 'document';
-            rich = (vizHint && (!kbResult.rich || Object.keys(kbResult.rich).length === 0))
-              ? await enrichResolutionOutput(q, answer, vizHint)
-              : kbResult.rich ?? {};
-          }
-        }
-      }
-    }
-
-    // 3) Fall back to web search / GPT general knowledge
+    // 2) Fall back to web search / GPT general knowledge
     if (!answer) {
       const webResult = await resolveGapFromInternet(q, fullContext, state.context.meetingType ?? 'sales');
       answer = webResult.answer;
@@ -213,7 +177,7 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
 
       setQueryHistory((prev) =>
         prev.map((item, i) =>
-          i === prev.length - 1 ? { ...item, answer, source, sourceTitle, sourceUrl, citations, rich } : item
+          i === prev.length - 1 ? { ...item, answer, source, providerLabel, sourceTitle, sourceUrl, citations, rich } : item
         )
       );
     } catch (err) {
@@ -331,7 +295,11 @@ export function DeepDivePanel({ selectedNeedId }: DeepDivePanelProps): React.JSX
                       ) : (
                         <div key={attr.sourceId} className="ev-src-badge ev-src-badge--doc">
                           <span className="ev-src-provenance-label">
-                            {attr.sourceType === 'internal_document' ? 'UPLOADED DOC' : attr.sourceType === 'product_doc' ? 'PRODUCT DOC' : 'INTERNAL'}
+                            {attr.provider === 'google_drive' ? 'GOOGLE DRIVE'
+                              : attr.provider === 'onedrive' ? 'ONEDRIVE'
+                              : attr.provider === 'sharepoint' ? 'SHAREPOINT'
+                              : attr.sourceType === 'product_doc' ? 'PRODUCT DOC'
+                              : 'UPLOADED DOC'}
                           </span>
                           <span className="ev-src-title">{attr.title}</span>
                         </div>
@@ -673,7 +641,9 @@ function QueryThread({ entry }: { entry: QueryEntry }): React.JSX.Element {
         {entry.answer && entry.source && (
           <div className="qr-source-row">
             {entry.source === 'document' && (
-              <span className="qr-src-badge qr-src-badge--doc">📄 Uploaded documents</span>
+              <span className="qr-src-badge qr-src-badge--doc">
+                {entry.providerLabel ?? '📄 Internal documents'}
+              </span>
             )}
             {entry.source === 'web' && (
               <>

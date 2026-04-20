@@ -1,7 +1,5 @@
 import { inferInformationNeeds, updateMeetingContext } from '../lib/inferenceEngine';
-import { initialDeliverables } from '../mock-data/deliverables';
 import {
-  Deliverable,
   EvidenceCard,
   InformationNeed,
   MeetingContext,
@@ -16,7 +14,6 @@ export interface MeetingState {
   transcript: TranscriptEvent[];
   needs: InformationNeed[];
   evidence: EvidenceCard[];
-  deliverables: Deliverable[];
   liveStatus: 'idle' | 'listening' | 'paused' | 'ending' | 'ended';
   // Ambient AI features
   ambientSuggestions: Array<{ timestamp: string; headline: string; needId: string; importance: number }>;
@@ -67,7 +64,7 @@ export type MeetingAction =
   | { type: 'SET_NOTE'; payload: { key: string; text: string } }
   | { type: 'SAVE_INSIGHT'; payload: { question: string; answer: string; source: string } }
   | { type: 'SET_GROUP'; payload: string | null }
-  | { type: 'SET_MEETING_CONTEXT'; payload: { title: string; groupId: string | null; accountContext: string; meetingType: 'sales' | 'research' } }
+  | { type: 'SET_MEETING_CONTEXT'; payload: { title: string; groupId: string | null; accountContext: string; projectContext: string; meetingType: 'sales' | 'research' } }
   | { type: 'RESET' };
 
 export const initialMeetingState: MeetingState = {
@@ -79,14 +76,12 @@ export const initialMeetingState: MeetingState = {
     projectContext: '',
     discussedThemes: [],
     unresolvedQuestions: [],
-    deliverableTargets: [],
     confidenceByTheme: {},
     meetingType: 'sales',
   },
   transcript: [],
   needs: [],
   evidence: [],
-  deliverables: initialDeliverables,
   liveStatus: 'idle',
   ambientSuggestions: [],
   lastSuggestionTime: 0,
@@ -218,7 +213,7 @@ export function meetingReducer(state: MeetingState, action: MeetingAction): Meet
       return {
         ...state,
         groupId: action.payload.groupId,
-        context: { ...state.context, title: action.payload.title, accountContext: action.payload.accountContext, meetingType: action.payload.meetingType },
+        context: { ...state.context, title: action.payload.title, accountContext: action.payload.accountContext, projectContext: action.payload.projectContext, meetingType: action.payload.meetingType },
       };
     case 'RESET':
       return initialMeetingState;

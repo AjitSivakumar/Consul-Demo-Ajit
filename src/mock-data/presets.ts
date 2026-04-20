@@ -27,7 +27,7 @@ export const meetingPresets: MeetingPreset[] = [
  projectContext: 'Preet Chandi South Pole expedition',
  discussedThemes: [],
  unresolvedQuestions: [],
- deliverableTargets: ['Research summary', 'Pricing Q&A', 'Slide leave-behind'],
+
  confidenceByTheme: {}
  },
  transcript: [
@@ -123,7 +123,7 @@ export const meetingPresets: MeetingPreset[] = [
  projectContext: 'Heat exposure / preterm birth CT climate adaptation pitch, June session',
  discussedThemes: [],
  unresolvedQuestions: [],
- deliverableTargets: ['Pilot justification brief', 'Stakeholder pathway diagram', 'Data limitations memo'],
+
  confidenceByTheme: {}
  },
  transcript: [
@@ -198,7 +198,7 @@ export const meetingPresets: MeetingPreset[] = [
  projectContext: 'Heat exposure / preterm birth CT climate adaptation pitch, June session',
  discussedThemes: [],
  unresolvedQuestions: [],
- deliverableTargets: ['Pilot justification brief', 'Stakeholder pathway diagram', 'Data limitations memo'],
+
  confidenceByTheme: {}
  },
  transcript: [
@@ -274,7 +274,7 @@ export const meetingPresets: MeetingPreset[] = [
   projectContext: 'Mobile vaccine clinic rollout — Chicago zip code targeting for board pitch, fall pilot sites',
   discussedThemes: [],
   unresolvedQuestions: [],
-  deliverableTargets: ['Zip code shortlist memo', 'Site approval pathway diagram', 'Board pitch deck'],
+
   confidenceByTheme: {}
  },
  transcript: []

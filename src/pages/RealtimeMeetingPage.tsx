@@ -35,6 +35,7 @@ export function RealtimeMeetingPage(): React.JSX.Element {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [injectText, setInjectText] = useState('');
   const [injectSpeaker, setInjectSpeaker] = useState('You');
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   // Timer
   useEffect(() => {
@@ -137,9 +138,14 @@ export function RealtimeMeetingPage(): React.JSX.Element {
   const onUploadClick = (): void => fileRef.current?.click();
 
   const onUploadFile = async (file: File): Promise<void> => {
-    const content = await extractTextFromFile(file);
-    await uploadDocument(file.name, content, file.name.endsWith('.pdf') ? 'pdf' : 'text');
-    setDocs(getAllDocuments());
+    setUploadError(null);
+    try {
+      const content = await extractTextFromFile(file);
+      await uploadDocument(file.name, content, 'text');
+      setDocs(getAllDocuments());
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Failed to read file');
+    }
   };
 
   const commitTitle = (): void => {
@@ -255,6 +261,9 @@ export function RealtimeMeetingPage(): React.JSX.Element {
           </div>
 
           <div className="source-list-wrap">
+          {uploadError && (
+            <div className="pmd-doc-error" style={{ margin: '4px 0' }}>{uploadError}</div>
+          )}
           <div className="source-list">
             {docs.length === 0 && webSources.length === 0 && (
               <div className="feed-empty">No documents uploaded yet.</div>

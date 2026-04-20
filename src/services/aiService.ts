@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 import { InformationNeed, EvidenceCard } from '../types/domain';
-import { ResearchElement, QAElement, ActionElement, SlideElement } from '../types/deliverables';
+import { ResearchElement, QAElement, ActionElement } from '../types/deliverables';
 
 const apiKey = import.meta.env.VITE_OPENAI_API_KEY || '';
 
@@ -28,11 +28,12 @@ const client = new OpenAI({
 
 export interface MeetingContextPacket {
   meetingTitle: string;
-  accountContext: string;       // from pre-meeting modal
-  detectedThemes: string[];     // from inferenceEngine
-  resolvedTopics: string[];     // titles of evidence already surfaced
+  accountContext: string;
+  projectContext: string;
+  detectedThemes: string[];
+  resolvedTopics: string[];
   unresolvedQuestions: string[];
-  recentTranscript: string;     // last 10 turns, formatted
+  recentTranscript: string;
   elapsedMinutes: number;
   meetingType: 'sales' | 'research';
 }
@@ -40,7 +41,8 @@ export interface MeetingContextPacket {
 function buildContextBlock(ctx: MeetingContextPacket): string {
   const lines: string[] = [];
   if (ctx.meetingTitle) lines.push(`Meeting: ${ctx.meetingTitle}`);
-  if (ctx.accountContext) lines.push(`Context: ${ctx.accountContext}`);
+  if (ctx.accountContext) lines.push(`Account: ${ctx.accountContext}`);
+  if (ctx.projectContext) lines.push(`Project: ${ctx.projectContext}`);
   if (ctx.elapsedMinutes > 0) lines.push(`Elapsed: ${ctx.elapsedMinutes} min`);
   if (ctx.detectedThemes.length) lines.push(`Themes discussed: ${ctx.detectedThemes.join(', ')}`);
   if (ctx.resolvedTopics.length) lines.push(`Already surfaced: ${ctx.resolvedTopics.join(', ')}`);
@@ -647,13 +649,17 @@ export async function generateResearchSummary(
   evidence: EvidenceCard[],
   docContext: string,
   accountContext = '',
-  meetingType: 'sales' | 'research' = 'sales'
+  meetingType: 'sales' | 'research' = 'sales',
+  projectContext = ''
 ): Promise<ResearchElement> {
   const compressed = compressTranscript(transcriptText);
   const evidenceText = evidence
     .map((e) => `[${e.verification.toUpperCase()}] ${e.title}: ${e.summary}\nSource: ${e.attributions.map((a) => a.title).join(', ')}`)
     .join('\n\n');
-  const contextLine = accountContext ? `Account context: ${accountContext}\n\n` : '';
+  const contextLine = [
+    accountContext ? `Account: ${accountContext}` : '',
+    projectContext ? `Project: ${projectContext}` : '',
+  ].filter(Boolean).join('\n') + (accountContext || projectContext ? '\n\n' : '');
 
   const fallback: ResearchElement = { question: '', answer: 'Unable to generate research summary.', sources: [] };
 
@@ -739,11 +745,15 @@ export async function generateQAAnswers(
   evidence: EvidenceCard[],
   docContext: string,
   accountContext = '',
-  meetingType: 'sales' | 'research' = 'sales'
+  meetingType: 'sales' | 'research' = 'sales',
+  projectContext = ''
 ): Promise<QAElement> {
   const compressed = compressTranscript(transcriptText);
   const evidenceText = evidence.map((e) => `${e.title}: ${e.summary}`).join('\n');
-  const contextLine = accountContext ? `Account context: ${accountContext}\n\n` : '';
+  const contextLine = [
+    accountContext ? `Account: ${accountContext}` : '',
+    projectContext ? `Project: ${projectContext}` : '',
+  ].filter(Boolean).join('\n') + (accountContext || projectContext ? '\n\n' : '');
   const fallback: QAElement = { categories: [] };
 
   try {
@@ -835,11 +845,15 @@ export async function generateActionItems(
   gaps: Array<{ label: string; missingQuestion: string }>,
   docContext: string,
   accountContext = '',
-  meetingType: 'sales' | 'research' = 'sales'
+  meetingType: 'sales' | 'research' = 'sales',
+  projectContext = ''
 ): Promise<ActionElement> {
   const compressed = compressTranscript(transcriptText);
   const gapsText = gaps.map((g) => `- ${g.label}: ${g.missingQuestion}`).join('\n');
-  const contextLine = accountContext ? `Account context: ${accountContext}\n\n` : '';
+  const contextLine = [
+    accountContext ? `Account: ${accountContext}` : '',
+    projectContext ? `Project: ${projectContext}` : '',
+  ].filter(Boolean).join('\n') + (accountContext || projectContext ? '\n\n' : '');
   const fallback: ActionElement = { items: [] };
 
   try {
@@ -915,98 +929,6 @@ Rules:
     return Array.isArray(parsed.items) ? { items: parsed.items } : fallback;
   } catch (err) {
     console.error('Action items error:', err);
-    return fallback;
-  }
-}
-
-/**
- * Generate slide deck thumbnails.
- */
-export async function generateSlideDeck(
-  transcriptText: string,
-  evidence: EvidenceCard[],
-  docContext: string,
-  accountContext = '',
-  meetingType: 'sales' | 'research' = 'sales'
-): Promise<SlideElement> {
-  const compressed = compressTranscript(transcriptText);
-  const evidenceText = evidence.map((e) => `${e.title}: ${e.summary}`).join('\n');
-  const contextLine = accountContext ? `Account context: ${accountContext}\n\n` : '';
-  const fallback: SlideElement = { slides: [], summary: '' };
-
-  try {
-    const response = await client.chat.completions.create({
-      model: 'gpt-4o-mini',
-      temperature: 0.4,
-      max_tokens: 2000,
-      response_format: { type: 'json_object' },
-      messages: [
-        {
-          role: 'system',
-          content: meetingType === 'research'
-            ? `You are a research communications specialist. Create a concise research summary deck from this meeting.
-
-Return JSON:
-{
-  "slides": [
-    {
-      "num": 1,
-      "label": "Slide 1 — Topic",
-      "title": "Slide headline",
-      "bullets": ["Key point 1", "Key point 2", "Key point 3"],
-      "chips": [{ "text": "Label", "style": "teal" }],
-      "miniChart": [{ "label": "Metric", "value": 94, "style": "primary" }],
-      "status": "resolved|pending",
-      "pendingNote": null
-    }
-  ],
-  "summary": "One sentence on the research findings these slides represent"
-}
-
-Rules:
-- 3-5 slides: background, methodology, key findings, open questions, next steps
-- bullets: precise — include effect sizes, sample sizes, confidence intervals where mentioned
-- miniChart: only for real quantitative data from the discussion
-- pending + pendingNote for slides where data or validation is still outstanding`
-            : `You are a sales presentation strategist. Create a tight leave-behind deck from this meeting.
-
-Return JSON:
-{
-  "slides": [
-    {
-      "num": 1,
-      "label": "Slide 1 — Topic",
-      "title": "Slide headline",
-      "bullets": ["Key point 1", "Key point 2", "Key point 3"],
-      "chips": [{ "text": "Label", "style": "teal" }],
-      "miniChart": [{ "label": "Metric", "value": 94, "style": "primary" }],
-      "status": "resolved|pending",
-      "pendingNote": null
-    }
-  ],
-  "summary": "One sentence on what data these slides draw from"
-}
-
-Rules:
-- 3-5 slides, each covering a distinct topic from the meeting
-- chips: teal, blue, or gray only. 1-3 per slide max. Omit if not useful.
-- miniChart: max 2 slides, only for real numbers from the conversation
-- pending + pendingNote for slides where data still needs to be confirmed`,
-        },
-        {
-          role: 'user',
-          content: `${contextLine}Transcript:\n${compressed}\n\nEvidence:\n${evidenceText || '(none)'}\n\nDocuments:\n${docContext || '(none)'}`,
-        },
-      ],
-    });
-
-    const parsed = JSON.parse(response.choices[0].message.content || '{}');
-    return {
-      slides: Array.isArray(parsed.slides) ? parsed.slides : [],
-      summary: parsed.summary || '',
-    };
-  } catch (err) {
-    console.error('Slide deck error:', err);
     return fallback;
   }
 }

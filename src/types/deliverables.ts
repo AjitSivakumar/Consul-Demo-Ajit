@@ -49,27 +49,11 @@ export interface ActionElement {
   }>;
 }
 
-/** Element 04 — Leave-behind slide deck thumbnails */
-export interface SlideElement {
-  slides: Array<{
-    num: number;
-    label: string;
-    title: string;
-    bullets: string[];
-    chips?: Array<{ text: string; style: 'teal' | 'blue' | 'gray' }>;
-    miniChart?: Array<{ label: string; value: number; style: 'primary' | 'muted' }>;
-    status: 'resolved' | 'pending';
-    pendingNote?: string;
-  }>;
-  summary: string;
-}
-
 /** Complete generated deliverables package */
 export interface GeneratedDeliverables {
   research?: ResearchElement;
   qa?: QAElement;
   actions?: ActionElement;
-  slides?: SlideElement;
   generatedAt?: string;
   /** Set when deliverable is generated from a hardcoded preset — used by DeliverablesPage to pick the right component */
   presetId?: string;

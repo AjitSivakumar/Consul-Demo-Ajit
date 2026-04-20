@@ -19,6 +19,8 @@ export type NeedCategory =
 
 export type SourceType = 'internal_structured' | 'internal_document' | 'product_doc' | 'prior_notes' | 'web' | 'model_inference';
 
+export type DocumentProvider = 'upload' | 'google_drive' | 'onedrive' | 'sharepoint';
+
 export interface TranscriptEvent {
   id: string;
   timestampIso: string;
@@ -35,7 +37,6 @@ export interface MeetingContext {
   projectContext: string;
   discussedThemes: string[];
   unresolvedQuestions: string[];
-  deliverableTargets: string[];
   confidenceByTheme: Record<string, number>;
   lastSegmentId?: string;
   meetingType?: 'sales' | 'research';
@@ -75,6 +76,8 @@ export interface SourceAttribution {
   url?: string;
   freshnessScore: number;
   trustScore: number;
+  provider?: DocumentProvider;
+  docId?: string;
 }
 
 export type EvidenceKind = 'claim' | 'metric' | 'comparison' | 'trend' | 'summary';
@@ -161,12 +164,3 @@ export interface Gap {
   affectedDeliverableSection: string;
 }
 
-export interface Deliverable {
-  id: string;
-  title: string;
-  outline: string[];
-  requirements: DeliverableRequirement[];
-  draftContent: string;
-  citations: SourceAttribution[];
-  blockers: string[];
-}

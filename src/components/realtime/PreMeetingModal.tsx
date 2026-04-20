@@ -12,6 +12,7 @@ import {
   extractTextFromFile,
   uploadDocument,
 } from '../../services/documentService';
+import { clearUploadIndex } from '../../services/documentRegistry';
 
 export type MeetingMode = 'ai-live' | 'recall-bot';
 
@@ -19,7 +20,7 @@ interface PreMeetingModalProps {
   groups: Group[];
   currentGroupId: string | null;
   currentTitle: string;
-  onStart: (title: string, groupId: string | null, context: string, meetingType: 'sales' | 'research', mode: MeetingMode, presetId: string | null) => void;
+  onStart: (title: string, groupId: string | null, accountContext: string, projectContext: string, meetingType: 'sales' | 'research', mode: MeetingMode, presetId: string | null) => void;
   onClose: () => void;
 }
 
@@ -42,7 +43,8 @@ const CATEGORY_COLORS: Record<string, string> = {
 export function PreMeetingModal({ groups, currentGroupId, currentTitle, onStart, onClose }: PreMeetingModalProps): React.JSX.Element {
   const [title, setTitle] = useState(currentTitle || '');
   const [groupId, setGroupId] = useState<string | null>(currentGroupId);
-  const [context, setContext] = useState('');
+  const [accountContext, setAccountContext] = useState('');
+  const [projectContext, setProjectContext] = useState('');
   const [meetingType, setMeetingType] = useState<'sales' | 'research'>('sales');
   const [mode, setMode] = useState<MeetingMode>('ai-live');
   const [presetId, setPresetId] = useState<string | null>(null);
@@ -68,12 +70,13 @@ export function PreMeetingModal({ groups, currentGroupId, currentTitle, onStart,
   useEffect(() => {
     if (briefTimerRef.current) clearTimeout(briefTimerRef.current);
     setBrief('');
-    if (!context.trim() || !groupId || knowledgeDocs.length === 0) return;
+    const combinedContext = [accountContext, projectContext].filter(Boolean).join(' — ');
+    if (!combinedContext || !groupId || knowledgeDocs.length === 0) return;
 
     briefTimerRef.current = setTimeout(async () => {
       setBriefLoading(true);
       try {
-        const result = await buildPreMeetingBrief(groupId, context.trim(), knowledgeDocs);
+        const result = await buildPreMeetingBrief(groupId, combinedContext, knowledgeDocs);
         setBrief(result);
       } catch {
         setBrief('');
@@ -83,7 +86,7 @@ export function PreMeetingModal({ groups, currentGroupId, currentTitle, onStart,
     }, 800);
 
     return () => { if (briefTimerRef.current) clearTimeout(briefTimerRef.current); };
-  }, [context, groupId, knowledgeDocs]);
+  }, [accountContext, projectContext, groupId, knowledgeDocs]);
 
   const toggleDoc = (id: string) => {
     setSelectedDocIds((prev) => {
@@ -97,11 +100,17 @@ export function PreMeetingModal({ groups, currentGroupId, currentTitle, onStart,
   const handleFiles = async (files: FileList | null) => {
     if (!files) return;
     const newPending: PendingFile[] = [];
+    const errors: string[] = [];
     for (const file of Array.from(files)) {
-      const content = await extractTextFromFile(file);
-      newPending.push({ id: `upload-${Date.now()}-${Math.random()}`, name: file.name, content });
+      try {
+        const content = await extractTextFromFile(file);
+        newPending.push({ id: `upload-${Date.now()}-${Math.random()}`, name: file.name, content });
+      } catch (err) {
+        errors.push(`${file.name}: ${err instanceof Error ? err.message : 'Failed to read file'}`);
+      }
     }
-    setPendingFiles((prev) => [...prev, ...newPending]);
+    if (errors.length > 0) setDocLoadError(errors.join('\n'));
+    if (newPending.length > 0) setPendingFiles((prev) => [...prev, ...newPending]);
   };
 
   const removeFile = (id: string) => {
@@ -118,8 +127,9 @@ export function PreMeetingModal({ groups, currentGroupId, currentTitle, onStart,
     setDocLoadError(null);
     setLaunching(true);
     try {
-      // Clear previous session docs
+      // Clear previous session docs and their vector index
       clearDocuments();
+      clearUploadIndex();
 
       // Load selected knowledge base docs (fetch content in parallel)
       if (selectedDocIds.size > 0) {
@@ -147,7 +157,7 @@ export function PreMeetingModal({ groups, currentGroupId, currentTitle, onStart,
         await uploadDocument(f.name, f.content, 'text');
       }
 
-      onStart(title.trim() || 'Untitled Meeting', groupId, context.trim(), meetingType, mode, presetId);
+      onStart(title.trim() || 'Untitled Meeting', groupId, accountContext.trim(), projectContext.trim(), meetingType, mode, presetId);
     } catch {
       setLaunching(false);
     }
@@ -248,21 +258,33 @@ export function PreMeetingModal({ groups, currentGroupId, currentTitle, onStart,
             </div>
           )}
 
-          {/* Meeting context */}
+          {/* Account context */}
           <div className="bot-settings-field">
-            <label className="bot-settings-label">Meeting context</label>
+            <label className="bot-settings-label">Account / Who</label>
             <textarea
               className="bot-settings-input pre-meeting-textarea"
-              value={context}
-              onChange={(e) => setContext(e.target.value)}
-              placeholder="e.g. Enterprise SaaS deal, prospect is evaluating us vs. Competitor X, key stakeholder is the VP of Sales..."
-              rows={3}
+              value={accountContext}
+              onChange={(e) => setAccountContext(e.target.value)}
+              placeholder="Company, deal stage, key stakeholders and their roles..."
+              rows={2}
             />
-            <span className="bot-settings-hint">Ambi uses this to tailor proactive suggestions during the meeting</span>
+          </div>
+
+          {/* Project context */}
+          <div className="bot-settings-field">
+            <label className="bot-settings-label">Project / What</label>
+            <textarea
+              className="bot-settings-input pre-meeting-textarea"
+              value={projectContext}
+              onChange={(e) => setProjectContext(e.target.value)}
+              placeholder="What this meeting is specifically about — goals, open questions, key topics..."
+              rows={2}
+            />
+            <span className="bot-settings-hint">Ambi uses both fields to tailor proactive suggestions</span>
           </div>
 
           {/* Pre-meeting brief */}
-          {groupId && knowledgeDocs.length > 0 && (context.trim().length > 10) && (
+          {groupId && knowledgeDocs.length > 0 && (accountContext.trim().length > 5 || projectContext.trim().length > 5) && (
             <div className="pre-meeting-brief">
               <div className="pre-meeting-brief-header">
                 <span className="pre-meeting-brief-title">

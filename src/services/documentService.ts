@@ -31,7 +31,6 @@ export async function uploadDocument(
   };
 
   uploadedDocs.push(doc);
-  console.log(`Uploaded document: ${name} (${content.length} chars)`);
   return doc;
 }
 
@@ -129,7 +128,8 @@ export async function extractTextFromFile(file: File): Promise<string> {
     reader.onload = (e) => {
       const content = e.target?.result as string;
       if (file.name.endsWith('.pdf')) {
-        resolve(`[PDF] ${file.name}: Unable to parse PDF in browser. Replace with pdfjs.`);
+        reject(new Error('PDF files cannot be parsed in the browser. Copy and paste the text content instead.'));
+        return;
       } else if (file.name.endsWith('.json')) {
         try {
           const parsed = JSON.parse(content);

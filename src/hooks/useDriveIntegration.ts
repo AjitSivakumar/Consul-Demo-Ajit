@@ -3,6 +3,11 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from './useAuth';
 import type { KnowledgeDoc } from '../services/knowledgeService';
 
+export interface DriveFolder {
+  id: string;
+  name: string;
+}
+
 export interface DriveIntegration {
   id: string;
   group_id: string;
@@ -10,6 +15,7 @@ export interface DriveIntegration {
   last_synced_at: string | null;
   doc_count: number;
   error_message: string | null;
+  sync_folder_ids: string[] | null;
 }
 
 export interface SyncResult {
@@ -122,6 +128,39 @@ export function useDriveIntegration(groupId: string) {
     }
   }, [groupId, getAuthHeader, loadStatus]);
 
+  const fetchFolders = useCallback(async (): Promise<DriveFolder[]> => {
+    try {
+      const authHeader = await getAuthHeader();
+      const res = await fetch(
+        `/api/integrations/google-drive/folders?groupId=${encodeURIComponent(groupId)}`,
+        { headers: { Authorization: authHeader } }
+      );
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.folders ?? [];
+    } catch {
+      return [];
+    }
+  }, [groupId, getAuthHeader]);
+
+  const saveFolderSelection = useCallback(async (folderIds: string[]): Promise<void> => {
+    if (!supabase) return;
+    await supabase
+      .from('group_integrations')
+      .update({ sync_folder_ids: folderIds.length > 0 ? folderIds : null })
+      .eq('group_id', groupId)
+      .eq('provider', 'google_drive');
+    await loadStatus();
+  }, [groupId, loadStatus]);
+
+  const excludeDocument = useCallback(async (docId: string): Promise<void> => {
+    if (!supabase) return;
+    await supabase
+      .from('group_documents')
+      .update({ is_active: false })
+      .eq('id', docId);
+  }, []);
+
   const disconnect = useCallback(async () => {
     setError(null);
 
@@ -172,6 +211,9 @@ export function useDriveIntegration(groupId: string) {
     connect,
     sync,
     disconnect,
+    fetchFolders,
+    saveFolderSelection,
+    excludeDocument,
     reload: loadStatus,
   };
 }

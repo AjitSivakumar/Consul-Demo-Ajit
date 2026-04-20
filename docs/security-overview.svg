@@ -1,0 +1,144 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 520" font-family="'Helvetica Neue', Arial, sans-serif">
+  <defs>
+    <marker id="ab" markerWidth="8" markerHeight="8" refX="7" refY="3.5" orient="auto"><polygon points="0 0,8 3.5,0 7" fill="#2563EB"/></marker>
+    <marker id="ag" markerWidth="8" markerHeight="8" refX="7" refY="3.5" orient="auto"><polygon points="0 0,8 3.5,0 7" fill="#16A34A"/></marker>
+    <marker id="ap" markerWidth="8" markerHeight="8" refX="7" refY="3.5" orient="auto"><polygon points="0 0,8 3.5,0 7" fill="#7C3AED"/></marker>
+  </defs>
+
+  <!-- Page -->
+  <rect width="860" height="520" fill="#F8FAFC"/>
+
+  <!-- Title -->
+  <text x="430" y="32" text-anchor="middle" font-size="16" font-weight="700" fill="#0F172A">Ambi — Optimal Security Architecture</text>
+  <text x="430" y="50" text-anchor="middle" font-size="10" fill="#94A3B8" letter-spacing="0.5">All connections TLS-encrypted · No secret keys exposed to browser</text>
+
+  <!-- ══ USER (x=28, w=128, h=316, bottom=388) ══ -->
+  <rect x="28" y="66" width="128" height="316" rx="10" fill="#fff" stroke="#CBD5E1" stroke-width="1.5"/>
+  <text x="92" y="86" text-anchor="middle" font-size="9" font-weight="700" fill="#64748B" letter-spacing="1">USER</text>
+
+  <!-- Browser -->
+  <rect x="42" y="96" width="100" height="56" rx="6" fill="#EFF6FF" stroke="#3B82F6" stroke-width="1.5"/>
+  <text x="92" y="114" text-anchor="middle" font-size="10" font-weight="600" fill="#1D4ED8">Browser</text>
+  <text x="92" y="129" text-anchor="middle" font-size="8" fill="#3B82F6">Google OAuth</text>
+  <text x="92" y="142" text-anchor="middle" font-size="8" fill="#3B82F6">PKCE flow</text>
+
+  <!-- Session -->
+  <rect x="42" y="162" width="100" height="42" rx="6" fill="#F1F5F9" stroke="#94A3B8" stroke-width="1.5"/>
+  <text x="92" y="179" text-anchor="middle" font-size="10" font-weight="600" fill="#334155">Session</text>
+  <text x="92" y="195" text-anchor="middle" font-size="8" fill="#64748B">JWT · IndexedDB</text>
+
+  <!-- Meeting UI -->
+  <rect x="42" y="214" width="100" height="42" rx="6" fill="#F1F5F9" stroke="#94A3B8" stroke-width="1.5"/>
+  <text x="92" y="231" text-anchor="middle" font-size="10" font-weight="600" fill="#334155">Meeting UI</text>
+  <text x="92" y="247" text-anchor="middle" font-size="8" fill="#64748B">insights · docs</text>
+
+  <!-- Zero Trust badge -->
+  <rect x="42" y="266" width="100" height="48" rx="6" fill="#ECFDF5" stroke="#6EE7B7" stroke-width="1.5"/>
+  <text x="92" y="283" text-anchor="middle" font-size="9" font-weight="700" fill="#065F46">Zero Trust</text>
+  <text x="92" y="297" text-anchor="middle" font-size="8" fill="#047857">every request</text>
+  <text x="92" y="309" text-anchor="middle" font-size="8" fill="#047857">validated</text>
+
+  <!-- ══ AMBI PLATFORM (x=196, w=450, h=324) ══ -->
+  <rect x="196" y="60" width="450" height="324" rx="12" fill="#F0FDF4" stroke="#16A34A" stroke-width="2"/>
+  <text x="421" y="79" text-anchor="middle" font-size="9" font-weight="700" fill="#15803D" letter-spacing="1">AMBI PLATFORM</text>
+
+  <!-- Client sub-zone (x=208, w=192) -->
+  <rect x="208" y="90" width="192" height="282" rx="8" fill="#fff" stroke="#94A3B8" stroke-width="1.5" stroke-dasharray="5,3"/>
+  <text x="304" y="107" text-anchor="middle" font-size="8" font-weight="700" fill="#64748B" letter-spacing="0.8">CLIENT</text>
+
+  <rect x="220" y="116" width="168" height="44" rx="6" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1"/>
+  <text x="304" y="133" text-anchor="middle" font-size="10" font-weight="600" fill="#334155">Meeting UI</text>
+  <text x="304" y="148" text-anchor="middle" font-size="8" fill="#64748B">renders insights · no AI calls</text>
+
+  <rect x="220" y="168" width="168" height="44" rx="6" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1"/>
+  <text x="304" y="185" text-anchor="middle" font-size="10" font-weight="600" fill="#334155">Knowledge Search</text>
+  <text x="304" y="200" text-anchor="middle" font-size="8" fill="#64748B">entity · tag · semantic</text>
+
+  <rect x="220" y="220" width="168" height="44" rx="6" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1"/>
+  <text x="304" y="237" text-anchor="middle" font-size="10" font-weight="600" fill="#334155">Supabase Client</text>
+  <text x="304" y="252" text-anchor="middle" font-size="8" fill="#64748B">anon key · RLS enforced</text>
+
+  <rect x="220" y="272" width="168" height="44" rx="6" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1"/>
+  <text x="304" y="289" text-anchor="middle" font-size="10" font-weight="600" fill="#334155">Auth Handler</text>
+  <text x="304" y="304" text-anchor="middle" font-size="8" fill="#64748B">code → JWT session</text>
+
+  <!-- Server sub-zone (x=408, w=226) -->
+  <rect x="408" y="90" width="226" height="282" rx="8" fill="#fff" stroke="#16A34A" stroke-width="1.5" stroke-dasharray="5,3"/>
+  <text x="521" y="107" text-anchor="middle" font-size="8" font-weight="700" fill="#15803D" letter-spacing="0.8">SERVER (Vercel)</text>
+  <text x="521" y="118" text-anchor="middle" font-size="7" fill="#15803D">secret keys never leave</text>
+
+  <rect x="420" y="126" width="202" height="50" rx="6" fill="#F0FDF4" stroke="#4ADE80" stroke-width="1"/>
+  <text x="521" y="144" text-anchor="middle" font-size="10" font-weight="600" fill="#15803D">AI Proxy</text>
+  <text x="521" y="158" text-anchor="middle" font-size="8" fill="#16A34A">OpenAI key · per-user</text>
+  <text x="521" y="170" text-anchor="middle" font-size="8" fill="#16A34A">rate limiting</text>
+
+  <rect x="420" y="184" width="202" height="44" rx="6" fill="#F0FDF4" stroke="#4ADE80" stroke-width="1"/>
+  <text x="521" y="201" text-anchor="middle" font-size="10" font-weight="600" fill="#15803D">Drive Sync</text>
+  <text x="521" y="216" text-anchor="middle" font-size="8" fill="#16A34A">OAuth tokens · JWT-validated</text>
+
+  <rect x="420" y="236" width="202" height="50" rx="6" fill="#F0FDF4" stroke="#4ADE80" stroke-width="1"/>
+  <text x="521" y="254" text-anchor="middle" font-size="10" font-weight="600" fill="#15803D">Recall.ai Proxy</text>
+  <text x="521" y="268" text-anchor="middle" font-size="8" fill="#16A34A">HMAC webhook validation</text>
+  <text x="521" y="280" text-anchor="middle" font-size="8" fill="#16A34A">auth-gated transcripts</text>
+
+  <rect x="420" y="294" width="202" height="44" rx="6" fill="#F0FDF4" stroke="#4ADE80" stroke-width="1"/>
+  <text x="521" y="311" text-anchor="middle" font-size="10" font-weight="600" fill="#15803D">JWT Validation</text>
+  <text x="521" y="326" text-anchor="middle" font-size="8" fill="#16A34A">every request · group check</text>
+
+  <!-- divider -->
+  <line x1="402" y1="90" x2="402" y2="372" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="3,3"/>
+
+  <!-- ══ SERVICES (x=694, w=138, h=324) ══ -->
+  <rect x="694" y="66" width="138" height="324" rx="10" fill="#fff" stroke="#CBD5E1" stroke-width="1.5"/>
+  <text x="763" y="86" text-anchor="middle" font-size="9" font-weight="700" fill="#64748B" letter-spacing="1">SERVICES</text>
+
+  <rect x="706" y="96" width="114" height="42" rx="6" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1"/>
+  <text x="763" y="113" text-anchor="middle" font-size="10" font-weight="600" fill="#334155">Google Auth</text>
+  <text x="763" y="128" text-anchor="middle" font-size="8" fill="#64748B">OAuth 2.0</text>
+
+  <rect x="706" y="148" width="114" height="42" rx="6" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1"/>
+  <text x="763" y="165" text-anchor="middle" font-size="10" font-weight="600" fill="#334155">Google Drive</text>
+  <text x="763" y="180" text-anchor="middle" font-size="8" fill="#64748B">read-only scope</text>
+
+  <rect x="706" y="200" width="114" height="42" rx="6" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1"/>
+  <text x="763" y="217" text-anchor="middle" font-size="10" font-weight="600" fill="#334155">OpenAI</text>
+  <text x="763" y="232" text-anchor="middle" font-size="8" fill="#64748B">gpt-4o-mini</text>
+
+  <rect x="706" y="252" width="114" height="42" rx="6" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1"/>
+  <text x="763" y="269" text-anchor="middle" font-size="10" font-weight="600" fill="#334155">Recall.ai</text>
+  <text x="763" y="284" text-anchor="middle" font-size="8" fill="#64748B">bot · transcripts</text>
+
+  <rect x="706" y="304" width="114" height="42" rx="6" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1"/>
+  <text x="763" y="321" text-anchor="middle" font-size="10" font-weight="600" fill="#334155">Supabase</text>
+  <text x="763" y="336" text-anchor="middle" font-size="8" fill="#64748B">auth · DB · RPC</text>
+
+  <rect x="706" y="356" width="114" height="22" rx="6" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1"/>
+  <text x="763" y="371" text-anchor="middle" font-size="8" fill="#64748B">Upstash Redis · 4h TTL</text>
+
+  <!-- ══ DATA STORE (x=196, y=408, w=450, h=86) ══ -->
+  <rect x="196" y="406" width="450" height="86" rx="10" fill="#FAF5FF" stroke="#7C3AED" stroke-width="2"/>
+  <text x="421" y="424" text-anchor="middle" font-size="9" font-weight="700" fill="#6D28D9" letter-spacing="0.5">DATA STORE — Supabase</text>
+  <text x="421" y="436" text-anchor="middle" font-size="8" fill="#7C3AED">encrypted at rest · RLS enforced per group</text>
+
+  <rect x="210" y="444" width="126" height="36" rx="6" fill="#fff" stroke="#C4B5FD" stroke-width="1"/>
+  <text x="273" y="459" text-anchor="middle" font-size="9" font-weight="600" fill="#4C1D95">User Profiles</text>
+  <text x="273" y="473" text-anchor="middle" font-size="8" fill="#7C3AED">RLS per user</text>
+
+  <rect x="348" y="444" width="126" height="36" rx="6" fill="#fff" stroke="#C4B5FD" stroke-width="1"/>
+  <text x="411" y="459" text-anchor="middle" font-size="9" font-weight="600" fill="#4C1D95">Group Docs</text>
+  <text x="411" y="473" text-anchor="middle" font-size="8" fill="#7C3AED">RLS · pgvector</text>
+
+  <rect x="486" y="444" width="148" height="36" rx="6" fill="#fff" stroke="#C4B5FD" stroke-width="1"/>
+  <text x="560" y="459" text-anchor="middle" font-size="9" font-weight="600" fill="#4C1D95">OAuth Tokens</text>
+  <text x="560" y="473" text-anchor="middle" font-size="8" fill="#7C3AED">encrypted · server access only</text>
+
+  <!-- ══ ARROWS ══ -->
+  <line x1="156" y1="222" x2="194" y2="222" stroke="#2563EB" stroke-width="2" marker-end="url(#ab)"/>
+  <text x="175" y="216" text-anchor="middle" font-size="8" fill="#2563EB">JWT</text>
+
+  <line x1="646" y1="222" x2="692" y2="222" stroke="#16A34A" stroke-width="2" marker-end="url(#ag)"/>
+  <text x="669" y="216" text-anchor="middle" font-size="8" fill="#16A34A">HTTPS</text>
+
+  <line x1="421" y1="386" x2="421" y2="404" stroke="#7C3AED" stroke-width="2" marker-end="url(#ap)"/>
+  <text x="444" y="399" font-size="8" fill="#7C3AED">service key</text>
+</svg>

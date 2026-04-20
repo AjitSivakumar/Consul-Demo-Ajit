@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { resolveGapFromDocuments, resolveGapFromInternet } from '../../services/aiService';
-import { extractRelevantChunks, getAllDocuments } from '../../services/documentService';
-import { fetchDocumentContent, loadGroupKnowledge, searchByEntities, searchByTags, semanticSearch, type KnowledgeDoc } from '../../services/knowledgeService';
+import { buildContext, initRegistry, search, toAttribution } from '../../services/documentRegistry';
 import { useMeetingStore } from '../../state/MeetingStore';
 import type { EvidenceCard, InformationNeed } from '../../types/domain';
 
@@ -19,11 +18,10 @@ export function InsightsFeed({ selectedNeedId, onSelectNeed, resetKey }: Insight
   const [tagModal, setTagModal] = useState<TagModal>(null);
   const [confirmedNeedIds, setConfirmedNeedIds] = useState<Set<string>>(new Set());
   const shownCriticalIds = useRef<Set<string>>(new Set());
-  const groupKnowledgeRef = useRef<KnowledgeDoc[]>([]);
 
   useEffect(() => {
-    if (!state.groupId) { groupKnowledgeRef.current = []; return; }
-    loadGroupKnowledge(state.groupId).then((docs) => { groupKnowledgeRef.current = docs; }).catch(() => {});
+    if (!state.groupId) return;
+    initRegistry(state.groupId).catch(() => {});
   }, [state.groupId]);
 
   useEffect(() => {
@@ -116,84 +114,32 @@ export function InsightsFeed({ selectedNeedId, onSelectNeed, resetKey }: Insight
         .map((t) => `${t.speaker}: ${t.text}`)
         .join('\n');
 
-      // 1) Try documents FIRST
-      const docs = getAllDocuments();
-      if (docs.length > 0) {
-        const chunks = extractRelevantChunks(need.prompt, 8, 1500);
-        if (chunks.length > 0) {
-          const docCtx = chunks.map((c) => `[Source: ${c.docName}]\n${c.chunk}`).join('\n\n---\n\n');
-          const docResult = await resolveGapFromDocuments(need.prompt, docCtx);
-          if (docResult.confidence >= 0.5) {
-            const evidence: EvidenceCard = {
-              id: `evidence-retry-${need.id}-${Date.now()}`,
-              needId: need.id,
-              title: `Resolved: ${need.prompt.slice(0, 60)}`,
-              summary: docResult.answer,
-              kind: 'claim',
-              recencyLabel: 'Just resolved',
-              confidence: docResult.confidence,
-              attributions: [{
-                sourceId: `src-doc-${Date.now()}`,
-                sourceType: 'internal_document',
-                title: docResult.source,
-                freshnessScore: 0.9,
-                trustScore: 0.85,
-              }],
-              triggeredBySegmentId: need.triggeredBySegmentId,
-              explainWhyNow: 'Retried by user',
-              verification: 'verified',
-            };
-            dispatch({ type: 'ADD_RESOLVED_EVIDENCE', payload: evidence });
-            dispatch({ type: 'UPDATE_NEED_STATUS', payload: { needId: need.id, status: 'resolved' } });
-            setRetryingId(null);
-            return;
-          }
+      // 1) Try documents (uploads + Drive) via unified registry
+      const docMatches = await search(need.prompt, state.groupId ?? null);
+      if (docMatches.length > 0) {
+        const docResult = await resolveGapFromDocuments(need.prompt, buildContext(docMatches));
+        if (docResult.confidence >= 0.5) {
+          const evidence: EvidenceCard = {
+            id: `evidence-retry-${need.id}-${Date.now()}`,
+            needId: need.id,
+            title: `Resolved: ${need.prompt.slice(0, 60)}`,
+            summary: docResult.answer,
+            kind: 'claim',
+            recencyLabel: 'Just resolved',
+            confidence: docResult.confidence,
+            attributions: [toAttribution(docMatches[0], { title: docResult.source })],
+            triggeredBySegmentId: need.triggeredBySegmentId,
+            explainWhyNow: 'Retried by user',
+            verification: 'verified',
+          };
+          dispatch({ type: 'ADD_RESOLVED_EVIDENCE', payload: evidence });
+          dispatch({ type: 'UPDATE_NEED_STATUS', payload: { needId: need.id, status: 'resolved' } });
+          setRetryingId(null);
+          return;
         }
       }
 
-      // 2) Try knowledge base
-      const knowledgeDocs = groupKnowledgeRef.current;
-      if (knowledgeDocs.length > 0) {
-        const localMatches = [
-          ...searchByEntities(need.prompt, knowledgeDocs),
-          ...searchByTags(need.prompt, knowledgeDocs),
-        ].sort((a, b) => b.score - a.score).slice(0, 3);
-        const semanticMatches = state.groupId
-          ? await semanticSearch(need.prompt, state.groupId).catch(() => [])
-          : [];
-        const topMatches = [...localMatches, ...semanticMatches]
-          .filter((m, i, arr) => arr.findIndex((x) => x.doc.id === m.doc.id) === i)
-          .sort((a, b) => b.score - a.score)
-          .slice(0, 3);
-        if (topMatches.length > 0) {
-          const contents = await Promise.all(topMatches.map((m) => fetchDocumentContent(m.doc.id)));
-          const kbCtx = topMatches
-            .map((m, i) => `[Source: ${m.doc.name}]\n${contents[i]?.slice(0, 2500) ?? m.doc.summary}`)
-            .join('\n\n---\n\n');
-          const kbResult = await resolveGapFromDocuments(need.prompt, kbCtx);
-          if (kbResult.confidence >= 0.65) {
-            const evidence: EvidenceCard = {
-              id: `evidence-retry-${need.id}-${Date.now()}`,
-              needId: need.id,
-              title: `Resolved: ${need.prompt.slice(0, 60)}`,
-              summary: kbResult.answer,
-              kind: 'claim',
-              recencyLabel: 'Just resolved',
-              confidence: kbResult.confidence,
-              attributions: [{ sourceId: `src-kb-${Date.now()}`, sourceType: 'internal_document', title: kbResult.source, freshnessScore: 0.9, trustScore: 0.85 }],
-              triggeredBySegmentId: need.triggeredBySegmentId,
-              explainWhyNow: 'Retried by user',
-              verification: 'verified',
-            };
-            dispatch({ type: 'ADD_RESOLVED_EVIDENCE', payload: evidence });
-            dispatch({ type: 'UPDATE_NEED_STATUS', payload: { needId: need.id, status: 'resolved' } });
-            setRetryingId(null);
-            return;
-          }
-        }
-      }
-
-      // 3) Fallback: internet
+      // 2) Fallback: internet
       const internetResult = await resolveGapFromInternet(need.prompt, transcriptContext, state.context.meetingType ?? 'sales');
       if (internetResult.confidence >= 0.5) {
         const evidence: EvidenceCard = {

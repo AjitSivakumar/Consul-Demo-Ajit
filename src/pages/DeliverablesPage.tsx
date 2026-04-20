@@ -6,7 +6,6 @@ import { ChenLabDeliverable } from '../components/deliverables/ChenLabDeliverabl
 import { PatelLabDeliverable } from '../components/deliverables/PatelLabDeliverable';
 import { QASection } from '../components/deliverables/QASection';
 import { ResearchCard } from '../components/deliverables/ResearchCard';
-import { SlideGrid } from '../components/deliverables/SlideGrid';
 import { useMeetingStore } from '../state/MeetingStore';
 
 class DeliverableErrorBoundary extends Component<{ children: ReactNode }, { error: string | null }> {
@@ -117,11 +116,7 @@ export function DeliverablesPage(): React.JSX.Element {
               </div>
             )}
 
-            {g.slides && g.slides.slides.length > 0 && (
-              <div className="dl-section">
-                <SlideGrid data={g.slides} />
-              </div>
-            )}
+
           </div>
         )}
         </DeliverableErrorBoundary>

@@ -36,7 +36,7 @@ export function DashboardPage(): React.JSX.Element {
     () => localStorage.getItem('ambi_proactive') !== 'false'
   );
 
-  const handleStartMeeting = (title: string, groupId: string | null, context: string, meetingType: 'sales' | 'research', mode: MeetingMode, presetId: string | null) => {
+  const handleStartMeeting = (title: string, groupId: string | null, context: string, projectContext: string, meetingType: 'sales' | 'research', mode: MeetingMode, presetId: string | null) => {
     dispatch({ type: 'RESET' });
     if (presetId) {
       const preset = meetingPresets.find((p) => p.id === presetId);
@@ -46,7 +46,7 @@ export function DashboardPage(): React.JSX.Element {
         return;
       }
     }
-    dispatch({ type: 'SET_MEETING_CONTEXT', payload: { title, groupId, accountContext: context, meetingType } });
+    dispatch({ type: 'SET_MEETING_CONTEXT', payload: { title, groupId, accountContext: context, projectContext, meetingType } });
     navigate('/realtime', { state: { autoStart: true, mode } });
   };
 
@@ -285,7 +285,7 @@ export function DashboardPage(): React.JSX.Element {
                   key={preset.id}
                   type="button"
                   className="db-preset-card"
-                  onClick={() => handleStartMeeting('', null, '', defaultMeetingType, 'ai-live', preset.id)}
+                  onClick={() => handleStartMeeting('', null, '', '', defaultMeetingType, 'ai-live', preset.id)}
                 >
                   <span className="db-preset-icon">{PRESET_ICONS[preset.id] ?? DEFAULT_ICON}</span>
                   <span className="db-preset-name">{preset.context.title}</span>

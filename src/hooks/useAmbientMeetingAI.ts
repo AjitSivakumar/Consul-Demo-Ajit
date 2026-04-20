@@ -6,15 +6,12 @@ import {
   generateDirectAmbiResponse,
   generateQAAnswers,
   generateResearchSummary,
-  generateSlideDeck,
   inferNeedsWithAI,
   resolveGapFromDocuments,
   resolveGapFromInternet,
   type MeetingContextPacket,
 } from '../services/aiService';
-import { extractRelevantChunks, getAllDocuments } from '../services/documentService';
-import { fetchDocumentContent, loadGroupKnowledge, searchByEntities, searchByTags, semanticSearch } from '../services/knowledgeService';
-import type { KnowledgeDoc } from '../services/knowledgeService';
+import { buildContext, buildDriveContext, buildUploadedContext, initRegistry, search } from '../services/documentRegistry';
 import { useMeetingStore } from '../state/MeetingStore';
 import type { EvidenceCard, InformationNeed } from '../types/domain';
 
@@ -81,14 +78,12 @@ export function useAmbientMeetingAI(): {
   const lastTranscriptIdRef = useRef<string | null>(null);
   const autoEndStartedRef = useRef(false);
   const autoResolveQueue = useRef<Set<string>>(new Set());
-  const groupKnowledgeRef = useRef<KnowledgeDoc[]>([]);
   const lastInferenceTimeRef = useRef<number>(0);
   const eventsSinceLastInference = useRef<number>(0);
 
-  // Load group knowledge docs when groupId is set
   useEffect(() => {
-    if (!state.groupId) { groupKnowledgeRef.current = []; return; }
-    loadGroupKnowledge(state.groupId).then((docs) => { groupKnowledgeRef.current = docs; }).catch(() => {});
+    if (!state.groupId) return;
+    initRegistry(state.groupId).catch(() => {});
   }, [state.groupId]);
 
   // In liveAI preset mode the transcript replays at 2500ms/event (~32s total for 13 events).
@@ -149,62 +144,23 @@ export function useAmbientMeetingAI(): {
             .map((t) => `${t.speaker}: ${t.text}`)
             .join('\n');
 
-          // 1) Try uploaded documents FIRST — they are the primary source
-          const docs = getAllDocuments();
-          if (docs.length > 0) {
-            // Extract the most relevant chunks from all docs for this specific question
-            const chunks = extractRelevantChunks(need.prompt, 8, 1500);
-            if (chunks.length > 0) {
-              const docCtx = chunks
-                .map((c) => `[Source: ${c.docName}]\n${c.chunk}`)
-                .join('\n\n---\n\n');
-              const docResult = await resolveGapFromDocuments(need.prompt, docCtx);
-              if (docResult.confidence >= 0.65) {
-                const evidence = buildEvidenceFromResult(need, docResult, 'internal_document');
-                dispatch({ type: 'ADD_RESOLVED_EVIDENCE', payload: evidence });
-                dispatch({ type: 'UPDATE_NEED_STATUS', payload: { needId: need.id, status: 'resolved' } });
-                return;
-              }
+          // 1) Try documents (uploads + Drive) via unified registry
+          const docMatches = await search(need.prompt, state.groupId ?? null);
+          if (docMatches.length > 0) {
+            const docResult = await resolveGapFromDocuments(need.prompt, buildContext(docMatches));
+            if (docResult.confidence >= 0.65) {
+              const primary = docMatches[0];
+              const evidence = buildEvidenceFromResult(need, { ...docResult, source: primary.name }, 'internal_document');
+              evidence.attributions = evidence.attributions.map((a) => ({
+                ...a, provider: primary.provider, docId: primary.id,
+              }));
+              dispatch({ type: 'ADD_RESOLVED_EVIDENCE', payload: evidence });
+              dispatch({ type: 'UPDATE_NEED_STATUS', payload: { needId: need.id, status: 'resolved' } });
+              return;
             }
           }
 
-          // 2) Try group knowledge base (indexed Drive docs)
-          const knowledgeDocs = groupKnowledgeRef.current;
-          if (knowledgeDocs.length > 0) {
-            // Fast local search first (entity + tag), then semantic if needed
-            const localMatches = [
-              ...searchByEntities(need.prompt, knowledgeDocs),
-              ...searchByTags(need.prompt, knowledgeDocs),
-            ].sort((a, b) => b.score - a.score).slice(0, 2);
-
-            const semanticMatches = state.groupId
-              ? await semanticSearch(need.prompt, state.groupId).catch(() => [])
-              : [];
-
-            const topMatches = [...localMatches, ...semanticMatches]
-              .filter((m, i, arr) => arr.findIndex((x) => x.doc.id === m.doc.id) === i)
-              .sort((a, b) => b.score - a.score)
-              .slice(0, 2);
-
-            if (topMatches.length > 0) {
-              const contents = await Promise.all(
-                topMatches.map((m) => fetchDocumentContent(m.doc.id))
-              );
-              const knowledgeCtx = topMatches
-                .map((m, i) => `[Source: ${m.doc.name}]\n${contents[i]?.slice(0, 2000) ?? m.doc.summary}`)
-                .join('\n\n---\n\n');
-
-              const knowledgeResult = await resolveGapFromDocuments(need.prompt, knowledgeCtx);
-              if (knowledgeResult.confidence >= 0.65) {
-                const evidence = buildEvidenceFromResult(need, knowledgeResult, 'internal_document');
-                dispatch({ type: 'ADD_RESOLVED_EVIDENCE', payload: evidence });
-                dispatch({ type: 'UPDATE_NEED_STATUS', payload: { needId: need.id, status: 'resolved' } });
-                return;
-              }
-            }
-          }
-
-          // 3) Fallback: try internet (GPT general knowledge)
+          // 2) Fallback: try internet (GPT general knowledge)
           const internetResult = await resolveGapFromInternet(need.prompt, transcriptContext, state.context.meetingType ?? 'sales');
           if (internetResult.confidence >= 0.65) {
             const evidence = buildEvidenceFromResult(need, internetResult, 'web');
@@ -218,7 +174,7 @@ export function useAmbientMeetingAI(): {
         })();
       }, delay);
     }
-  }, [dispatch, state.needs, state.transcript]);
+  }, [dispatch, state.needs, state.transcript, state.groupId]);
 
   useEffect(() => {
     if (state.liveStatus !== 'listening' || state.transcript.length === 0) {
@@ -243,6 +199,7 @@ export function useAmbientMeetingAI(): {
       const ctxPacket: MeetingContextPacket = {
         meetingTitle: state.context.title || '',
         accountContext: state.context.accountContext || '',
+        projectContext: state.context.projectContext || '',
         detectedThemes: state.context.discussedThemes ?? [],
         resolvedTopics: state.evidence.map((e) => e.title),
         unresolvedQuestions: state.context.unresolvedQuestions ?? [],
@@ -283,41 +240,9 @@ export function useAmbientMeetingAI(): {
           }],
         });
         void (async () => {
-          // 1) Locally uploaded docs (PreMeetingModal uploads)
-          const chunks = extractRelevantChunks(ambiQuestion, 6, 1500);
-          const uploadedDocs = getAllDocuments();
-          const uploadedCtx = chunks.length > 0
-            ? chunks.map((c) => `[Source: ${c.docName}]\n${c.chunk}`).join('\n\n---\n\n')
-            : uploadedDocs.slice(0, 3).map((d) => `[Source: ${d.name}]\n${d.content.slice(0, 2000)}`).join('\n\n---\n\n');
-
-          // 2) Google Drive / Supabase knowledge base docs — search by entity + tag, fetch full content
-          let driveCtx = '';
-          const knowledgeDocs = groupKnowledgeRef.current;
-          if (knowledgeDocs.length > 0) {
-            const localMatches = [
-              ...searchByEntities(ambiQuestion, knowledgeDocs),
-              ...searchByTags(ambiQuestion, knowledgeDocs),
-            ].sort((a, b) => b.score - a.score).slice(0, 3);
-
-            const semanticMatches = state.groupId
-              ? await semanticSearch(ambiQuestion, state.groupId).catch(() => [])
-              : [];
-
-            const topMatches = [...localMatches, ...semanticMatches]
-              .filter((m, i, arr) => arr.findIndex((x) => x.doc.id === m.doc.id) === i)
-              .sort((a, b) => b.score - a.score)
-              .slice(0, 3);
-
-            if (topMatches.length > 0) {
-              const contents = await Promise.all(topMatches.map((m) => fetchDocumentContent(m.doc.id)));
-              driveCtx = topMatches
-                .map((m, i) => `[Source: ${m.doc.name}]\n${contents[i]?.slice(0, 2500) ?? m.doc.summary}`)
-                .join('\n\n---\n\n');
-            }
-          }
-
-          // Combine: Drive docs first (higher specificity), then uploaded docs
-          const docCtx = [driveCtx, uploadedCtx].filter(Boolean).join('\n\n---\n\n');
+          // Search uploads + Drive via unified registry
+          const docMatches = await search(ambiQuestion, state.groupId ?? null, { maxChunks: 6, maxDriveDocs: 3 });
+          const docCtx = buildContext(docMatches);
 
           // Step 1: Try to answer strictly from documents
           const docResult = await generateDirectAmbiResponse(
@@ -370,6 +295,10 @@ export function useAmbientMeetingAI(): {
               url: finalSourceUrl,
               freshnessScore: 1.0,
               trustScore: finalUsedDocs ? 0.9 : 0.75,
+              ...(finalUsedDocs && docMatches.length > 0 ? {
+                provider: docMatches[0].provider,
+                docId: docMatches[0].id,
+              } : {}),
             }],
             triggeredBySegmentId: latest.id,
             explainWhyNow: 'You asked Ambi directly',
@@ -475,23 +404,10 @@ export function useAmbientMeetingAI(): {
       .map((segment) => `${segment.speaker}: ${segment.text}`)
       .join('\n');
 
-    const docs = getAllDocuments();
-    const uploadedCtx = docs.length
-      ? docs.map((doc) => `[${doc.name}]\n${doc.content.slice(0, 3000)}`).join('\n\n---\n\n')
-      : '';
-
-    // Augment with top knowledge base docs (Drive-synced) — fetch full content for top 5 by summary length
-    let kbCtx = '';
-    const kbDocs = groupKnowledgeRef.current;
-    if (kbDocs.length > 0) {
-      const topKb = kbDocs.slice(0, 5);
-      const kbContents = await Promise.all(topKb.map((d) => fetchDocumentContent(d.id).catch(() => null)));
-      kbCtx = topKb
-        .map((d, i) => `[${d.name}]\n${kbContents[i]?.slice(0, 2500) ?? d.summary}`)
-        .filter((_, i) => kbContents[i] || topKb[i].summary)
-        .join('\n\n---\n\n');
-    }
-
+    const [uploadedCtx, kbCtx] = await Promise.all([
+      Promise.resolve(buildUploadedContext(3000)),
+      s.groupId ? buildDriveContext(s.groupId, 5, 2500) : Promise.resolve(''),
+    ]);
     const docContext = [kbCtx, uploadedCtx].filter(Boolean).join('\n\n---\n\n');
 
     const openGaps: Array<{ label: string; missingQuestion: string }> = s.needs
@@ -500,17 +416,17 @@ export function useAmbientMeetingAI(): {
 
     try {
       const accountContext = s.context.accountContext || '';
+      const projectContext = s.context.projectContext || '';
       const meetingType = s.context.meetingType ?? 'sales';
-      const [research, qa, actions, slides] = await Promise.all([
-        generateResearchSummary(transcriptText, s.evidence, docContext, accountContext, meetingType),
-        generateQAAnswers(transcriptText, s.evidence, docContext, accountContext, meetingType),
-        generateActionItems(transcriptText, openGaps, docContext, accountContext, meetingType),
-        generateSlideDeck(transcriptText, s.evidence, docContext, accountContext, meetingType)
+      const [research, qa, actions] = await Promise.all([
+        generateResearchSummary(transcriptText, s.evidence, docContext, accountContext, meetingType, projectContext),
+        generateQAAnswers(transcriptText, s.evidence, docContext, accountContext, meetingType, projectContext),
+        generateActionItems(transcriptText, openGaps, docContext, accountContext, meetingType, projectContext),
       ]);
 
       dispatch({
         type: 'SET_GENERATED_CONTENT',
-        payload: { research, qa, actions, slides }
+        payload: { research, qa, actions }
       });
     } catch {
       dispatch({ type: 'SET_GENERATING', payload: false });

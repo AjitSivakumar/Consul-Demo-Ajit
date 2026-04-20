@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useDriveIntegration } from '../../hooks/useDriveIntegration';
+import type { DriveFolder } from '../../hooks/useDriveIntegration';
 import { detectStaleDocuments } from '../../services/knowledgeService';
 import type { KnowledgeDoc } from '../../services/knowledgeService';
 
@@ -45,7 +46,7 @@ function GoogleDriveIcon({ size = 20 }: { size?: number }) {
 
 // ── Doc Card ─────────────────────────────────────────────────────────────────
 
-function DocCard({ doc, expanded, onToggle }: { doc: KnowledgeDoc; expanded: boolean; onToggle: () => void }) {
+function DocCard({ doc, expanded, onToggle, onExclude }: { doc: KnowledgeDoc; expanded: boolean; onToggle: () => void; onExclude: () => void }) {
   const cat = CATEGORY_META[doc.category] ?? CATEGORY_META.other;
   const isStale = detectStaleDocuments([doc]).length > 0;
   const allEntities = [
@@ -66,6 +67,12 @@ function DocCard({ doc, expanded, onToggle }: { doc: KnowledgeDoc; expanded: boo
         <div className="kb-card-right">
           {isStale && <span className="kb-stale">⚠ Stale</span>}
           <span className="kb-card-time">{formatRelativeTime(doc.drive_modified_at)}</span>
+          <button
+            type="button"
+            className="kb-exclude-btn"
+            title="Exclude from knowledge base"
+            onClick={(e) => { e.stopPropagation(); onExclude(); }}
+          >✕</button>
           <span className="kb-expand-icon">{expanded ? '−' : '+'}</span>
         </div>
       </div>
@@ -203,7 +210,7 @@ interface DriveIntegrationPanelProps {
 }
 
 export function DriveIntegrationPanel({ groupId }: DriveIntegrationPanelProps) {
-  const { integration, documents, loading, syncing, error, connect, sync, disconnect } =
+  const { integration, documents, loading, syncing, error, connect, sync, disconnect, fetchFolders, saveFolderSelection, excludeDocument } =
     useDriveIntegration(groupId);
 
   const [search, setSearch] = useState('');
@@ -211,6 +218,41 @@ export function DriveIntegrationPanel({ groupId }: DriveIntegrationPanelProps) {
   const [sortBy, setSortBy] = useState<'name' | 'modified' | 'category'>('modified');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'docs' | 'entities'>('docs');
+  const [excludedIds, setExcludedIds] = useState<Set<string>>(new Set());
+
+  // Folder picker state
+  const [folderPickerOpen, setFolderPickerOpen] = useState(false);
+  const [availableFolders, setAvailableFolders] = useState<DriveFolder[]>([]);
+  const [loadingFolders, setLoadingFolders] = useState(false);
+  const [selectedFolderIds, setSelectedFolderIds] = useState<Set<string>>(
+    new Set(integration?.sync_folder_ids ?? [])
+  );
+  const [savingFolders, setSavingFolders] = useState(false);
+
+  // Sync selectedFolderIds when integration loads
+  useEffect(() => {
+    setSelectedFolderIds(new Set(integration?.sync_folder_ids ?? []));
+  }, [integration?.sync_folder_ids?.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleOpenFolderPicker = async () => {
+    setFolderPickerOpen(true);
+    setLoadingFolders(true);
+    const folders = await fetchFolders();
+    setAvailableFolders(folders);
+    setLoadingFolders(false);
+  };
+
+  const handleSaveFolders = async () => {
+    setSavingFolders(true);
+    await saveFolderSelection(Array.from(selectedFolderIds));
+    setSavingFolders(false);
+    setFolderPickerOpen(false);
+  };
+
+  const handleExclude = async (docId: string) => {
+    await excludeDocument(docId);
+    setExcludedIds((prev) => new Set([...prev, docId]));
+  };
 
   const isConnected = integration !== null && integration.status !== 'disconnected';
   const isSyncing = syncing || integration?.status === 'syncing';
@@ -226,7 +268,7 @@ export function DriveIntegrationPanel({ groupId }: DriveIntegrationPanelProps) {
   const staleCount = useMemo(() => detectStaleDocuments(documents).length, [documents]);
 
   const filtered = useMemo(() => {
-    let result = documents;
+    let result = documents.filter((d) => !excludedIds.has(d.id));
     if (activeCategory !== 'all') result = result.filter((d) => d.category === activeCategory);
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -293,6 +335,66 @@ export function DriveIntegrationPanel({ groupId }: DriveIntegrationPanelProps) {
           <button type="button" className="drive-btn danger" onClick={disconnect}>Disconnect</button>
         </div>
       </div>
+
+      {/* Sync scope row */}
+      <div className="kb-scope-row">
+        <span className="kb-scope-label">
+          {selectedFolderIds.size === 0
+            ? 'Scope: entire Drive'
+            : `Scope: ${selectedFolderIds.size} folder${selectedFolderIds.size > 1 ? 's' : ''}`}
+        </span>
+        <button type="button" className="drive-btn" onClick={handleOpenFolderPicker}>
+          Choose folders
+        </button>
+      </div>
+
+      {/* Folder picker modal */}
+      {folderPickerOpen && (
+        <div className="kb-modal-overlay" onClick={() => setFolderPickerOpen(false)}>
+          <div className="kb-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="kb-modal-header">
+              <span className="kb-modal-title">Choose sync folders</span>
+              <button type="button" className="kb-modal-close" onClick={() => setFolderPickerOpen(false)}>✕</button>
+            </div>
+            <p className="kb-modal-desc">Only files inside selected folders will be synced. Leave all unchecked to sync your entire Drive.</p>
+            {loadingFolders ? (
+              <div className="kb-modal-loading">Loading folders…</div>
+            ) : availableFolders.length === 0 ? (
+              <div className="kb-modal-loading">No folders found in your Drive.</div>
+            ) : (
+              <div className="kb-modal-folder-list">
+                {availableFolders.map((folder) => (
+                  <label key={folder.id} className="kb-folder-row">
+                    <input
+                      type="checkbox"
+                      checked={selectedFolderIds.has(folder.id)}
+                      onChange={(e) => {
+                        setSelectedFolderIds((prev) => {
+                          const next = new Set(prev);
+                          if (e.target.checked) next.add(folder.id);
+                          else next.delete(folder.id);
+                          return next;
+                        });
+                      }}
+                    />
+                    <span className="kb-folder-name">📁 {folder.name}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+            <div className="kb-modal-actions">
+              {selectedFolderIds.size > 0 && (
+                <button type="button" className="drive-btn" onClick={() => setSelectedFolderIds(new Set())}>
+                  Clear (sync all)
+                </button>
+              )}
+              <button type="button" className="drive-btn primary" onClick={handleSaveFolders} disabled={savingFolders || loadingFolders}>
+                {savingFolders ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {error && <p style={{ fontSize: '12px', color: '#b41e1e', margin: '0 0 12px' }}>{error}</p>}
 
@@ -385,6 +487,7 @@ export function DriveIntegrationPanel({ groupId }: DriveIntegrationPanelProps) {
                       doc={doc}
                       expanded={expandedId === doc.id}
                       onToggle={() => setExpandedId(expandedId === doc.id ? null : doc.id)}
+                      onExclude={() => handleExclude(doc.id)}
                     />
                   ))}
                 </div>

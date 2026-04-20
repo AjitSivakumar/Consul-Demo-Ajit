@@ -26,7 +26,7 @@ export const researchPresets: ResearchMeetingPreset[] = [
       projectContext: 'Phase II trial of AXEL-02 (anti-PD-L1 inhibitor) in treatment-naive NSCLC. Primary endpoint: ORR ≥ 35% at interim analysis. Target enrollment: 90 patients.',
       discussedThemes: [],
       unresolvedQuestions: [],
-      deliverableTargets: ['DSMB safety memo', 'Enrollment recovery plan', 'AE benchmark comparison table'],
+
       confidenceByTheme: {},
       meetingType: 'research',
     },
@@ -143,7 +143,7 @@ export const researchPresets: ResearchMeetingPreset[] = [
       projectContext: 'US large-cap momentum factor strategy. Q1 live Sharpe 1.24 vs backtest 1.87. March drawdown -4.2%. Annual turnover 340%.',
       discussedThemes: [],
       unresolvedQuestions: [],
-      deliverableTargets: ['Backtest correction report', 'Performance attribution memo', 'Turnover optimization proposal'],
+
       confidenceByTheme: {},
       meetingType: 'research',
     },
@@ -259,7 +259,7 @@ export const researchPresets: ResearchMeetingPreset[] = [
       projectContext: 'Lipofection vs electroporation for CRISPR-Cas9 delivery in primary human T cells. Measuring on-target editing efficiency and off-target events (GUIDE-seq). Preparing for submission to Nature Methods.',
       discussedThemes: [],
       unresolvedQuestions: [],
-      deliverableTargets: ['Methods paper draft', 'GUIDE-seq validation summary', 'Zhang lab comparison memo'],
+
       confidenceByTheme: {},
       meetingType: 'research',
     },
