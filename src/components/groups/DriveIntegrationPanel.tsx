@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useDriveIntegration } from '../../hooks/useDriveIntegration';
 import type { DriveFolder } from '../../hooks/useDriveIntegration';
 import { detectStaleDocuments } from '../../services/knowledgeService';
 import type { KnowledgeDoc } from '../../services/knowledgeService';
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatRelativeTime(dateStr: string | null): string {
   if (!dateStr) return 'Never';
@@ -20,16 +20,18 @@ function formatRelativeTime(dateStr: string | null): string {
 type DocCategory = KnowledgeDoc['category'];
 
 const CATEGORY_META: Record<DocCategory, { bg: string; color: string; label: string; icon: string }> = {
-  battlecard:   { bg: '#f3e8ff', color: '#7c3aed', label: 'Battlecard',    icon: '⚔' },
-  pricing:      { bg: '#dcfce7', color: '#15803d', label: 'Pricing',       icon: '$' },
-  account_plan: { bg: '#dbeafe', color: '#1d4ed8', label: 'Account Plan',  icon: '◈' },
-  case_study:   { bg: '#ffedd5', color: '#c2410c', label: 'Case Study',    icon: '★' },
-  contract:     { bg: '#fee2e2', color: '#b91c1c', label: 'Contract',      icon: '✎' },
-  notes:        { bg: '#f1f5f9', color: '#64748b', label: 'Notes',         icon: '≡' },
-  other:        { bg: '#f1f5f9', color: '#64748b', label: 'Other',         icon: '◦' },
+  battlecard:   { bg: '#f3e8ff', color: '#7c3aed', label: 'Battlecard',   icon: '⚔' },
+  pricing:      { bg: '#dcfce7', color: '#15803d', label: 'Pricing',      icon: '$' },
+  account_plan: { bg: '#dbeafe', color: '#1d4ed8', label: 'Account Plan', icon: '◈' },
+  case_study:   { bg: '#ffedd5', color: '#c2410c', label: 'Case Study',   icon: '★' },
+  contract:     { bg: '#fee2e2', color: '#b91c1c', label: 'Contract',     icon: '✎' },
+  notes:        { bg: '#f1f5f9', color: '#64748b', label: 'Notes',        icon: '≡' },
+  other:        { bg: '#f1f5f9', color: '#64748b', label: 'Other',        icon: '◦' },
 };
 
 const ALL_CATEGORIES = Object.keys(CATEGORY_META) as DocCategory[];
+
+// ── Icons ─────────────────────────────────────────────────────────────────────
 
 function GoogleDriveIcon({ size = 20 }: { size?: number }) {
   return (
@@ -44,104 +46,290 @@ function GoogleDriveIcon({ size = 20 }: { size?: number }) {
   );
 }
 
-// ── Doc Card ─────────────────────────────────────────────────────────────────
+// ── Folder setup screen (shown after OAuth or when no folders are configured) ─
 
-function DocCard({ doc, expanded, onToggle, onExclude }: { doc: KnowledgeDoc; expanded: boolean; onToggle: () => void; onExclude: () => void }) {
+interface FolderSetupProps {
+  folders: DriveFolder[];
+  loading: boolean;
+  onSave: (ids: string[], syncNow: boolean) => Promise<void>;
+  onSyncAll: () => Promise<void>;
+  saving: boolean;
+  isFirstTime: boolean;
+}
+
+function FolderSetupScreen({ folders, loading, onSave, onSyncAll, saving, isFirstTime }: FolderSetupProps) {
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [search, setSearch] = useState('');
+
+  const filtered = folders.filter((f) =>
+    !search.trim() || f.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const toggle = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+      {/* Header */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        padding: '18px 20px 14px',
+        borderBottom: '1px solid var(--border)',
+      }}>
+        <GoogleDriveIcon size={20} />
+        <div>
+          <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-primary)' }}>
+            {isFirstTime ? 'Choose folders to sync' : 'Manage sync folders'}
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 1 }}>
+            Only files inside selected folders will be indexed. Start narrow — you can add more later.
+          </div>
+        </div>
+      </div>
+
+      {/* Search */}
+      {folders.length > 8 && (
+        <div style={{ padding: '10px 20px 0' }}>
+          <input
+            className="kb-search"
+            placeholder="Filter folders…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ width: '100%', boxSizing: 'border-box' }}
+          />
+        </div>
+      )}
+
+      {/* Folder list */}
+      <div style={{ padding: '10px 20px', maxHeight: 320, overflowY: 'auto' }}>
+        {loading ? (
+          <div style={{ color: 'var(--text-tertiary)', fontSize: 13, padding: '20px 0', textAlign: 'center' }}>
+            Loading your Drive folders…
+          </div>
+        ) : filtered.length === 0 ? (
+          <div style={{ color: 'var(--text-tertiary)', fontSize: 13, padding: '20px 0', textAlign: 'center' }}>
+            {search ? 'No folders match.' : 'No folders found in your Drive.'}
+          </div>
+        ) : (
+          filtered.map((folder) => {
+            const checked = selected.has(folder.id);
+            return (
+              <label key={folder.id} style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '8px 10px', borderRadius: 6, cursor: 'pointer',
+                background: checked ? 'var(--bg-blue)' : 'transparent',
+                border: `1px solid ${checked ? 'var(--border-blue)' : 'transparent'}`,
+                marginBottom: 4, transition: 'background 0.1s',
+              }}>
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => toggle(folder.id)}
+                  style={{ accentColor: 'var(--dl-teal)', width: 15, height: 15, flexShrink: 0 }}
+                />
+                <span style={{ fontSize: 14 }}>📁</span>
+                <span style={{
+                  fontSize: 13, color: 'var(--text-primary)', fontWeight: checked ? 500 : 400,
+                  flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>
+                  {folder.name}
+                </span>
+                {checked && <span style={{ fontSize: 11, color: 'var(--dl-teal)', fontWeight: 600 }}>✓</span>}
+              </label>
+            );
+          })
+        )}
+      </div>
+
+      {/* Actions */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '12px 20px',
+        borderTop: '1px solid var(--border)',
+        background: 'var(--bg-subtle)',
+      }}>
+        <button
+          type="button"
+          onClick={onSyncAll}
+          disabled={saving || loading}
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: 'var(--text-tertiary)', fontSize: 12, padding: 0,
+            textDecoration: 'underline',
+          }}
+        >
+          Sync entire Drive instead
+        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <span style={{ fontSize: 12, color: 'var(--text-tertiary)', alignSelf: 'center' }}>
+            {selected.size > 0 ? `${selected.size} folder${selected.size > 1 ? 's' : ''} selected` : 'None selected'}
+          </span>
+          <button
+            type="button"
+            className="drive-btn primary"
+            disabled={selected.size === 0 || saving || loading}
+            onClick={() => onSave(Array.from(selected), true)}
+          >
+            {saving ? 'Saving…' : 'Sync selected folders'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Folder chip ───────────────────────────────────────────────────────────────
+
+function FolderChip({ name, onRemove }: { name: string; onRemove: () => void }) {
+  return (
+    <div style={{
+      display: 'inline-flex', alignItems: 'center', gap: 5,
+      padding: '3px 8px 3px 7px',
+      background: 'var(--bg-blue)', border: '1px solid var(--border-blue)',
+      borderRadius: 20, fontSize: 12, color: 'var(--accent-blue)',
+    }}>
+      <span style={{ fontSize: 11 }}>📁</span>
+      <span style={{ fontWeight: 500, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {name}
+      </span>
+      <button
+        type="button"
+        onClick={onRemove}
+        style={{
+          background: 'none', border: 'none', cursor: 'pointer',
+          color: 'var(--accent-blue)', opacity: 0.6, fontSize: 11,
+          padding: '0 0 0 2px', lineHeight: 1,
+        }}
+      >✕</button>
+    </div>
+  );
+}
+
+// ── Doc row ───────────────────────────────────────────────────────────────────
+
+function DocRow({ doc, expanded, onToggle, onExclude }: {
+  doc: KnowledgeDoc;
+  expanded: boolean;
+  onToggle: () => void;
+  onExclude: () => void;
+}) {
   const cat = CATEGORY_META[doc.category] ?? CATEGORY_META.other;
   const isStale = detectStaleDocuments([doc]).length > 0;
   const allEntities = [
     ...(doc.entities?.people ?? []),
     ...(doc.entities?.companies ?? []),
     ...(doc.entities?.products ?? []),
-  ].slice(0, 6);
+  ].slice(0, 8);
 
   return (
-    <div className={`kb-card ${expanded ? 'expanded' : ''}`} onClick={onToggle}>
-      <div className="kb-card-top">
-        <div className="kb-card-left">
-          <span className="kb-cat-chip" style={{ background: cat.bg, color: cat.color }}>
-            {cat.icon} {cat.label}
+    <div style={{
+      borderBottom: '1px solid var(--border)',
+      background: expanded ? 'var(--bg-subtle)' : 'transparent',
+      transition: 'background 0.1s',
+    }}>
+      {/* Main row */}
+      <div
+        style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '9px 16px', cursor: 'pointer',
+        }}
+        onClick={onToggle}
+      >
+        {/* Category pip */}
+        <span style={{
+          flexShrink: 0, width: 22, height: 22,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: cat.bg, borderRadius: 4,
+          fontSize: 11, color: cat.color, fontWeight: 600,
+        }}>
+          {cat.icon}
+        </span>
+
+        {/* Name */}
+        <span style={{
+          flex: 1, fontSize: 13, color: 'var(--text-primary)',
+          fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>
+          {doc.name}
+        </span>
+
+        {/* Badges */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          {isStale && (
+            <span style={{
+              fontSize: 10, fontFamily: 'var(--font-mono)', padding: '2px 6px',
+              background: '#fef9c3', color: '#854d0e', borderRadius: 4,
+              border: '1px solid #fde68a', fontWeight: 600,
+            }}>STALE</span>
+          )}
+          <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+            {formatRelativeTime(doc.drive_modified_at)}
           </span>
-          <div className="kb-card-name" title={doc.name}>{doc.name}</div>
-        </div>
-        <div className="kb-card-right">
-          {isStale && <span className="kb-stale">⚠ Stale</span>}
-          <span className="kb-card-time">{formatRelativeTime(doc.drive_modified_at)}</span>
           <button
             type="button"
-            className="kb-exclude-btn"
-            title="Exclude from knowledge base"
             onClick={(e) => { e.stopPropagation(); onExclude(); }}
+            title="Exclude from knowledge base"
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: 'var(--text-tertiary)', opacity: 0, fontSize: 12,
+              padding: '2px 4px', borderRadius: 4,
+              transition: 'opacity 0.15s',
+            }}
+            className="kb-doc-exclude-btn"
           >✕</button>
-          <span className="kb-expand-icon">{expanded ? '−' : '+'}</span>
+          <span style={{ fontSize: 11, color: 'var(--text-tertiary)', userSelect: 'none' }}>
+            {expanded ? '▲' : '▼'}
+          </span>
         </div>
       </div>
 
-      {!expanded && doc.summary && (
-        <div className="kb-card-summary-preview">{doc.summary}</div>
-      )}
-
+      {/* Expanded detail */}
       {expanded && (
-        <div className="kb-card-body" onClick={(e) => e.stopPropagation()}>
+        <div style={{ padding: '0 16px 14px 48px', display: 'flex', flexDirection: 'column', gap: 10 }}>
           {doc.summary && (
-            <div className="kb-card-section">
-              <div className="kb-card-section-label">Summary</div>
-              <p className="kb-card-section-text">{doc.summary}</p>
-            </div>
+            <p style={{ margin: 0, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+              {doc.summary}
+            </p>
           )}
 
           {doc.tags.length > 0 && (
-            <div className="kb-card-section">
-              <div className="kb-card-section-label">Tags</div>
-              <div className="kb-tag-row">
-                {doc.tags.map((t) => <span key={t} className="kb-tag">{t}</span>)}
-              </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+              {doc.tags.map((t) => (
+                <span key={t} style={{
+                  fontSize: 11, padding: '2px 7px', borderRadius: 10,
+                  background: 'var(--bg-subtle)', border: '1px solid var(--border)',
+                  color: 'var(--text-tertiary)',
+                }}>{t}</span>
+              ))}
             </div>
           )}
 
           {allEntities.length > 0 && (
-            <div className="kb-card-section">
-              <div className="kb-card-section-label">Key Entities</div>
-              <div className="kb-entity-grid">
-                {doc.entities?.people?.length > 0 && (
-                  <div className="kb-entity-group">
-                    <span className="kb-entity-type">People</span>
-                    <div className="kb-tag-row">
-                      {doc.entities.people.map((p) => <span key={p} className="kb-entity-chip people">{p}</span>)}
-                    </div>
-                  </div>
-                )}
-                {doc.entities?.companies?.length > 0 && (
-                  <div className="kb-entity-group">
-                    <span className="kb-entity-type">Companies</span>
-                    <div className="kb-tag-row">
-                      {doc.entities.companies.map((c) => <span key={c} className="kb-entity-chip companies">{c}</span>)}
-                    </div>
-                  </div>
-                )}
-                {doc.entities?.products?.length > 0 && (
-                  <div className="kb-entity-group">
-                    <span className="kb-entity-type">Products</span>
-                    <div className="kb-tag-row">
-                      {doc.entities.products.map((p) => <span key={p} className="kb-entity-chip products">{p}</span>)}
-                    </div>
-                  </div>
-                )}
-                {doc.entities?.amounts?.length > 0 && (
-                  <div className="kb-entity-group">
-                    <span className="kb-entity-type">Amounts</span>
-                    <div className="kb-tag-row">
-                      {doc.entities.amounts.map((a) => <span key={a} className="kb-entity-chip amounts">{a}</span>)}
-                    </div>
-                  </div>
-                )}
-              </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {doc.entities?.people?.slice(0, 3).map((p) => (
+                <span key={p} className="kb-entity-chip people" style={{ fontSize: 11 }}>{p}</span>
+              ))}
+              {doc.entities?.companies?.slice(0, 3).map((c) => (
+                <span key={c} className="kb-entity-chip companies" style={{ fontSize: 11 }}>{c}</span>
+              ))}
+              {doc.entities?.products?.slice(0, 3).map((p) => (
+                <span key={p} className="kb-entity-chip products" style={{ fontSize: 11 }}>{p}</span>
+              ))}
             </div>
           )}
 
-          <div className="kb-card-meta-row">
-            <span className="kb-card-meta-item">Last modified: {doc.drive_modified_at ? new Date(doc.drive_modified_at).toLocaleDateString() : '—'}</span>
-            <span className="kb-card-meta-item">Indexed: {new Date(doc.synced_at).toLocaleDateString()}</span>
+          <div style={{ display: 'flex', gap: 16 }}>
+            <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+              Modified {doc.drive_modified_at ? new Date(doc.drive_modified_at).toLocaleDateString() : '—'}
+            </span>
+            <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
+              Indexed {new Date(doc.synced_at).toLocaleDateString()}
+            </span>
           </div>
         </div>
       )}
@@ -149,7 +337,79 @@ function DocCard({ doc, expanded, onToggle, onExclude }: { doc: KnowledgeDoc; ex
   );
 }
 
-// ── Entity Overview ───────────────────────────────────────────────────────────
+// ── Add-folder dropdown ───────────────────────────────────────────────────────
+
+function AddFolderDropdown({ folders, selectedIds, onAdd, onClose }: {
+  folders: DriveFolder[];
+  selectedIds: Set<string>;
+  onAdd: (id: string, name: string) => void;
+  onClose: () => void;
+}) {
+  const [search, setSearch] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [onClose]);
+
+  const available = folders.filter(
+    (f) => !selectedIds.has(f.id) && (!search.trim() || f.name.toLowerCase().includes(search.toLowerCase()))
+  );
+
+  return (
+    <div ref={ref} style={{
+      position: 'absolute', top: '100%', left: 0, zIndex: 100, marginTop: 4,
+      background: 'var(--surface)', border: '1px solid var(--border)',
+      borderRadius: 8, boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+      width: 260,
+    }}>
+      <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border)' }}>
+        <input
+          autoFocus
+          className="kb-search"
+          placeholder="Search folders…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ width: '100%', boxSizing: 'border-box', fontSize: 12 }}
+        />
+      </div>
+      <div style={{ maxHeight: 220, overflowY: 'auto', padding: '4px 0' }}>
+        {available.length === 0 ? (
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', padding: '10px 14px' }}>
+            {search ? 'No folders match.' : 'All folders already selected.'}
+          </div>
+        ) : (
+          available.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => { onAdd(f.id, f.name); onClose(); }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                width: '100%', background: 'none', border: 'none',
+                padding: '7px 14px', cursor: 'pointer', textAlign: 'left',
+                fontSize: 13, color: 'var(--text-primary)',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-subtle)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+            >
+              <span>📁</span>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {f.name}
+              </span>
+            </button>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Entity overview ───────────────────────────────────────────────────────────
 
 function EntityOverview({ documents }: { documents: KnowledgeDoc[] }) {
   const entities = useMemo(() => {
@@ -162,9 +422,9 @@ function EntityOverview({ documents }: { documents: KnowledgeDoc[] }) {
       doc.entities?.products?.forEach((p) => products.add(p));
     }
     return {
-      people: [...people].slice(0, 12),
-      companies: [...companies].slice(0, 12),
-      products: [...products].slice(0, 12),
+      people: [...people].slice(0, 15),
+      companies: [...companies].slice(0, 15),
+      products: [...products].slice(0, 15),
     };
   }, [documents]);
 
@@ -194,7 +454,7 @@ function EntityOverview({ documents }: { documents: KnowledgeDoc[] }) {
           <div className="kb-entity-col">
             <div className="kb-entity-col-label">Products</div>
             <div className="kb-tag-row">
-              {entities.products.map((p) => <span key={p} className="kb-entity-chip products">{p}</span>)}
+              {entities.people.map((p) => <span key={p} className="kb-entity-chip products">{p}</span>)}
             </div>
           </div>
         )}
@@ -210,43 +470,105 @@ interface DriveIntegrationPanelProps {
 }
 
 export function DriveIntegrationPanel({ groupId }: DriveIntegrationPanelProps) {
-  const { integration, documents, loading, syncing, error, connect, sync, disconnect, fetchFolders, saveFolderSelection, excludeDocument } =
-    useDriveIntegration(groupId);
+  const {
+    integration, documents, loading, syncing, error,
+    justConnected, clearJustConnected,
+    connect, sync, disconnect,
+    fetchFolders, saveFolderSelection, excludeDocument,
+  } = useDriveIntegration(groupId);
 
+  // Doc list state
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<DocCategory | 'all'>('all');
-  const [sortBy, setSortBy] = useState<'name' | 'modified' | 'category'>('modified');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'docs' | 'entities'>('docs');
   const [excludedIds, setExcludedIds] = useState<Set<string>>(new Set());
 
-  // Folder picker state
-  const [folderPickerOpen, setFolderPickerOpen] = useState(false);
+  // Folder management state
   const [availableFolders, setAvailableFolders] = useState<DriveFolder[]>([]);
   const [loadingFolders, setLoadingFolders] = useState(false);
+  const [folderNames, setFolderNames] = useState<Map<string, string>>(new Map());
   const [selectedFolderIds, setSelectedFolderIds] = useState<Set<string>>(
     new Set(integration?.sync_folder_ids ?? [])
   );
   const [savingFolders, setSavingFolders] = useState(false);
+  const [addFolderOpen, setAddFolderOpen] = useState(false);
+  const addFolderRef = useRef<HTMLDivElement>(null);
 
-  // Sync selectedFolderIds when integration loads
+  // Setup mode: just connected via OAuth with no folders configured
+  const isSetupMode = justConnected && !(integration?.sync_folder_ids?.length);
+
+  // Sync folder state from integration
   useEffect(() => {
-    setSelectedFolderIds(new Set(integration?.sync_folder_ids ?? []));
+    const ids = integration?.sync_folder_ids ?? [];
+    setSelectedFolderIds(new Set(ids));
   }, [integration?.sync_folder_ids?.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleOpenFolderPicker = async () => {
-    setFolderPickerOpen(true);
+  // Load folder names for chips (needed after page reload when folder names aren't stored)
+  useEffect(() => {
+    if (!integration || availableFolders.length > 0) return;
+    const ids = integration.sync_folder_ids;
+    if (!ids || ids.length === 0) return;
+    // Lazily load folder names for display
     setLoadingFolders(true);
-    const folders = await fetchFolders();
-    setAvailableFolders(folders);
-    setLoadingFolders(false);
+    fetchFolders().then((folders) => {
+      setAvailableFolders(folders);
+      const map = new Map(folders.map((f) => [f.id, f.name]));
+      setFolderNames(map);
+      setLoadingFolders(false);
+    }).catch(() => setLoadingFolders(false));
+  }, [integration?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const openAddFolder = async () => {
+    setAddFolderOpen(true);
+    if (availableFolders.length === 0) {
+      setLoadingFolders(true);
+      const folders = await fetchFolders();
+      setAvailableFolders(folders);
+      const map = new Map(folders.map((f) => [f.id, f.name]));
+      setFolderNames(map);
+      setLoadingFolders(false);
+    }
   };
 
-  const handleSaveFolders = async () => {
+  const handleAddFolder = async (id: string, name: string) => {
+    const next = new Set([...selectedFolderIds, id]);
+    setSelectedFolderIds(next);
+    setFolderNames((prev) => new Map([...prev, [id, name]]));
     setSavingFolders(true);
-    await saveFolderSelection(Array.from(selectedFolderIds));
+    await saveFolderSelection(Array.from(next));
     setSavingFolders(false);
-    setFolderPickerOpen(false);
+  };
+
+  const handleRemoveFolder = async (id: string) => {
+    const next = new Set(selectedFolderIds);
+    next.delete(id);
+    setSelectedFolderIds(next);
+    setSavingFolders(true);
+    await saveFolderSelection(Array.from(next));
+    setSavingFolders(false);
+  };
+
+  const handleSetupSave = async (ids: string[], syncNow: boolean) => {
+    setSavingFolders(true);
+    const folders = availableFolders.length > 0 ? availableFolders : await fetchFolders();
+    const map = new Map(folders.map((f) => [f.id, f.name]));
+    setFolderNames(map);
+    setAvailableFolders(folders);
+    await saveFolderSelection(ids);
+    setSelectedFolderIds(new Set(ids));
+    setSavingFolders(false);
+    clearJustConnected();
+    if (syncNow) await sync();
+  };
+
+  const handleSyncAll = async () => {
+    setSavingFolders(true);
+    await saveFolderSelection([]);
+    setSelectedFolderIds(new Set());
+    setSavingFolders(false);
+    clearJustConnected();
+    await sync();
   };
 
   const handleExclude = async (docId: string) => {
@@ -256,19 +578,17 @@ export function DriveIntegrationPanel({ groupId }: DriveIntegrationPanelProps) {
 
   const isConnected = integration !== null && integration.status !== 'disconnected';
   const isSyncing = syncing || integration?.status === 'syncing';
+  const visibleDocs = useMemo(() => documents.filter((d) => !excludedIds.has(d.id)), [documents, excludedIds]);
+  const staleCount = useMemo(() => detectStaleDocuments(visibleDocs).length, [visibleDocs]);
 
   const categoryCounts = useMemo(() => {
     const counts: Partial<Record<DocCategory, number>> = {};
-    for (const doc of documents) {
-      counts[doc.category] = (counts[doc.category] ?? 0) + 1;
-    }
+    for (const doc of visibleDocs) counts[doc.category] = (counts[doc.category] ?? 0) + 1;
     return counts;
-  }, [documents]);
-
-  const staleCount = useMemo(() => detectStaleDocuments(documents).length, [documents]);
+  }, [visibleDocs]);
 
   const filtered = useMemo(() => {
-    let result = documents.filter((d) => !excludedIds.has(d.id));
+    let result = visibleDocs;
     if (activeCategory !== 'all') result = result.filter((d) => d.category === activeCategory);
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -280,14 +600,13 @@ export function DriveIntegrationPanel({ groupId }: DriveIntegrationPanelProps) {
         d.entities?.people?.some((p) => p.toLowerCase().includes(q))
       );
     }
-    return [...result].sort((a, b) => {
-      if (sortBy === 'name') return a.name.localeCompare(b.name);
-      if (sortBy === 'category') return a.category.localeCompare(b.category);
-      return new Date(b.drive_modified_at ?? b.synced_at).getTime() - new Date(a.drive_modified_at ?? a.synced_at).getTime();
-    });
-  }, [documents, activeCategory, search, sortBy]);
+    return [...result].sort((a, b) =>
+      new Date(b.drive_modified_at ?? b.synced_at).getTime() -
+      new Date(a.drive_modified_at ?? a.synced_at).getTime()
+    );
+  }, [visibleDocs, activeCategory, search]);
 
-  // ── Disconnected ─────────────────────────────────────────────────────────
+  // ── Not connected ─────────────────────────────────────────────────────────
 
   if (!isConnected) {
     return (
@@ -297,106 +616,157 @@ export function DriveIntegrationPanel({ groupId }: DriveIntegrationPanelProps) {
           Connect Google Drive
         </div>
         <p className="drive-connect-sub">
-          Index your team's Drive documents. Ambi builds a live knowledge map — summaries, tags, and
-          entities — so it can surface the right information the moment it's needed in a meeting.
+          Index your team's Drive folders. Ambi builds a live knowledge map — summaries, tags, and
+          entities — so it can surface the right doc the moment it's needed in a meeting.
         </p>
         {error && <p style={{ fontSize: '12px', color: '#b41e1e', margin: 0 }}>{error}</p>}
-        <div>
-          <button type="button" className="lp-cta" onClick={connect} disabled={loading}>
-            {loading ? 'Connecting…' : 'Connect Google Drive'}
-          </button>
-        </div>
+        <button type="button" className="lp-cta" onClick={connect} disabled={loading}>
+          {loading ? 'Connecting…' : 'Connect Google Drive'}
+        </button>
       </div>
     );
   }
 
-  // ── Connected ─────────────────────────────────────────────────────────────
+  // ── Setup mode (just connected, no folders chosen yet) ────────────────────
+
+  if (isSetupMode) {
+    return (
+      <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', background: 'var(--surface)' }}>
+        <FolderSetupScreen
+          folders={availableFolders}
+          loading={loadingFolders || availableFolders.length === 0}
+          onSave={handleSetupSave}
+          onSyncAll={handleSyncAll}
+          saving={savingFolders}
+          isFirstTime={true}
+        />
+      </div>
+    );
+  }
+
+  // Initialize setup mode folder loading
+  if (isSetupMode && availableFolders.length === 0 && !loadingFolders) {
+    setLoadingFolders(true);
+    fetchFolders().then((f) => { setAvailableFolders(f); setLoadingFolders(false); });
+  }
+
+  // ── Connected + configured ────────────────────────────────────────────────
 
   return (
     <div className="kb-wrap">
-      {/* ── Top bar ── */}
-      <div className="kb-topbar">
-        <div className="kb-topbar-left">
+
+      {/* ── Header ── */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '14px 20px', borderBottom: '1px solid var(--border)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <GoogleDriveIcon size={18} />
-          <span className="kb-topbar-title">Google Drive</span>
+          <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-primary)' }}>Google Drive</span>
           <div className="kb-status-badge">
             <span className={`kb-status-dot ${isSyncing ? 'syncing' : 'connected'}`} />
-            <span>{isSyncing ? 'Syncing…' : 'Connected'}</span>
+            <span style={{ fontSize: 12 }}>{isSyncing ? 'Syncing…' : 'Connected'}</span>
           </div>
-          {staleCount > 0 && (
-            <span className="kb-stale-count">{staleCount} stale</span>
+          {savingFolders && (
+            <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Saving…</span>
           )}
         </div>
-        <div className="kb-topbar-right">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span className="kb-last-sync">Synced {formatRelativeTime(integration.last_synced_at)}</span>
-          <button type="button" className="drive-btn primary" onClick={() => sync()} disabled={isSyncing}>
+          <button
+            type="button"
+            className="drive-btn primary"
+            onClick={() => sync()}
+            disabled={isSyncing}
+          >
             {isSyncing ? 'Syncing…' : 'Sync now'}
           </button>
           <button type="button" className="drive-btn danger" onClick={disconnect}>Disconnect</button>
         </div>
       </div>
 
-      {/* Sync scope row */}
-      <div className="kb-scope-row">
-        <span className="kb-scope-label">
-          {selectedFolderIds.size === 0
-            ? 'Scope: entire Drive'
-            : `Scope: ${selectedFolderIds.size} folder${selectedFolderIds.size > 1 ? 's' : ''}`}
+      {/* ── Sync scope row (folder chips) ── */}
+      <div style={{
+        display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8,
+        padding: '10px 20px',
+        borderBottom: '1px solid var(--border)',
+        background: 'var(--bg-subtle)',
+      }}>
+        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', flexShrink: 0 }}>
+          Scope
         </span>
-        <button type="button" className="drive-btn" onClick={handleOpenFolderPicker}>
-          Choose folders
-        </button>
+
+        {selectedFolderIds.size === 0 ? (
+          <span style={{
+            fontSize: 12, padding: '3px 10px', borderRadius: 20,
+            background: 'var(--bg-subtle)', border: '1px solid var(--border)',
+            color: 'var(--text-tertiary)',
+          }}>
+            Entire Drive
+          </span>
+        ) : (
+          Array.from(selectedFolderIds).map((id) => (
+            <FolderChip
+              key={id}
+              name={folderNames.get(id) ?? id}
+              onRemove={() => handleRemoveFolder(id)}
+            />
+          ))
+        )}
+
+        {/* Add folder button */}
+        <div style={{ position: 'relative' }} ref={addFolderRef}>
+          <button
+            type="button"
+            onClick={openAddFolder}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              background: 'none',
+              border: '1px dashed var(--border)',
+              borderRadius: 20, padding: '3px 9px',
+              fontSize: 12, color: 'var(--text-tertiary)',
+              cursor: 'pointer', transition: 'border-color 0.15s, color 0.15s',
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--dl-teal)'; e.currentTarget.style.color = 'var(--dl-teal)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-tertiary)'; }}
+          >
+            + Add folder
+          </button>
+          {addFolderOpen && (
+            <AddFolderDropdown
+              folders={loadingFolders ? [] : availableFolders}
+              selectedIds={selectedFolderIds}
+              onAdd={handleAddFolder}
+              onClose={() => setAddFolderOpen(false)}
+            />
+          )}
+        </div>
+
+        {selectedFolderIds.size > 0 && (
+          <button
+            type="button"
+            onClick={async () => {
+              setSavingFolders(true);
+              await saveFolderSelection([]);
+              setSelectedFolderIds(new Set());
+              setSavingFolders(false);
+            }}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              fontSize: 11, color: 'var(--text-tertiary)', padding: 0,
+              textDecoration: 'underline',
+            }}
+          >
+            Clear (sync all)
+          </button>
+        )}
       </div>
 
-      {/* Folder picker modal */}
-      {folderPickerOpen && (
-        <div className="kb-modal-overlay" onClick={() => setFolderPickerOpen(false)}>
-          <div className="kb-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="kb-modal-header">
-              <span className="kb-modal-title">Choose sync folders</span>
-              <button type="button" className="kb-modal-close" onClick={() => setFolderPickerOpen(false)}>✕</button>
-            </div>
-            <p className="kb-modal-desc">Only files inside selected folders will be synced. Leave all unchecked to sync your entire Drive.</p>
-            {loadingFolders ? (
-              <div className="kb-modal-loading">Loading folders…</div>
-            ) : availableFolders.length === 0 ? (
-              <div className="kb-modal-loading">No folders found in your Drive.</div>
-            ) : (
-              <div className="kb-modal-folder-list">
-                {availableFolders.map((folder) => (
-                  <label key={folder.id} className="kb-folder-row">
-                    <input
-                      type="checkbox"
-                      checked={selectedFolderIds.has(folder.id)}
-                      onChange={(e) => {
-                        setSelectedFolderIds((prev) => {
-                          const next = new Set(prev);
-                          if (e.target.checked) next.add(folder.id);
-                          else next.delete(folder.id);
-                          return next;
-                        });
-                      }}
-                    />
-                    <span className="kb-folder-name">📁 {folder.name}</span>
-                  </label>
-                ))}
-              </div>
-            )}
-            <div className="kb-modal-actions">
-              {selectedFolderIds.size > 0 && (
-                <button type="button" className="drive-btn" onClick={() => setSelectedFolderIds(new Set())}>
-                  Clear (sync all)
-                </button>
-              )}
-              <button type="button" className="drive-btn primary" onClick={handleSaveFolders} disabled={savingFolders || loadingFolders}>
-                {savingFolders ? 'Saving…' : 'Save'}
-              </button>
-            </div>
-          </div>
+      {error && (
+        <div style={{ fontSize: 12, color: '#b41e1e', padding: '8px 20px', borderBottom: '1px solid var(--border)' }}>
+          {error}
         </div>
       )}
-
-      {error && <p style={{ fontSize: '12px', color: '#b41e1e', margin: '0 0 12px' }}>{error}</p>}
 
       {isSyncing && (
         <div className="kb-sync-bar">
@@ -405,95 +775,134 @@ export function DriveIntegrationPanel({ groupId }: DriveIntegrationPanelProps) {
         </div>
       )}
 
-      {documents.length === 0 && !isSyncing ? (
-        <div className="drive-empty">
-          No documents indexed yet. Click "Sync now" to build your knowledge map.
+      {/* ── Stats bar ── */}
+      {visibleDocs.length > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 16,
+          padding: '8px 20px', borderBottom: '1px solid var(--border)',
+          fontSize: 12, color: 'var(--text-tertiary)',
+        }}>
+          <span><b style={{ color: 'var(--text-primary)' }}>{visibleDocs.length}</b> docs indexed</span>
+          {staleCount > 0 && (
+            <span style={{ color: '#854d0e' }}>⚠ {staleCount} stale</span>
+          )}
+          {excludedIds.size > 0 && (
+            <span>{excludedIds.size} excluded</span>
+          )}
+          <div style={{ flex: 1 }} />
+          {/* Tabs */}
+          <div style={{ display: 'flex', gap: 4 }}>
+            {(['docs', 'entities'] as const).map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                style={{
+                  background: activeTab === tab ? 'var(--bg-blue)' : 'none',
+                  border: `1px solid ${activeTab === tab ? 'var(--border-blue)' : 'transparent'}`,
+                  borderRadius: 6, padding: '3px 10px', cursor: 'pointer',
+                  fontSize: 11, color: activeTab === tab ? 'var(--accent-blue)' : 'var(--text-tertiary)',
+                  fontWeight: activeTab === tab ? 600 : 400,
+                }}
+              >
+                {tab === 'docs' ? `Documents` : 'Entity Map'}
+              </button>
+            ))}
+          </div>
         </div>
-      ) : documents.length > 0 && (
+      )}
+
+      {/* ── No docs yet ── */}
+      {visibleDocs.length === 0 && !isSyncing && (
+        <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+          <div style={{ fontSize: 13, color: 'var(--text-tertiary)', marginBottom: 12 }}>
+            {selectedFolderIds.size > 0
+              ? `No documents indexed yet from ${selectedFolderIds.size === 1 ? 'this folder' : 'these folders'}.`
+              : 'No documents indexed yet.'}
+          </div>
+          <button type="button" className="drive-btn primary" onClick={() => sync()} disabled={isSyncing}>
+            Sync now
+          </button>
+        </div>
+      )}
+
+      {/* ── Entity map ── */}
+      {activeTab === 'entities' && visibleDocs.length > 0 && (
+        <EntityOverview documents={visibleDocs} />
+      )}
+
+      {/* ── Doc list ── */}
+      {activeTab === 'docs' && visibleDocs.length > 0 && (
         <>
-          {/* ── Stats row ── */}
-          <div className="kb-stats-row">
-            {ALL_CATEGORIES.filter((c) => categoryCounts[c]).map((c) => {
-              const meta = CATEGORY_META[c];
-              return (
-                <div key={c} className="kb-stat-chip" style={{ borderColor: meta.color + '40' }}>
-                  <span style={{ color: meta.color, fontWeight: 700 }}>{categoryCounts[c]}</span>
-                  <span style={{ color: meta.color }}>{meta.label}</span>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* ── Tabs ── */}
-          <div className="kb-tabs">
-            <button type="button" className={`kb-tab ${activeTab === 'docs' ? 'active' : ''}`} onClick={() => setActiveTab('docs')}>
-              Documents ({documents.length})
-            </button>
-            <button type="button" className={`kb-tab ${activeTab === 'entities' ? 'active' : ''}`} onClick={() => setActiveTab('entities')}>
-              Entity Map
-            </button>
-          </div>
-
-          {activeTab === 'entities' ? (
-            <EntityOverview documents={documents} />
-          ) : (
-            <>
-              {/* ── Toolbar ── */}
-              <div className="kb-toolbar">
-                <input
-                  className="kb-search"
-                  type="text"
-                  placeholder="Search by name, summary, tags, company, person…"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-                <select className="kb-sort" value={sortBy} onChange={(e) => setSortBy(e.target.value as typeof sortBy)}>
-                  <option value="modified">Sort: Recent</option>
-                  <option value="name">Sort: Name</option>
-                  <option value="category">Sort: Category</option>
-                </select>
-              </div>
-
-              {/* ── Category filter ── */}
-              <div className="kb-filter-row">
-                <button
-                  type="button"
-                  className={`kb-filter-btn ${activeCategory === 'all' ? 'active' : ''}`}
-                  onClick={() => setActiveCategory('all')}
-                >
-                  All ({documents.length})
-                </button>
-                {ALL_CATEGORIES.filter((c) => categoryCounts[c]).map((c) => (
+          {/* Toolbar */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '10px 16px', borderBottom: '1px solid var(--border)',
+          }}>
+            <input
+              className="kb-search"
+              type="text"
+              placeholder="Search docs…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ flex: 1, maxWidth: 280 }}
+            />
+            {/* Category filters */}
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => setActiveCategory('all')}
+                style={{
+                  fontSize: 11, padding: '3px 9px', borderRadius: 10,
+                  background: activeCategory === 'all' ? 'var(--text-primary)' : 'transparent',
+                  color: activeCategory === 'all' ? 'var(--bg)' : 'var(--text-tertiary)',
+                  border: `1px solid ${activeCategory === 'all' ? 'var(--text-primary)' : 'var(--border)'}`,
+                  cursor: 'pointer',
+                }}
+              >
+                All
+              </button>
+              {ALL_CATEGORIES.filter((c) => categoryCounts[c]).map((c) => {
+                const meta = CATEGORY_META[c];
+                const active = activeCategory === c;
+                return (
                   <button
                     key={c}
                     type="button"
-                    className={`kb-filter-btn ${activeCategory === c ? 'active' : ''}`}
-                    style={activeCategory === c ? { borderColor: CATEGORY_META[c].color, color: CATEGORY_META[c].color } : {}}
                     onClick={() => setActiveCategory(c)}
+                    style={{
+                      fontSize: 11, padding: '3px 9px', borderRadius: 10,
+                      background: active ? meta.bg : 'transparent',
+                      color: active ? meta.color : 'var(--text-tertiary)',
+                      border: `1px solid ${active ? meta.color + '60' : 'var(--border)'}`,
+                      cursor: 'pointer',
+                    }}
                   >
-                    {CATEGORY_META[c].icon} {CATEGORY_META[c].label} ({categoryCounts[c]})
+                    {meta.icon} {meta.label} {categoryCounts[c]}
                   </button>
-                ))}
-              </div>
+                );
+              })}
+            </div>
+          </div>
 
-              {/* ── Doc list ── */}
-              {filtered.length === 0 ? (
-                <div className="drive-empty">No documents match your search.</div>
-              ) : (
-                <div className="kb-doc-list">
-                  {filtered.map((doc) => (
-                    <DocCard
-                      key={doc.id}
-                      doc={doc}
-                      expanded={expandedId === doc.id}
-                      onToggle={() => setExpandedId(expandedId === doc.id ? null : doc.id)}
-                      onExclude={() => handleExclude(doc.id)}
-                    />
-                  ))}
-                </div>
-              )}
-            </>
-          )}
+          {/* Rows */}
+          <div style={{ overflowY: 'auto', maxHeight: 500 }} className="kb-doc-rows">
+            {filtered.length === 0 ? (
+              <div style={{ padding: '30px 20px', textAlign: 'center', fontSize: 13, color: 'var(--text-tertiary)' }}>
+                No documents match your search.
+              </div>
+            ) : (
+              filtered.map((doc) => (
+                <DocRow
+                  key={doc.id}
+                  doc={doc}
+                  expanded={expandedId === doc.id}
+                  onToggle={() => setExpandedId(expandedId === doc.id ? null : doc.id)}
+                  onExclude={() => handleExclude(doc.id)}
+                />
+              ))
+            )}
+          </div>
         </>
       )}
     </div>

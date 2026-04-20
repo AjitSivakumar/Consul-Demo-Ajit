@@ -32,6 +32,7 @@ export function useDriveIntegration(groupId: string) {
   const [loading, setLoading] = useState<boolean>(false);
   const [syncing, setSyncing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [justConnected, setJustConnected] = useState<boolean>(false);
 
   const getAuthHeader = useCallback(async (): Promise<string> => {
     // Prefer the session already in context; fall back to a fresh getSession call.
@@ -192,12 +193,10 @@ export function useDriveIntegration(groupId: string) {
 
     const searchParams = new URLSearchParams(window.location.search);
     if (searchParams.get('drive') === 'connected') {
-      // Clean the URL before kicking off the sync so a refresh doesn't re-trigger
       const cleanUrl = window.location.pathname;
       window.history.replaceState({}, '', cleanUrl);
-
-      // Sync after a brief delay to let loadStatus settle first
-      sync();
+      // Signal panel to show folder setup instead of auto-syncing everything
+      setJustConnected(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groupId]);
@@ -208,6 +207,8 @@ export function useDriveIntegration(groupId: string) {
     loading,
     syncing,
     error,
+    justConnected,
+    clearJustConnected: () => setJustConnected(false),
     connect,
     sync,
     disconnect,
