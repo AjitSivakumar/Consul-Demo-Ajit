@@ -13,6 +13,15 @@ import { supabase } from '../lib/supabase';
 import { extractTextFromFile, getAllDocuments, uploadDocument, UploadedDocument } from '../services/documentService';
 import { useMeetingStore } from '../state/MeetingStore';
 
+const INTEGRATIONS_UPCOMING = [
+  { name: 'Salesforce', sub: 'CRM deal context', abbr: 'SF' },
+  { name: 'HubSpot', sub: 'Pipeline & contacts', abbr: 'HS' },
+  { name: 'Gong', sub: 'Call recordings', abbr: 'GG' },
+  { name: 'Notion', sub: 'Team knowledge', abbr: 'NO' },
+  { name: 'Confluence', sub: 'Internal docs', abbr: 'CF' },
+  { name: 'LinkedIn', sub: 'Prospect intel', abbr: 'LI' },
+];
+
 export function RealtimeMeetingPage(): React.JSX.Element {
   const { state, dispatch } = useMeetingStore();
   const runner = useTranscriptRunner();
@@ -241,77 +250,79 @@ export function RealtimeMeetingPage(): React.JSX.Element {
           <DeepDivePanel selectedNeedId={selectedNeedId} />
         </div>
 
-        {/* RIGHT — Sources + Popup Tray + Transcript */}
-        <div className="col-right">
-          <div className="col-header">
-            <span className="col-title">Sources</span>
-            <button type="button" className="upload-btn" onClick={onUploadClick}>
-              ↑ Upload doc
-            </button>
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".txt,.md,.pdf,.json"
-              hidden
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) void onUploadFile(file);
-              }}
-            />
-          </div>
+        {/* RIGHT — Sidebar cards */}
+        <div className="col-right mtg-sidebar">
 
-          <div className="source-list-wrap">
-          {uploadError && (
-            <div className="pmd-doc-error" style={{ margin: '4px 0' }}>{uploadError}</div>
-          )}
-          <div className="source-list">
-            {docs.length === 0 && webSources.length === 0 && (
-              <div className="feed-empty">No documents uploaded yet.</div>
-            )}
-            {docs.map((doc) => {
-              const referenced = referencedTitles.has(doc.name.toLowerCase());
-              return (
-                <div key={doc.id} className={`src-item ${referenced ? 'referenced' : ''}`}>
+          {/* Documents card */}
+          <div className="mtg-card">
+            <div className="mtg-card-hd">
+              <span className="col-title">Documents</span>
+              <button type="button" className="upload-btn" onClick={onUploadClick}>
+                ↑ Upload
+              </button>
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".txt,.md,.pdf,.json"
+                hidden
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void onUploadFile(file);
+                }}
+              />
+            </div>
+
+            <div className="mtg-doc-list">
+              {uploadError && (
+                <div className="pmd-doc-error" style={{ margin: '6px 10px 0' }}>{uploadError}</div>
+              )}
+              {docs.length === 0 && webSources.length === 0 && (
+                <div className="mtg-empty">Upload docs to give Ambi context for this meeting.</div>
+              )}
+              {docs.map((doc) => {
+                const referenced = referencedTitles.has(doc.name.toLowerCase());
+                return (
+                  <div key={doc.id} className={`src-item ${referenced ? 'referenced' : ''}`}>
+                    <div className="src-header">
+                      <div className="src-type-dot src-type-dot--internal_document" />
+                      <span className="src-title">{doc.name}</span>
+                    </div>
+                    <div className="src-meta">
+                      {doc.type === 'pdf' ? 'PDF' : 'Text'} · Uploaded {new Date(doc.uploadedAt).toLocaleTimeString()}
+                    </div>
+                    <div className="src-excerpt">{doc.content.slice(0, 100)}…</div>
+                    {referenced && (
+                      <div className="src-conf-bar">
+                        <div className="src-conf-fill" style={{ width: '88%', background: '#1D9E75' }} />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {webSources.map((src, idx) => (
+                <div
+                  key={`web-${idx}`}
+                  className={`src-item${src.url ? ' src-item-link' : ''}`}
+                  onClick={() => src.url && window.open(src.url, '_blank', 'noopener,noreferrer')}
+                  style={{ cursor: src.url ? 'pointer' : 'default' }}
+                >
                   <div className="src-header">
-                    <div className="src-type-dot src-type-dot--internal_document" />
-                    <span className="src-title">{doc.name}</span>
+                    <div className={`src-type-dot src-type-dot--${src.sourceType}`} />
+                    <span className="src-title">{src.title}</span>
+                    {src.url && <span className="src-ext-icon">↗</span>}
                   </div>
                   <div className="src-meta">
-                    {doc.type === 'pdf' ? 'PDF' : 'Text'} · Uploaded {new Date(doc.uploadedAt).toLocaleTimeString()}
+                    {SOURCE_TYPE_LABEL[src.sourceType] ?? 'Source'} · {src.url ? src.url.replace(/^https?:\/\//, '').split('/')[0] : src.recencyLabel}
                   </div>
-                  <div className="src-excerpt">{doc.content.slice(0, 100)}…</div>
-                  {referenced && (
-                    <div className="src-conf-bar">
-                      <div className="src-conf-fill" style={{ width: '88%', background: '#1D9E75' }} />
-                    </div>
-                  )}
                 </div>
-              );
-            })}
-            {webSources.map((src, idx) => (
-              <div
-                key={`web-${idx}`}
-                className={`src-item${src.url ? ' src-item-link' : ''}`}
-                onClick={() => src.url && window.open(src.url, '_blank', 'noopener,noreferrer')}
-                style={{ cursor: src.url ? 'pointer' : 'default' }}
-              >
-                <div className="src-header">
-                  <div className={`src-type-dot src-type-dot--${src.sourceType}`} />
-                  <span className="src-title">{src.title}</span>
-                  {src.url && <span className="src-ext-icon">↗</span>}
-                </div>
-                <div className="src-meta">
-                  {SOURCE_TYPE_LABEL[src.sourceType] ?? 'Source'} · {src.url ? src.url.replace(/^https?:\/\//, '').split('/')[0] : src.recencyLabel}
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
           </div>
 
-          {/* Ambi Agent Panel */}
-          <div className="agent-panel">
-            <div className="agent-panel-header">
-              <span className="col-title">Ambi Agent</span>
+          {/* Integrations card */}
+          <div className="mtg-card">
+            <div className="mtg-card-hd">
+              <span className="col-title">Integrations</span>
               <button
                 type="button"
                 className="bot-settings-gear"
@@ -319,44 +330,98 @@ export function RealtimeMeetingPage(): React.JSX.Element {
                 title="Agent settings"
               >⚙</button>
             </div>
-            <div className="agent-panel-body">
-              <input
-                className="recall-url-input"
-                value={runner.recallMeetingUrl}
-                onChange={(e) => runner.setRecallMeetingUrl(e.target.value)}
-                placeholder="Paste Zoom link"
-                disabled={runner.recallBotId !== null}
-              />
-              {!runner.recallBotId ? (
+
+            {/* Meeting Agent (Recall bot) */}
+            <div className="mtg-int-block">
+              <div className="mtg-int-row">
+                <div className="mtg-int-icon">
+                  <span className="mtg-int-abbr">RCL</span>
+                </div>
+                <div className="mtg-int-body">
+                  <div className="mtg-int-name">Meeting Agent</div>
+                  <div className="mtg-int-sub">Recall.ai · joins &amp; transcribes</div>
+                </div>
+                <span className={`mtg-badge ${runner.recallBotId ? 'mtg-badge--active' : ''}`}>
+                  {runner.recallBotId ? 'Active' : 'Idle'}
+                </span>
+              </div>
+              <div className="mtg-int-controls">
+                <input
+                  className="recall-url-input"
+                  value={runner.recallMeetingUrl}
+                  onChange={(e) => runner.setRecallMeetingUrl(e.target.value)}
+                  placeholder="Paste meeting link (Zoom, Meet…)"
+                  disabled={runner.recallBotId !== null}
+                />
+                {!runner.recallBotId ? (
+                  <button
+                    type="button"
+                    className="recall-send-btn"
+                    onClick={() => { runner.setMode('recall-bot'); void runner.sendRecallBot(); }}
+                    disabled={!runner.recallMeetingUrl.trim() || runner.recallBotStatus === 'creating'}
+                  >
+                    {runner.recallBotStatus === 'creating' ? 'Sending…' : 'Send'}
+                  </button>
+                ) : (
+                  <button type="button" className="recall-stop-btn" onClick={() => void runner.removeRecallBot()}>
+                    Remove
+                  </button>
+                )}
+              </div>
+              {runner.recallError && <p className="recall-error" style={{ margin: '0 12px 10px' }}>{runner.recallError}</p>}
+            </div>
+
+            {/* Google Drive */}
+            <div className="mtg-int-row">
+              <div className="mtg-int-icon mtg-int-icon--drive">
+                <span className="mtg-int-abbr">GD</span>
+              </div>
+              <div className="mtg-int-body">
+                <div className="mtg-int-name">Google Drive</div>
+                <div className="mtg-int-sub">Knowledge base sync</div>
+              </div>
+              {state.groupId ? (
                 <button
                   type="button"
-                  className="recall-send-btn"
-                  onClick={() => { runner.setMode('recall-bot'); void runner.sendRecallBot(); }}
-                  disabled={!runner.recallMeetingUrl.trim() || runner.recallBotStatus === 'creating'}
+                  className="mtg-badge mtg-badge--linked mtg-badge-btn"
+                  onClick={() => navigate(`/groups/${state.groupId}`)}
+                  title="Manage Drive settings"
                 >
-                  {runner.recallBotStatus === 'creating' ? 'Sending…' : 'Send Agent'}
+                  Linked ↗
                 </button>
               ) : (
-                <button type="button" className="recall-stop-btn" onClick={() => void runner.removeRecallBot()}>
-                  Remove Agent
-                </button>
+                <span className="mtg-badge mtg-badge--muted">No group</span>
               )}
             </div>
-            {runner.recallError && <p className="recall-error">{runner.recallError}</p>}
+
+            {/* Upcoming integrations */}
+            <div className="mtg-int-upcoming-label">Coming soon</div>
+            {INTEGRATIONS_UPCOMING.map((int) => (
+              <div key={int.name} className="mtg-int-row mtg-int-row--upcoming">
+                <div className="mtg-int-icon">
+                  <span className="mtg-int-abbr">{int.abbr}</span>
+                </div>
+                <div className="mtg-int-body">
+                  <div className="mtg-int-name">{int.name}</div>
+                  <div className="mtg-int-sub">{int.sub}</div>
+                </div>
+                <span className="mtg-badge mtg-badge--soon">Soon</span>
+              </div>
+            ))}
           </div>
 
-          {/* Live Transcript */}
-          <div className="transcript-section">
-            <div className="transcript-header">
+          {/* Live Transcript card */}
+          <div className="mtg-card mtg-card--transcript">
+            <div className="mtg-card-hd">
               <span className="col-title">Live Transcript</span>
               <button type="button" className="toggle-btn" onClick={() => setTranscriptVisible((v) => !v)}>
                 {transcriptVisible ? 'Hide' : 'Show'}
               </button>
             </div>
 
-            {/* Manual inject for testing */}
             <form
               className="inject-form"
+              style={{ borderBottom: '1px solid var(--border)', flexShrink: 0 }}
               onSubmit={(e) => {
                 e.preventDefault();
                 const text = injectText.trim();
@@ -390,7 +455,7 @@ export function RealtimeMeetingPage(): React.JSX.Element {
             </form>
 
             {transcriptVisible && (
-              <div className="transcript-lines">
+              <div className="transcript-lines mtg-transcript-lines">
                 {state.transcript.length === 0 && (
                   <div className="feed-empty">Transcript will appear when stream starts.</div>
                 )}
@@ -400,7 +465,6 @@ export function RealtimeMeetingPage(): React.JSX.Element {
                     <span className="ttxt">{line.text}</span>
                   </div>
                 ))}
-                {/* Live partial (interim) text per speaker */}
                 {Object.entries(runner.recallPartials).map(([speaker, text]) => (
                   <div key={`partial-${speaker}`} className="tline tline-partial">
                     <span className="tspk">{speaker}</span>
@@ -411,7 +475,6 @@ export function RealtimeMeetingPage(): React.JSX.Element {
                 ))}
               </div>
             )}
-
           </div>
         </div>
       </section>
@@ -423,7 +486,6 @@ export function RealtimeMeetingPage(): React.JSX.Element {
           onClose={() => setShowBotSettings(false)}
         />
       )}
-
     </main>
   );
 }
