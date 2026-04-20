@@ -61,7 +61,9 @@ function FolderSetupScreen({ folders, loading, onSave, onSyncAll, saving, isFirs
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState('');
 
-  const filtered = folders.filter((f) =>
+  const rootFolder = folders.find((f) => f.isRoot);
+  const subFolders = folders.filter((f) => !f.isRoot);
+  const filteredSubs = subFolders.filter((f) =>
     !search.trim() || f.name.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -72,6 +74,43 @@ function FolderSetupScreen({ folders, loading, onSave, onSyncAll, saving, isFirs
       else next.add(id);
       return next;
     });
+
+  const folderRow = (folder: DriveFolder) => {
+    const checked = selected.has(folder.id);
+    return (
+      <label key={folder.id} style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        padding: '8px 10px', borderRadius: 6, cursor: 'pointer',
+        background: checked
+          ? (folder.isRoot ? 'rgba(66,133,244,0.08)' : 'var(--bg-blue)')
+          : 'transparent',
+        border: `1px solid ${checked ? (folder.isRoot ? 'rgba(66,133,244,0.3)' : 'var(--border-blue)') : 'transparent'}`,
+        marginBottom: 4, transition: 'background 0.1s',
+      }}>
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={() => toggle(folder.id)}
+          style={{ accentColor: folder.isRoot ? '#4285F4' : 'var(--dl-teal)', width: 15, height: 15, flexShrink: 0 }}
+        />
+        <span style={{ fontSize: 14 }}>{folder.isRoot ? '💾' : '📁'}</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            fontSize: 13, color: 'var(--text-primary)', fontWeight: checked ? 500 : 400,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {folder.name}
+          </div>
+          {folder.isRoot && (
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>
+              Files stored directly in My Drive (not inside any subfolder)
+            </div>
+          )}
+        </div>
+        {checked && <span style={{ fontSize: 11, color: folder.isRoot ? '#4285F4' : 'var(--dl-teal)', fontWeight: 600 }}>✓</span>}
+      </label>
+    );
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
@@ -92,8 +131,8 @@ function FolderSetupScreen({ folders, loading, onSave, onSyncAll, saving, isFirs
         </div>
       </div>
 
-      {/* Search */}
-      {folders.length > 8 && (
+      {/* Search (subfolders only) */}
+      {subFolders.length > 8 && (
         <div style={{ padding: '10px 20px 0' }}>
           <input
             className="kb-search"
@@ -106,43 +145,41 @@ function FolderSetupScreen({ folders, loading, onSave, onSyncAll, saving, isFirs
       )}
 
       {/* Folder list */}
-      <div style={{ padding: '10px 20px', maxHeight: 320, overflowY: 'auto' }}>
+      <div style={{ padding: '10px 20px', maxHeight: 340, overflowY: 'auto' }}>
         {loading ? (
           <div style={{ color: 'var(--text-tertiary)', fontSize: 13, padding: '20px 0', textAlign: 'center' }}>
             Loading your Drive folders…
           </div>
-        ) : filtered.length === 0 ? (
-          <div style={{ color: 'var(--text-tertiary)', fontSize: 13, padding: '20px 0', textAlign: 'center' }}>
-            {search ? 'No folders match.' : 'No folders found in your Drive.'}
-          </div>
         ) : (
-          filtered.map((folder) => {
-            const checked = selected.has(folder.id);
-            return (
-              <label key={folder.id} style={{
-                display: 'flex', alignItems: 'center', gap: 10,
-                padding: '8px 10px', borderRadius: 6, cursor: 'pointer',
-                background: checked ? 'var(--bg-blue)' : 'transparent',
-                border: `1px solid ${checked ? 'var(--border-blue)' : 'transparent'}`,
-                marginBottom: 4, transition: 'background 0.1s',
-              }}>
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  onChange={() => toggle(folder.id)}
-                  style={{ accentColor: 'var(--dl-teal)', width: 15, height: 15, flexShrink: 0 }}
-                />
-                <span style={{ fontSize: 14 }}>📁</span>
-                <span style={{
-                  fontSize: 13, color: 'var(--text-primary)', fontWeight: checked ? 500 : 400,
-                  flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                }}>
-                  {folder.name}
-                </span>
-                {checked && <span style={{ fontSize: 11, color: 'var(--dl-teal)', fontWeight: 600 }}>✓</span>}
-              </label>
-            );
-          })
+          <>
+            {/* Root option pinned at top */}
+            {rootFolder && (
+              <>
+                {folderRow(rootFolder)}
+                {subFolders.length > 0 && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    margin: '6px 0',
+                  }}>
+                    <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+                    <span style={{ fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                      Subfolders
+                    </span>
+                    <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Subfolders */}
+            {filteredSubs.length === 0 && !rootFolder ? (
+              <div style={{ color: 'var(--text-tertiary)', fontSize: 13, padding: '20px 0', textAlign: 'center' }}>
+                {search ? 'No folders match.' : 'No subfolders found in your Drive.'}
+              </div>
+            ) : (
+              filteredSubs.map(folderRow)
+            )}
+          </>
         )}
       </div>
 
@@ -175,7 +212,7 @@ function FolderSetupScreen({ folders, loading, onSave, onSyncAll, saving, isFirs
             disabled={selected.size === 0 || saving || loading}
             onClick={() => onSave(Array.from(selected), true)}
           >
-            {saving ? 'Saving…' : 'Sync selected folders'}
+            {saving ? 'Saving…' : 'Sync selected'}
           </button>
         </div>
       </div>
@@ -185,15 +222,16 @@ function FolderSetupScreen({ folders, loading, onSave, onSyncAll, saving, isFirs
 
 // ── Folder chip ───────────────────────────────────────────────────────────────
 
-function FolderChip({ name, onRemove }: { name: string; onRemove: () => void }) {
+function FolderChip({ name, isRoot, onRemove }: { name: string; isRoot?: boolean; onRemove: () => void }) {
   return (
     <div style={{
       display: 'inline-flex', alignItems: 'center', gap: 5,
       padding: '3px 8px 3px 7px',
-      background: 'var(--bg-blue)', border: '1px solid var(--border-blue)',
-      borderRadius: 20, fontSize: 12, color: 'var(--accent-blue)',
+      background: isRoot ? 'rgba(66,133,244,0.08)' : 'var(--bg-blue)',
+      border: `1px solid ${isRoot ? 'rgba(66,133,244,0.3)' : 'var(--border-blue)'}`,
+      borderRadius: 20, fontSize: 12, color: isRoot ? '#4285F4' : 'var(--accent-blue)',
     }}>
-      <span style={{ fontSize: 11 }}>📁</span>
+      <span style={{ fontSize: 11 }}>{isRoot ? '💾' : '📁'}</span>
       <span style={{ fontWeight: 500, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {name}
       </span>
@@ -202,7 +240,7 @@ function FolderChip({ name, onRemove }: { name: string; onRemove: () => void }) 
         onClick={onRemove}
         style={{
           background: 'none', border: 'none', cursor: 'pointer',
-          color: 'var(--accent-blue)', opacity: 0.6, fontSize: 11,
+          color: isRoot ? '#4285F4' : 'var(--accent-blue)', opacity: 0.6, fontSize: 11,
           padding: '0 0 0 2px', lineHeight: 1,
         }}
       >✕</button>
@@ -356,8 +394,34 @@ function AddFolderDropdown({ folders, selectedIds, onAdd, onClose }: {
     return () => document.removeEventListener('mousedown', handler);
   }, [onClose]);
 
+  const rootEntry = folders.find((f) => f.isRoot && !selectedIds.has(f.id));
   const available = folders.filter(
-    (f) => !selectedIds.has(f.id) && (!search.trim() || f.name.toLowerCase().includes(search.toLowerCase()))
+    (f) => !f.isRoot && !selectedIds.has(f.id) &&
+    (!search.trim() || f.name.toLowerCase().includes(search.toLowerCase()))
+  );
+
+  const folderBtn = (f: DriveFolder) => (
+    <button
+      key={f.id}
+      type="button"
+      onClick={() => { onAdd(f.id, f.name); onClose(); }}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 8,
+        width: '100%', background: 'none', border: 'none',
+        padding: '7px 14px', cursor: 'pointer', textAlign: 'left',
+        fontSize: 13, color: 'var(--text-primary)',
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-subtle)')}
+      onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+    >
+      <span>{f.isRoot ? '💾' : '📁'}</span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</div>
+        {f.isRoot && (
+          <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1 }}>Root level files only</div>
+        )}
+      </div>
+    </button>
   );
 
   return (
@@ -365,7 +429,7 @@ function AddFolderDropdown({ folders, selectedIds, onAdd, onClose }: {
       position: 'absolute', top: '100%', left: 0, zIndex: 100, marginTop: 4,
       background: 'var(--surface)', border: '1px solid var(--border)',
       borderRadius: 8, boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-      width: 260,
+      width: 270,
     }}>
       <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border)' }}>
         <input
@@ -377,32 +441,23 @@ function AddFolderDropdown({ folders, selectedIds, onAdd, onClose }: {
           style={{ width: '100%', boxSizing: 'border-box', fontSize: 12 }}
         />
       </div>
-      <div style={{ maxHeight: 220, overflowY: 'auto', padding: '4px 0' }}>
-        {available.length === 0 ? (
+      <div style={{ maxHeight: 260, overflowY: 'auto', padding: '4px 0' }}>
+        {/* My Drive root pinned at top when available */}
+        {rootEntry && (
+          <>
+            {folderBtn(rootEntry)}
+            {available.length > 0 && (
+              <div style={{ height: 1, background: 'var(--border)', margin: '3px 10px' }} />
+            )}
+          </>
+        )}
+
+        {rootEntry === undefined && available.length === 0 ? (
           <div style={{ fontSize: 12, color: 'var(--text-tertiary)', padding: '10px 14px' }}>
             {search ? 'No folders match.' : 'All folders already selected.'}
           </div>
         ) : (
-          available.map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => { onAdd(f.id, f.name); onClose(); }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                width: '100%', background: 'none', border: 'none',
-                padding: '7px 14px', cursor: 'pointer', textAlign: 'left',
-                fontSize: 13, color: 'var(--text-primary)',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-subtle)')}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
-            >
-              <span>📁</span>
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {f.name}
-              </span>
-            </button>
-          ))
+          available.map(folderBtn)
         )}
       </div>
     </div>
@@ -705,13 +760,17 @@ export function DriveIntegrationPanel({ groupId }: DriveIntegrationPanelProps) {
             Entire Drive
           </span>
         ) : (
-          Array.from(selectedFolderIds).map((id) => (
-            <FolderChip
-              key={id}
-              name={folderNames.get(id) ?? id}
-              onRemove={() => handleRemoveFolder(id)}
-            />
-          ))
+          Array.from(selectedFolderIds).map((id) => {
+            const folder = availableFolders.find((f) => f.id === id);
+            return (
+              <FolderChip
+                key={id}
+                name={folderNames.get(id) ?? id}
+                isRoot={folder?.isRoot}
+                onRemove={() => handleRemoveFolder(id)}
+              />
+            );
+          })
         )}
 
         {/* Add folder button */}

@@ -6,6 +6,7 @@ import type { KnowledgeDoc } from '../services/knowledgeService';
 export interface DriveFolder {
   id: string;
   name: string;
+  isRoot?: boolean;
 }
 
 export interface DriveIntegration {

@@ -80,6 +80,19 @@ export default async function handler(req, res) {
     }
   }
 
+  // Fetch root folder's actual ID (so it can be used in parent queries)
+  let rootFolder = null;
+  try {
+    const rootRes = await fetch(
+      'https://www.googleapis.com/drive/v3/files/root?fields=id',
+      { headers: { Authorization: `Bearer ${integration.access_token}` } }
+    );
+    if (rootRes.ok) {
+      const rootData = await rootRes.json();
+      rootFolder = { id: rootData.id, name: 'My Drive', isRoot: true };
+    }
+  } catch { /* non-fatal */ }
+
   // List all Drive folders
   const q = encodeURIComponent("mimeType='application/vnd.google-apps.folder' and trashed=false");
   const driveRes = await fetch(
@@ -92,5 +105,8 @@ export default async function handler(req, res) {
   }
 
   const data = await driveRes.json();
-  return res.status(200).json({ folders: data.files ?? [] });
+  const subFolders = (data.files ?? []).map((f) => ({ ...f, isRoot: false }));
+  // Root comes first so the UI can pin it at the top
+  const folders = rootFolder ? [rootFolder, ...subFolders] : subFolders;
+  return res.status(200).json({ folders });
 }
