@@ -5448,6 +5448,7 @@ h1 em {
 /* ── Group detail page v2 (tabbed layout) ───────────────────────────────────── */
 
 .gp2-wrap {
+  width: 100%;
   max-width: 1060px;
   margin: 0 auto;
   padding: 24px 24px 80px;

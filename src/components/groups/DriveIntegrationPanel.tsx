@@ -174,8 +174,8 @@ function FolderChip({ name, isRoot, onRemove }: { name: string; isRoot?: boolean
 
 // ── Add-folder dropdown ───────────────────────────────────────────────────────
 
-function AddFolderDropdown({ folders, selectedIds, onAdd, onClose }: {
-  folders: DriveFolder[]; selectedIds: Set<string>; onAdd: (id: string, name: string) => void; onClose: () => void;
+function AddFolderDropdown({ folders, selectedIds, onAdd, onClose, loading = false }: {
+  folders: DriveFolder[]; selectedIds: Set<string>; onAdd: (id: string, name: string) => void; onClose: () => void; loading?: boolean;
 }) {
   const [search, setSearch] = useState('');
   const ref = useRef<HTMLDivElement>(null);
@@ -203,15 +203,21 @@ function AddFolderDropdown({ folders, selectedIds, onAdd, onClose }: {
   );
 
   return (
-    <div ref={ref} style={{ position: 'absolute', top: '100%', left: 0, zIndex: 100, marginTop: 4, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, boxShadow: '0 4px 20px rgba(0,0,0,0.15)', width: 270 }}>
+    <div ref={ref} style={{ position: 'absolute', top: '100%', left: 0, zIndex: 100, marginTop: 4, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, boxShadow: '0 4px 20px rgba(0,0,0,0.15)', width: 270 }}>
       <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border)' }}>
         <input autoFocus className="kb-search" placeholder="Search folders…" value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', fontSize: 12 }} />
       </div>
       <div style={{ maxHeight: 260, overflowY: 'auto', padding: '4px 0' }}>
-        {rootEntry && (<>{folderBtn(rootEntry)}{available.length > 0 && <div style={{ height: 1, background: 'var(--border)', margin: '3px 10px' }} />}</>)}
-        {rootEntry === undefined && available.length === 0 ? (
-          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', padding: '10px 14px' }}>{search ? 'No folders match.' : 'All folders already selected.'}</div>
-        ) : available.map(folderBtn)}
+        {loading ? (
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', padding: '12px 14px' }}>Loading folders…</div>
+        ) : (
+          <>
+            {rootEntry && (<>{folderBtn(rootEntry)}{available.length > 0 && <div style={{ height: 1, background: 'var(--border)', margin: '3px 10px' }} />}</>)}
+            {rootEntry === undefined && available.length === 0 ? (
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', padding: '10px 14px' }}>{search ? 'No folders match.' : 'All folders already selected.'}</div>
+            ) : available.map(folderBtn)}
+          </>
+        )}
       </div>
     </div>
   );
@@ -398,7 +404,19 @@ export function DriveIntegrationPanel({ groupId }: DriveIntegrationPanelProps) {
     setSelectedFolderIds(new Set(integration?.sync_folder_ids ?? []));
   }, [integration?.sync_folder_ids?.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Lazy-load folder names for chips
+  // Auto-fetch folders when entering setup mode (just connected, no scope set yet)
+  useEffect(() => {
+    if (!isSetupMode || availableFolders.length > 0 || loadingFolders) return;
+    setLoadingFolders(true);
+    fetchFolders()
+      .then((folders) => {
+        setAvailableFolders(folders);
+        setFolderNames(new Map(folders.map((f) => [f.id, f.name])));
+      })
+      .finally(() => setLoadingFolders(false));
+  }, [isSetupMode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Lazy-load folder names for chips when already connected with a scope
   useEffect(() => {
     if (!integration || availableFolders.length > 0) return;
     const ids = integration.sync_folder_ids;
@@ -563,7 +581,7 @@ export function DriveIntegrationPanel({ groupId }: DriveIntegrationPanelProps) {
       <div style={{ overflow: 'hidden' }}>
         <FolderSetupScreen
           folders={availableFolders}
-          loading={loadingFolders || availableFolders.length === 0}
+          loading={loadingFolders}
           onSave={handleSetupSave}
           onSyncAll={handleSyncAll}
           saving={savingFolders}
@@ -648,7 +666,8 @@ export function DriveIntegrationPanel({ groupId }: DriveIntegrationPanelProps) {
                 </button>
                 {addFolderOpen && (
                   <AddFolderDropdown
-                    folders={loadingFolders ? [] : availableFolders}
+                    folders={availableFolders}
+                    loading={loadingFolders}
                     selectedIds={selectedFolderIds}
                     onAdd={handleAddFolder}
                     onClose={() => setAddFolderOpen(false)}
