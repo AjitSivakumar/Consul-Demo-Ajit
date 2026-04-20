@@ -387,6 +387,20 @@ export default async function handler(req, res) {
     }
   }
 
+  // Get the true total active doc count for this group
+  let totalDocCount = synced;
+  try {
+    const countRes = await fetch(
+      `${supabaseUrl}/rest/v1/group_documents?group_id=eq.${encodeURIComponent(groupId)}&is_active=eq.true`,
+      { method: 'HEAD', headers: { ...SUPABASE_HEADERS(serviceRoleKey), Prefer: 'count=exact' } }
+    );
+    const range = countRes.headers.get('content-range');
+    if (range) {
+      const parsed = parseInt(range.split('/')[1]);
+      if (!isNaN(parsed)) totalDocCount = parsed;
+    }
+  } catch { /* non-fatal */ }
+
   // Update integration metadata
   try {
     await fetch(
@@ -397,7 +411,7 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           changes_page_token: newStartPageToken,
           last_synced_at: new Date().toISOString(),
-          doc_count: synced,
+          doc_count: totalDocCount,
           status: 'connected',
         }),
       }

@@ -36,7 +36,6 @@ export function useDriveIntegration(groupId: string) {
   const [justConnected, setJustConnected] = useState<boolean>(false);
 
   const getAuthHeader = useCallback(async (): Promise<string> => {
-    // Prefer the session already in context; fall back to a fresh getSession call.
     if (session?.access_token) {
       return `Bearer ${session.access_token}`;
     }
@@ -46,25 +45,18 @@ export function useDriveIntegration(groupId: string) {
 
   const loadStatus = useCallback(async () => {
     if (!groupId) return;
-
     setLoading(true);
     setError(null);
-
     try {
       const authHeader = await getAuthHeader();
-
       const response = await fetch(
         `/api/integrations/google-drive/status?groupId=${encodeURIComponent(groupId)}`,
-        {
-          headers: { Authorization: authHeader },
-        }
+        { headers: { Authorization: authHeader } }
       );
-
       if (!response.ok) {
         const text = await response.text();
         throw new Error(text || `Status ${response.status}`);
       }
-
       const data = await response.json();
       setIntegration(data.integration ?? null);
       setDocuments(data.documents ?? []);
@@ -79,46 +71,30 @@ export function useDriveIntegration(groupId: string) {
 
   const connect = useCallback(async () => {
     const { data, error: userError } = await supabase?.auth.getUser() ?? { data: { user: null }, error: new Error('No supabase') };
-
     if (userError || !data.user) {
       setError('You must be signed in to connect Google Drive.');
       return;
     }
-
-    const params = new URLSearchParams({
-      groupId,
-      userId: data.user.id,
-    });
-
+    const params = new URLSearchParams({ groupId, userId: data.user.id });
     window.location.href = `/api/integrations/google-drive/connect?${params.toString()}`;
   }, [groupId]);
 
   const sync = useCallback(async (): Promise<SyncResult | null> => {
     setSyncing(true);
     setError(null);
-
     try {
       const authHeader = await getAuthHeader();
-
       const response = await fetch('/api/integrations/google-drive/sync', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: authHeader,
-        },
+        headers: { 'Content-Type': 'application/json', Authorization: authHeader },
         body: JSON.stringify({ groupId }),
       });
-
       if (!response.ok) {
         const text = await response.text();
         throw new Error(text || `Sync failed with status ${response.status}`);
       }
-
       const result: SyncResult = await response.json();
-
-      // Refresh status after a successful sync
       await loadStatus();
-
       return result;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Sync failed';
@@ -147,9 +123,14 @@ export function useDriveIntegration(groupId: string) {
 
   const saveFolderSelection = useCallback(async (folderIds: string[]): Promise<void> => {
     if (!supabase) return;
+    // Reset changes_page_token so the next sync does a full scan with the new scope,
+    // instead of an incremental scan that may surface files from the old scope.
     await supabase
       .from('group_integrations')
-      .update({ sync_folder_ids: folderIds.length > 0 ? folderIds : null })
+      .update({
+        sync_folder_ids: folderIds.length > 0 ? folderIds : null,
+        changes_page_token: null,
+      })
       .eq('group_id', groupId)
       .eq('provider', 'google_drive');
     await loadStatus();
@@ -157,15 +138,29 @@ export function useDriveIntegration(groupId: string) {
 
   const excludeDocument = useCallback(async (docId: string): Promise<void> => {
     if (!supabase) return;
-    await supabase
-      .from('group_documents')
-      .update({ is_active: false })
-      .eq('id', docId);
+    await supabase.from('group_documents').update({ is_active: false }).eq('id', docId);
   }, []);
+
+  const deleteDocuments = useCallback(async (ids: string[]): Promise<void> => {
+    if (!supabase || ids.length === 0) return;
+    await supabase.from('group_documents').delete().in('id', ids);
+    await loadStatus();
+  }, [loadStatus]);
+
+  const clearDocuments = useCallback(async (): Promise<void> => {
+    if (!supabase) return;
+    await supabase.from('group_documents').delete().eq('group_id', groupId);
+    // Also reset the changes token so the next sync re-indexes everything
+    await supabase
+      .from('group_integrations')
+      .update({ changes_page_token: null, doc_count: 0 })
+      .eq('group_id', groupId)
+      .eq('provider', 'google_drive');
+    await loadStatus();
+  }, [groupId, loadStatus]);
 
   const disconnect = useCallback(async () => {
     setError(null);
-
     try {
       if (!supabase) return;
       const { error: deleteError } = await supabase
@@ -173,11 +168,7 @@ export function useDriveIntegration(groupId: string) {
         .delete()
         .eq('group_id', groupId)
         .eq('provider', 'google_drive');
-
-      if (deleteError) {
-        throw new Error(deleteError.message);
-      }
-
+      if (deleteError) throw new Error(deleteError.message);
       await loadStatus();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Disconnect failed';
@@ -186,17 +177,12 @@ export function useDriveIntegration(groupId: string) {
     }
   }, [groupId, loadStatus]);
 
-  // On mount: load status, and auto-sync if returning from OAuth flow
   useEffect(() => {
     if (!groupId) return;
-
     loadStatus();
-
     const searchParams = new URLSearchParams(window.location.search);
     if (searchParams.get('drive') === 'connected') {
-      const cleanUrl = window.location.pathname;
-      window.history.replaceState({}, '', cleanUrl);
-      // Signal panel to show folder setup instead of auto-syncing everything
+      window.history.replaceState({}, '', window.location.pathname);
       setJustConnected(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -216,6 +202,8 @@ export function useDriveIntegration(groupId: string) {
     fetchFolders,
     saveFolderSelection,
     excludeDocument,
+    deleteDocuments,
+    clearDocuments,
     reload: loadStatus,
   };
 }

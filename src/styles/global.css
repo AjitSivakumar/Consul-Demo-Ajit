@@ -5304,3 +5304,143 @@ h1 em {
   font-size: 11px; font-weight: 600; text-transform: uppercase;
   letter-spacing: 0.06em; color: var(--text-secondary);
 }
+
+/* ── DriveIntegrationPanel grid layout ─────────────────────────────────────── */
+
+.kb-grid-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.kb-top-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 860px) {
+  .kb-top-row { grid-template-columns: 1fr; }
+}
+
+.kb-mini-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.kb-mini-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-subtle);
+}
+
+.kb-mini-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+}
+
+.kb-mini-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+}
+
+.kb-docs-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.kb-docs-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-subtle);
+  flex-wrap: wrap;
+}
+
+.kb-bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: rgba(168,85,247,0.05);
+  border-bottom: 1px solid rgba(168,85,247,0.15);
+}
+
+.kb-bulk-btn {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.kb-bulk-btn:hover { background: var(--bg-subtle); }
+.kb-bulk-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.kb-bulk-btn--danger {
+  color: var(--danger);
+  border-color: rgba(139,27,27,0.3);
+}
+.kb-bulk-btn--danger:hover { background: rgba(139,27,27,0.06); }
+
+.kb-doc-thead {
+  display: grid;
+  grid-template-columns: 36px 32px 1fr 100px 80px 60px 100px;
+  align-items: center;
+  padding: 6px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-subtle);
+}
+
+.kb-doc-rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.kb-doc-row {
+  display: grid;
+  grid-template-columns: 36px 32px 1fr 100px 80px 60px 100px;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background 0.1s;
+  min-height: 52px;
+}
+.kb-doc-row:hover { background: rgba(168,85,247,0.03); }
+
+.kb-row-action-btn {
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  white-space: nowrap;
+}
+.kb-row-action-btn:hover { background: var(--bg-subtle); color: var(--text-primary); border-color: var(--text-tertiary); }
+
+.kb-row-action-btn--danger {
+  color: var(--danger);
+  border-color: rgba(139,27,27,0.25);
+}
+.kb-row-action-btn--danger:hover { background: rgba(139,27,27,0.06); border-color: var(--danger); }
