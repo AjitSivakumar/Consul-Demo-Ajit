@@ -5997,7 +5997,7 @@ h1 em {
 /* ── Product cards ── matches lp-feature-card */
 .mk-product-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 0;
   border: 1px solid #e8e6e0;
 }
@@ -6011,7 +6011,7 @@ h1 em {
 }
 
 .mk-product-card:hover { background: rgba(168,85,247,0.03); }
-.mk-product-card:nth-child(2) { border-right: none; }
+.mk-product-card:nth-child(3) { border-right: none; }
 
 .mk-product-card-wide {
   grid-column: 1 / -1;
