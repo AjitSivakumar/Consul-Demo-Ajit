@@ -29,6 +29,7 @@ export function PasswordGate({ children }: PasswordGateProps): React.JSX.Element
     <div className="pg-overlay">
       <div className="pg-modal">
         <div className="pg-logo-wrap">
+          <img src="/logo.svg" alt="ambi" className="pg-nav-logo" />
           <span className="pg-wordmark">ambi</span>
         </div>
         <h2 className="pg-title">Demo Access</h2>

@@ -56,6 +56,7 @@ export function MarketingPage(): React.JSX.Element {
       <nav className="mk-nav">
         <div className="mk-nav-inner">
           <a href="/" className="mk-logo-link">
+            <img src="/logo.svg" alt="ambi" className="mk-nav-logo" />
             <span className="mk-wordmark">ambi</span>
           </a>
           <div className="mk-nav-links">
@@ -98,7 +99,11 @@ export function MarketingPage(): React.JSX.Element {
       {/* ── Product ── */}
       <section className="mk-section" id="product">
         <div className="mk-section-inner">
-          <span className="mk-eyebrow">What Is ambi</span>
+          <div className="mk-section-hdr">
+            <span className="mk-section-hdr-num">01</span>
+            <span className="mk-section-hdr-name">Product</span>
+            <span className="mk-section-hdr-rule" />
+          </div>
           <h2 className="mk-section-heading">
             CRM captured what happened.<br />ambi changes what happens.
           </h2>
@@ -147,8 +152,12 @@ export function MarketingPage(): React.JSX.Element {
       {/* ── How It Works ── */}
       <section className="mk-section mk-section-alt" id="how-it-works">
         <div className="mk-section-inner">
-          <span className="mk-eyebrow">Three Steps. Zero Friction.</span>
-          <h2 className="mk-section-heading">How It Works</h2>
+          <div className="mk-section-hdr">
+            <span className="mk-section-hdr-num">02</span>
+            <span className="mk-section-hdr-name">How It Works</span>
+            <span className="mk-section-hdr-rule" />
+          </div>
+          <h2 className="mk-section-heading">Three steps. Zero friction.</h2>
           <p className="mk-section-sub">
             ambi works across Zoom, Google Meet, Teams, Webex, Slack, and GoTo — one API, every major platform.
           </p>
@@ -175,8 +184,12 @@ export function MarketingPage(): React.JSX.Element {
       {/* ── Integrations ── */}
       <section className="mk-section" id="integrations">
         <div className="mk-section-inner">
-          <span className="mk-eyebrow">One Platform. Every Stack.</span>
-          <h2 className="mk-section-heading">Built to fit where you already work.</h2>
+          <div className="mk-section-hdr">
+            <span className="mk-section-hdr-num">03</span>
+            <span className="mk-section-hdr-name">Integrations</span>
+            <span className="mk-section-hdr-rule" />
+          </div>
+          <h2 className="mk-section-heading">One platform. Every stack.</h2>
           <p className="mk-section-sub">
             ambi connects to the meeting platforms, knowledge systems, and data sources your team already relies on — with enterprise-grade security and VAPT-assessed compliance infrastructure.
           </p>
@@ -202,11 +215,15 @@ export function MarketingPage(): React.JSX.Element {
       {/* ── Traction ── */}
       <section className="mk-section mk-section-alt" id="traction">
         <div className="mk-section-inner">
-          <span className="mk-eyebrow">Validated Across Every Target Vertical.</span>
+          <div className="mk-section-hdr">
+            <span className="mk-section-hdr-num">04</span>
+            <span className="mk-section-hdr-name">Traction</span>
+            <span className="mk-section-hdr-rule" />
+          </div>
           <h2 className="mk-section-heading">
-            From hospital strategy rooms to financial services to edtech —<br />the signal is consistent.
+            Validated across every target vertical.
           </h2>
-          <p className="mk-section-sub">The problem is universal, and the trust is already there.</p>
+          <p className="mk-section-sub">From hospital strategy rooms to financial services to edtech — the signal is consistent. The problem is universal, and the trust is already there.</p>
           <div className="mk-stats-hero">
             <div className="mk-traction-stat">
               <span className="mk-traction-num">3</span>

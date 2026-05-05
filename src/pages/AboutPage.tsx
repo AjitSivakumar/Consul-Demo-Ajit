@@ -30,6 +30,7 @@ export function AboutPage(): React.JSX.Element {
       <nav className="mk-nav">
         <div className="mk-nav-inner">
           <Link to="/" className="mk-logo-link">
+            <img src="/logo.svg" alt="ambi" className="mk-nav-logo" />
             <span className="mk-wordmark">ambi</span>
           </Link>
           <div className="mk-nav-links" style={{ marginLeft: 'auto' }}>
@@ -98,7 +99,8 @@ export function AboutPage(): React.JSX.Element {
       <footer className="mk-footer">
         <div className="mk-footer-inner">
           <div className="mk-footer-brand">
-            <Link to="/" style={{ textDecoration: 'none' }}>
+            <Link to="/" className="mk-logo-link">
+              <img src="/logo.svg" alt="ambi" className="mk-nav-logo" />
               <span className="mk-wordmark">ambi</span>
             </Link>
             <span className="mk-footer-tagline">Ambient intelligence for the rooms that matter.</span>
